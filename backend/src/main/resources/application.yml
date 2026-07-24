@@ -1,6 +1,12 @@
 spring:
   application:
     name: weather-app-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/weather
+    username: weather
+    password: weather
+  flyway:
+    locations: classpath:db/migration
 
 server:
   port: 8080
