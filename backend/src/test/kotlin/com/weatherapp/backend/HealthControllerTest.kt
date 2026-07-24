@@ -6,7 +6,14 @@ import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.web.client.RestClient
 import kotlin.test.assertEquals
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = [
+        "spring.autoconfigure.exclude=" +
+            "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
+            "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration",
+    ],
+)
 class HealthControllerTest {
 
     @LocalServerPort
