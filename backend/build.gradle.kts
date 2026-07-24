@@ -28,6 +28,11 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
+    // Loads backend/.env for local dev only - real env vars always win,
+    // and it's excluded from the packaged jar (developmentOnly).
+    developmentOnly(platform("me.paulschwarz:spring-dotenv-bom:5.1.0"))
+    developmentOnly("me.paulschwarz:springboot4-dotenv")
+
     testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
