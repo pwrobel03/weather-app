@@ -11,10 +11,12 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.http.HttpHeaders
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.RestClient
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @SpringBootTest(
@@ -62,6 +64,29 @@ class ForecastControllerTest {
 
         assertTrue(body.contains("\"temperatureMaxCelsius\":7.2"))
         assertTrue(body.contains("\"temperatureMinCelsius\":2.1"))
+    }
+
+    @Test
+    fun `sets cache-control and supports conditional requests via etag`() {
+        stubUpstreamResponse()
+        val client = RestClient.create("http://localhost:$port")
+
+        val first = client.get()
+            .uri("/api/forecast/current?latitude=52.23&longitude=21.01")
+            .retrieve()
+            .toEntity(String::class.java)
+
+        assertEquals("max-age=300", first.headers.cacheControl)
+        val etag = first.headers.eTag
+        assertNotNull(etag)
+
+        val second = client.get()
+            .uri("/api/forecast/current?latitude=52.23&longitude=21.01")
+            .header(HttpHeaders.IF_NONE_MATCH, etag)
+            .retrieve()
+            .toBodilessEntity()
+
+        assertEquals(304, second.statusCode.value())
     }
 
     @Test
