@@ -1,3 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Next.js (image optimization) and ESLint (import resolution) run native
+# postinstall builds for these — known-safe, explicitly allowed.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
