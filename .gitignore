@@ -1,0 +1,134 @@
+# ---------- sekrety ----------
+# Nigdy nie commituj kluczy. Wzorce trzymamy w .env.example (śledzonym).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+secrets.properties
+google-services.json
+GoogleService-Info.plist
+
+# ---------- system / edytory ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+*.swp
+*~
+
+.idea/
+*.iml
+*.iws
+*.ipr
+.fleet/
+
+# VS Code: konfiguracja zespołowa zostaje, ustawienia lokalne nie
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# ---------- Node / TypeScript (Expo + Next.js) ----------
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/versions
+
+dist/
+build/
+out/
+*.tsbuildinfo
+.eslintcache
+.turbo/
+
+# Next.js
+.next/
+next-env.d.ts
+
+# Expo / React Native
+.expo/
+.expo-shared/
+web-build/
+*.orig.*
+ios/Pods/
+ios/build/
+ios/.xcode.env.local
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+*.hprof
+
+# Metro
+.metro-health-check*
+metro.config.js.bak
+
+# ---------- Kotlin / Gradle (backend) ----------
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+**/build/
+!src/**/build/
+.kotlin/
+gradle-app.setting
+.gradletasknamecache
+
+# Maven (gdyby zaszła potrzeba)
+target/
+.mvn/timing.properties
+
+# ---------- baza / infrastruktura ----------
+# Wolumeny Postgresa montowane lokalnie przez docker-compose
+.docker/
+docker-data/
+pgdata/
+*.dump
+*.sql.gz
+
+# ---------- artefakty generowane ----------
+# Klient TS generowany z OpenAPI — źródłem prawdy jest specyfikacja, nie wynik
+**/generated/
+**/__generated__/
+openapi-client/
+
+# Granice powiatów pobierane skryptem (duże, odtwarzalne)
+data/boundaries/
+*.shp
+*.shx
+*.dbf
+*.gpkg
+
+# ---------- testy / raporty ----------
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+*.lcov
+
+# ---------- logi ----------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- narzędzia ----------
+# Wyjście skilla graphify
+graphify-out/
+.graphify_*
+
+# Raporty skilla refactoring są jednorazowe
+refactoring.md
+
