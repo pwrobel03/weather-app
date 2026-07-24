@@ -15,6 +15,14 @@ class ForecastController(private val forecastService: ForecastService) {
     fun current(@RequestParam latitude: Double, @RequestParam longitude: Double): CurrentConditions =
         forecastService.getForecast(latitude, longitude).current
 
+    @GetMapping("/api/forecast/hourly")
+    fun hourly(@RequestParam latitude: Double, @RequestParam longitude: Double): List<HourlyForecastEntry> =
+        forecastService.getForecast(latitude, longitude).hourly
+
+    @GetMapping("/api/forecast/daily")
+    fun daily(@RequestParam latitude: Double, @RequestParam longitude: Double): List<DailyForecastEntry> =
+        forecastService.getForecast(latitude, longitude).daily
+
     @ExceptionHandler(OpenMeteoClientException::class, IncompleteForecastResponseException::class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     fun handleUpstreamFailure(ex: RuntimeException): Map<String, String?> = mapOf("error" to ex.message)

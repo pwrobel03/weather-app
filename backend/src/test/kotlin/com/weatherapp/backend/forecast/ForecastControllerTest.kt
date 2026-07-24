@@ -35,6 +35,51 @@ class ForecastControllerTest {
 
     @Test
     fun `returns current conditions for a coordinate`() {
+        stubUpstreamResponse()
+
+        val body = get("/api/forecast/current?latitude=52.23&longitude=21.01")
+
+        assertTrue(body.contains("\"temperatureCelsius\":5.3"))
+        assertTrue(body.contains("\"weatherCode\":3"))
+    }
+
+    @Test
+    fun `returns hourly forecast entries for a coordinate`() {
+        stubUpstreamResponse()
+
+        val body = get("/api/forecast/hourly?latitude=52.23&longitude=21.01")
+
+        assertTrue(body.contains("\"temperatureCelsius\":5.3"))
+        assertTrue(body.contains("\"temperatureCelsius\":4.8"))
+        assertTrue(body.contains("\"precipitationProbabilityPercent\":20"))
+    }
+
+    @Test
+    fun `returns daily forecast entries for a coordinate`() {
+        stubUpstreamResponse()
+
+        val body = get("/api/forecast/daily?latitude=52.23&longitude=21.01")
+
+        assertTrue(body.contains("\"temperatureMaxCelsius\":7.2"))
+        assertTrue(body.contains("\"temperatureMinCelsius\":2.1"))
+    }
+
+    @Test
+    fun `returns 502 when the upstream client fails`() {
+        whenever(openMeteoClient.fetchForecast(any(), any()))
+            .thenThrow(OpenMeteoClientException("boom"))
+
+        val exception = org.junit.jupiter.api.assertThrows<HttpServerErrorException> {
+            get("/api/forecast/current?latitude=52.23&longitude=21.01")
+        }
+
+        assertEquals(502, exception.statusCode.value())
+    }
+
+    private fun get(uri: String): String =
+        RestClient.create("http://localhost:$port").get().uri(uri).retrieve().body(String::class.java)!!
+
+    private fun stubUpstreamResponse() {
         whenever(openMeteoClient.fetchForecast(any(), any())).thenReturn(
             OpenMeteoForecastResponse(
                 latitude = 52.23,
@@ -49,34 +94,20 @@ class ForecastControllerTest {
                     weatherCode = 3,
                     windSpeed10m = 12.4,
                 ),
-                hourly = HourlyForecast(emptyList(), emptyList(), emptyList(), emptyList()),
-                daily = DailyForecast(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()),
+                hourly = HourlyForecast(
+                    time = listOf("2026-07-25T00:00", "2026-07-25T01:00"),
+                    temperature2m = listOf(5.3, 4.8),
+                    precipitationProbability = listOf(10, 20),
+                    weatherCode = listOf(3, 3),
+                ),
+                daily = DailyForecast(
+                    time = listOf("2026-07-25"),
+                    temperature2mMax = listOf(7.2),
+                    temperature2mMin = listOf(2.1),
+                    weatherCode = listOf(3),
+                    precipitationSum = listOf(0.0),
+                ),
             ),
         )
-
-        val client = RestClient.create("http://localhost:$port")
-        val body = client.get()
-            .uri("/api/forecast/current?latitude=52.23&longitude=21.01")
-            .retrieve()
-            .body(String::class.java)
-
-        assertTrue(body!!.contains("\"temperatureCelsius\":5.3"))
-        assertTrue(body.contains("\"weatherCode\":3"))
-    }
-
-    @Test
-    fun `returns 502 when the upstream client fails`() {
-        whenever(openMeteoClient.fetchForecast(any(), any()))
-            .thenThrow(OpenMeteoClientException("boom"))
-
-        val client = RestClient.create("http://localhost:$port")
-        val exception = org.junit.jupiter.api.assertThrows<HttpServerErrorException> {
-            client.get()
-                .uri("/api/forecast/current?latitude=52.23&longitude=21.01")
-                .retrieve()
-                .body(String::class.java)
-        }
-
-        assertEquals(502, exception.statusCode.value())
     }
 }
