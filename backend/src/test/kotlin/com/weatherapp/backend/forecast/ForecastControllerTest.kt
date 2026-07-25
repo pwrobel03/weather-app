@@ -6,11 +6,14 @@ import com.weatherapp.backend.openmeteo.HourlyForecast
 import com.weatherapp.backend.openmeteo.OpenMeteoClient
 import com.weatherapp.backend.openmeteo.OpenMeteoClientException
 import com.weatherapp.backend.openmeteo.OpenMeteoForecastResponse
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.cache.CacheManager
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.client.HttpServerErrorException
@@ -34,6 +37,14 @@ class ForecastControllerTest {
 
     @MockitoBean
     lateinit var openMeteoClient: OpenMeteoClient
+
+    @Autowired
+    lateinit var cacheManager: CacheManager
+
+    @BeforeEach
+    fun clearCaches() {
+        cacheManager.cacheNames.forEach { cacheManager.getCache(it)?.clear() }
+    }
 
     @Test
     fun `returns current conditions for a coordinate`() {

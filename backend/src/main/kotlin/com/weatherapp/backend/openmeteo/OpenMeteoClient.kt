@@ -1,5 +1,6 @@
 package com.weatherapp.backend.openmeteo
 
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
@@ -13,6 +14,7 @@ class OpenMeteoClient(
 
     private val restClient = restClientBuilder.baseUrl(properties.baseUrl).build()
 
+    @Cacheable(OpenMeteoCachingConfig.CACHE_NAME)
     fun fetchForecast(latitude: Double, longitude: Double): OpenMeteoForecastResponse {
         try {
             return restClient.get()
