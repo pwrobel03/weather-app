@@ -66,7 +66,35 @@ class SavedLocationControllerTest {
     @BeforeEach
     fun setUp() {
         jdbcTemplate.update("TRUNCATE users CASCADE")
+        jdbcTemplate.update("TRUNCATE powiat_boundary")
+        // Real TERYT code, synthetic geometry - same approach as
+        // PowiatBoundaryRepositoryTest (see commit 24).
+        jdbcTemplate.update(
+            """
+            INSERT INTO powiat_boundary (teryt_code, name, voivodeship, boundary)
+            VALUES ('1465', 'powiat Warszawa', 'mazowieckie',
+                    ST_GeogFromText('MULTIPOLYGON(((20.99 52.21, 20.99 52.25, 21.03 52.25, 21.03 52.21, 20.99 52.21)))'))
+            """.trimIndent(),
+        )
         client = RestClient.create("http://localhost:$port")
+    }
+
+    @Test
+    fun `resolves and stores the teryt code for a known coordinate`() {
+        val token = registerAndGetAccessToken("teryt@example.com")
+
+        val created = save(token, "Dom", 52.23, 21.01)
+
+        assertEquals("1465", created.terytCode)
+    }
+
+    @Test
+    fun `stores a null teryt code for coordinates outside all known boundaries`() {
+        val token = registerAndGetAccessToken("abroad@example.com")
+
+        val created = save(token, "Zagranica", 0.0, 0.0)
+
+        assertEquals(null, created.terytCode)
     }
 
     @Test
