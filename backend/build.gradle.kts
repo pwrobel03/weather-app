@@ -25,6 +25,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-restclient")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("com.github.ben-manes.caffeine:caffeine")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
@@ -45,4 +46,23 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.register("generateOpenApiDocs") {
+    group = "documentation"
+    description = "Generates OpenAPI specification as a build artifact at build/openapi/openapi.json"
+    dependsOn(tasks.test)
+    doLast {
+        val specFile = file("build/openapi/openapi.json")
+        if (!specFile.exists()) {
+            throw GradleException(
+                "OpenAPI specification was not found at ${specFile.absolutePath}. Ensure OpenApiGeneratorTest passes.",
+            )
+        }
+        logger.lifecycle("OpenAPI specification available at: ${specFile.absolutePath}")
+    }
+}
+
+tasks.register("generateOpenApi") {
+    dependsOn("generateOpenApiDocs")
 }
