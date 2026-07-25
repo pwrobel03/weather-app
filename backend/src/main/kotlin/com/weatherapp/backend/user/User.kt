@@ -7,5 +7,14 @@ data class User(
     val email: String,
     val passwordHash: String,
     val displayName: String?,
+    val temperatureUnit: TemperatureUnit,
+    val windSpeedUnit: WindSpeedUnit,
+    val precipitationUnit: PrecipitationUnit,
     val createdAt: Instant,
 )
+
+enum class TemperatureUnit { CELSIUS, FAHRENHEIT }
+
+enum class WindSpeedUnit { KMH, MPH }
+
+enum class PrecipitationUnit { MM, IN }

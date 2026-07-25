@@ -120,6 +120,60 @@ class UserControllerTest {
         assertEquals("me@example.com", user.email)
     }
 
+    @Test
+    fun `defaults to metric preferences on registration`() {
+        val tokens = register("defaults@example.com", "correct-horse-battery")
+
+        val user = me(tokens.accessToken)
+
+        assertEquals(TemperatureUnit.CELSIUS, user.temperatureUnit)
+        assertEquals(WindSpeedUnit.KMH, user.windSpeedUnit)
+        assertEquals(PrecipitationUnit.MM, user.precipitationUnit)
+    }
+
+    @Test
+    fun `updates only the given preference, leaving the rest unchanged`() {
+        val tokens = register("prefs@example.com", "correct-horse-battery")
+
+        val response = client.patch()
+            .uri("/api/users/me/preferences")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokens.accessToken}")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(mapOf("temperatureUnit" to "FAHRENHEIT"))
+            .retrieve()
+            .body(String::class.java)!!
+
+        val updated = objectMapper.readValue<UserResponse>(response)
+        assertEquals(TemperatureUnit.FAHRENHEIT, updated.temperatureUnit)
+        assertEquals(WindSpeedUnit.KMH, updated.windSpeedUnit)
+        assertEquals(PrecipitationUnit.MM, updated.precipitationUnit)
+
+        // persisted, not just returned once
+        assertEquals(TemperatureUnit.FAHRENHEIT, me(tokens.accessToken).temperatureUnit)
+    }
+
+    @Test
+    fun `rejects updating preferences without a token`() {
+        val exception = assertThrows<HttpClientErrorException> {
+            client.patch()
+                .uri("/api/users/me/preferences")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(mapOf("temperatureUnit" to "FAHRENHEIT"))
+                .retrieve()
+                .body(String::class.java)
+        }
+        assertEquals(401, exception.statusCode.value())
+    }
+
+    private fun me(accessToken: String): UserResponse {
+        val body = client.get()
+            .uri("/api/users/me")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer $accessToken")
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readValue<UserResponse>(body)
+    }
+
     private fun register(email: String, password: String): AuthResponse {
         val json = client.post()
             .uri("/api/auth/register")
