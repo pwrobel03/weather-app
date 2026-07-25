@@ -14,3 +14,9 @@ server:
 open-meteo:
   base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
   geocoding-base-url: ${OPEN_METEO_GEOCODING_BASE_URL:https://geocoding-api.open-meteo.com}
+
+jwt:
+  # Dev-only fallback - any real deployment must override via JWT_SECRET.
+  secret: ${JWT_SECRET:local-dev-only-secret-key-please-override-in-any-real-deployment}
+  access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
+  refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:30d}
