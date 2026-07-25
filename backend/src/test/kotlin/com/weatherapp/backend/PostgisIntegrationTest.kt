@@ -61,4 +61,30 @@ class PostgisIntegrationTest {
         )
         assertTrue(result == true)
     }
+
+    @Test
+    fun `powiat_boundary table stores geography and is indexed with gist`() {
+        val insertedId = jdbcTemplate.queryForObject(
+            """
+            INSERT INTO powiat_boundary (teryt_code, name, voivodeship, boundary)
+            VALUES ('1465', 'Warszawa', 'mazowieckie', ST_GeogFromText('MULTIPOLYGON(((0 0, 0 1, 1 1, 1 0, 0 0)))'))
+            RETURNING id
+            """.trimIndent(),
+            Long::class.java,
+        )
+        assertTrue(insertedId != null && insertedId > 0)
+
+        val hasGistIndex = jdbcTemplate.queryForObject(
+            "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE tablename = 'powiat_boundary' AND indexdef ILIKE '%USING gist%')",
+            Boolean::class.java,
+        )
+        assertTrue(hasGistIndex == true)
+
+        val containsPoint = jdbcTemplate.queryForObject(
+            "SELECT ST_Contains(boundary::geometry, ST_SetSRID(ST_MakePoint(0.5, 0.5), 4326)) FROM powiat_boundary WHERE id = ?",
+            Boolean::class.java,
+            insertedId,
+        )
+        assertTrue(containsPoint == true)
+    }
 }
