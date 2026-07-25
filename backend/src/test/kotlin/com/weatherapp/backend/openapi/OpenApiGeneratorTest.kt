@@ -32,6 +32,7 @@ class OpenApiGeneratorTest {
         assertTrue(json.contains("\"openapi\":"), "Response should be a valid OpenAPI JSON document")
         assertTrue(json.contains("Weather App API"), "Response should contain API title")
         assertTrue(json.contains("/api/forecast/current"), "Response should contain current conditions endpoint")
+        assertTrue(json.contains("/api/locations/search"), "Response should contain location search endpoint")
 
         val outputDir = File("build/openapi").apply { mkdirs() }
         File(outputDir, "openapi.json").writeText(json)

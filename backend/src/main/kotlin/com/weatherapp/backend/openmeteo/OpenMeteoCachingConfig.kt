@@ -13,12 +13,12 @@ import java.util.concurrent.TimeUnit
 class OpenMeteoCachingConfig {
 
     /**
-     * In-memory cache for upstream Open-Meteo responses, avoiding repeated
-     * external HTTP requests for the same coordinates within a short timeframe.
+     * In-memory cache for upstream Open-Meteo responses (both weather forecast
+     * and geocoding location lookups), avoiding repeated external HTTP requests.
      */
     @Bean
     fun openMeteoCacheManager(): CacheManager =
-        CaffeineCacheManager(CACHE_NAME).apply {
+        CaffeineCacheManager(CACHE_NAME, GEOCODING_CACHE_NAME).apply {
             setCaffeine(
                 Caffeine.newBuilder()
                     .maximumSize(500)
@@ -28,5 +28,6 @@ class OpenMeteoCachingConfig {
 
     companion object {
         const val CACHE_NAME = "open-meteo-forecasts"
+        const val GEOCODING_CACHE_NAME = "open-meteo-geocoding"
     }
 }

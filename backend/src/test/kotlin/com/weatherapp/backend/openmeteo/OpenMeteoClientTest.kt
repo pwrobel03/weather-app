@@ -21,7 +21,10 @@ class OpenMeteoClientTest {
     fun setUp() {
         val builder = RestClient.builder()
         mockServer = MockRestServiceServer.bindTo(builder).build()
-        client = OpenMeteoClient(builder, OpenMeteoProperties(baseUrl = BASE_URL))
+        client = OpenMeteoClient(
+            builder,
+            OpenMeteoProperties(baseUrl = BASE_URL, geocodingBaseUrl = GEOCODING_BASE_URL),
+        )
     }
 
     @Test
@@ -47,8 +50,32 @@ class OpenMeteoClientTest {
         assertThrows<OpenMeteoClientException> { client.fetchForecast(52.23, 21.01) }
     }
 
+    @Test
+    fun `maps a successful geocoding response`() {
+        mockServer.expect(requestTo(startsWith("$GEOCODING_BASE_URL/v1/search")))
+            .andRespond(withSuccess(GEOCODING_JSON, MediaType.APPLICATION_JSON))
+
+        val response = client.searchLocations("Warszawa", 10, "pl")
+
+        assertEquals(1, response.results?.size)
+        val result = response.results?.first()!!
+        assertEquals(756135L, result.id)
+        assertEquals("Warszawa", result.name)
+        assertEquals("PL", result.countryCode)
+        assertEquals("Województwo Mazowieckie", result.admin1)
+    }
+
+    @Test
+    fun `wraps geocoding errors in a client exception`() {
+        mockServer.expect(requestTo(startsWith("$GEOCODING_BASE_URL/v1/search")))
+            .andRespond(withServerError())
+
+        assertThrows<OpenMeteoClientException> { client.searchLocations("Warszawa", 10, "pl") }
+    }
+
     private companion object {
         const val BASE_URL = "https://api.open-meteo.com"
+        const val GEOCODING_BASE_URL = "https://geocoding-api.open-meteo.com"
 
         @Suppress("ktlint:standard:max-line-length")
         const val FORECAST_JSON = """
@@ -78,6 +105,29 @@ class OpenMeteoClientTest {
                 "weather_code": [3],
                 "precipitation_sum": [0.0]
               }
+            }
+        """
+
+        @Suppress("ktlint:standard:max-line-length")
+        const val GEOCODING_JSON = """
+            {
+              "results": [
+                {
+                  "id": 756135,
+                  "name": "Warszawa",
+                  "latitude": 52.22977,
+                  "longitude": 21.01178,
+                  "elevation": 113.0,
+                  "feature_code": "PPLC",
+                  "country_code": "PL",
+                  "timezone": "Europe/Warsaw",
+                  "country_id": 798544,
+                  "country": "Polska",
+                  "admin1": "Województwo Mazowieckie",
+                  "admin2": "Warszawa"
+                }
+              ],
+              "generationtime_ms": 0.35
             }
         """
     }

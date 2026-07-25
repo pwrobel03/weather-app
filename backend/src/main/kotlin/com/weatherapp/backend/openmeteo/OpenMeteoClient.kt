@@ -12,7 +12,8 @@ class OpenMeteoClient(
     properties: OpenMeteoProperties,
 ) {
 
-    private val restClient = restClientBuilder.baseUrl(properties.baseUrl).build()
+    private val restClient = restClientBuilder.clone().baseUrl(properties.baseUrl).build()
+    private val geocodingClient = restClientBuilder.clone().baseUrl(properties.geocodingBaseUrl).build()
 
     @Cacheable(OpenMeteoCachingConfig.CACHE_NAME)
     fun fetchForecast(latitude: Double, longitude: Double): OpenMeteoForecastResponse {
@@ -34,6 +35,28 @@ class OpenMeteoClient(
         } catch (ex: RestClientException) {
             throw OpenMeteoClientException(
                 "Failed to fetch forecast from Open-Meteo for ($latitude, $longitude)",
+                ex,
+            )
+        }
+    }
+
+    @Cacheable(OpenMeteoCachingConfig.GEOCODING_CACHE_NAME)
+    fun searchLocations(name: String, count: Int = 10, language: String = "pl"): OpenMeteoGeocodingResponse {
+        try {
+            return geocodingClient.get()
+                .uri { builder ->
+                    builder.path("/v1/search")
+                        .queryParam("name", name)
+                        .queryParam("count", count)
+                        .queryParam("language", language)
+                        .build()
+                }
+                .retrieve()
+                .body<OpenMeteoGeocodingResponse>()
+                ?: OpenMeteoGeocodingResponse(emptyList())
+        } catch (ex: RestClientException) {
+            throw OpenMeteoClientException(
+                "Failed to search locations from Open-Meteo for query '$name'",
                 ex,
             )
         }
