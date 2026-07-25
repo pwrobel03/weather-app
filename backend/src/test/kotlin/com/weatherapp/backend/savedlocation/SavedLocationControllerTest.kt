@@ -118,6 +118,45 @@ class SavedLocationControllerTest {
     }
 
     @Test
+    fun `returns an empty list for a user with no saved locations`() {
+        val token = registerAndGetAccessToken("nolocations@example.com")
+
+        assertTrue(list(token).isEmpty())
+    }
+
+    @Test
+    fun `lists multiple saved locations for the same user`() {
+        val token = registerAndGetAccessToken("multi@example.com")
+        save(token, "Dom", 52.23, 21.01)
+        save(token, "Praca", 50.06, 19.94)
+
+        val names = list(token).map { it.name }.toSet()
+
+        assertEquals(setOf("Dom", "Praca"), names)
+    }
+
+    @Test
+    fun `never returns another user's saved locations`() {
+        val aliceToken = registerAndGetAccessToken("isolation-alice@example.com")
+        val bobToken = registerAndGetAccessToken("isolation-bob@example.com")
+        save(aliceToken, "Alicja dom", 52.23, 21.01)
+        save(bobToken, "Bob dom", 50.06, 19.94)
+
+        val aliceLocations = list(aliceToken)
+
+        assertEquals(1, aliceLocations.size)
+        assertEquals("Alicja dom", aliceLocations[0].name)
+    }
+
+    @Test
+    fun `rejects a blank name`() {
+        val token = registerAndGetAccessToken("blankname@example.com")
+
+        val exception = assertThrows<HttpClientErrorException> { save(token, "", 52.23, 21.01) }
+        assertEquals(400, exception.statusCode.value())
+    }
+
+    @Test
     fun `rejects a duplicate save for the same coordinates`() {
         val token = registerAndGetAccessToken("bob@example.com")
         save(token, "Dom", 52.23, 21.01)
@@ -165,6 +204,20 @@ class SavedLocationControllerTest {
 
         // still there for the actual owner
         assertEquals(1, list(ownerToken).size)
+    }
+
+    @Test
+    fun `deleting a location that never existed also 404s`() {
+        val token = registerAndGetAccessToken("neverexisted@example.com")
+
+        val exception = assertThrows<HttpClientErrorException> {
+            client.delete()
+                .uri("/api/users/me/locations/999999")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                .retrieve()
+                .toBodilessEntity()
+        }
+        assertEquals(404, exception.statusCode.value())
     }
 
     private fun registerAndGetAccessToken(email: String): String {
