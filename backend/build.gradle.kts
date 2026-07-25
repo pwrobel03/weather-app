@@ -46,6 +46,10 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // OpenApiGeneratorTest writes build/openapi/openapi.json as a side effect.
+    // Declaring it as an output keeps Gradle's up-to-date check honest: if the
+    // file is missing, `test` reruns even when the sources haven't changed.
+    outputs.file(layout.buildDirectory.file("openapi/openapi.json"))
 }
 
 tasks.register("generateOpenApiDocs") {

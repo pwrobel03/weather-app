@@ -13,16 +13,27 @@ import java.util.concurrent.TimeUnit
 class OpenMeteoCachingConfig {
 
     /**
-     * In-memory cache for upstream Open-Meteo responses (both weather forecast
-     * and geocoding location lookups), avoiding repeated external HTTP requests.
+     * In-memory cache for upstream Open-Meteo responses. Forecasts and
+     * geocoding results are cached with different TTLs — forecasts drift
+     * within minutes, geocoded coordinates barely ever change — so each
+     * cache gets its own Caffeine spec rather than sharing one.
      */
     @Bean
     fun openMeteoCacheManager(): CacheManager =
-        CaffeineCacheManager(CACHE_NAME, GEOCODING_CACHE_NAME).apply {
-            setCaffeine(
+        CaffeineCacheManager().apply {
+            registerCustomCache(
+                CACHE_NAME,
                 Caffeine.newBuilder()
                     .maximumSize(500)
-                    .expireAfterWrite(5, TimeUnit.MINUTES),
+                    .expireAfterWrite(5, TimeUnit.MINUTES)
+                    .build(),
+            )
+            registerCustomCache(
+                GEOCODING_CACHE_NAME,
+                Caffeine.newBuilder()
+                    .maximumSize(500)
+                    .expireAfterWrite(24, TimeUnit.HOURS)
+                    .build(),
             )
         }
 

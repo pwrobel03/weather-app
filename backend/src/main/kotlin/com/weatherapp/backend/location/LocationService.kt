@@ -11,6 +11,10 @@ class LocationService(private val openMeteoClient: OpenMeteoClient) {
         if (trimmed.length < 2) {
             return emptyList()
         }
-        return openMeteoClient.searchLocations(trimmed, limit, language).toDomain()
+        return openMeteoClient.searchLocations(trimmed, limit.coerceIn(1, MAX_LIMIT), language).toDomain()
+    }
+
+    private companion object {
+        const val MAX_LIMIT = 50
     }
 }
