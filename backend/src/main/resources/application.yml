@@ -18,6 +18,11 @@ open-meteo:
 imgw:
   base-url: ${IMGW_BASE_URL:https://danepubliczne.imgw.pl}
 
+alert-ingest:
+  enabled: ${ALERT_INGEST_ENABLED:true}
+  interval: ${ALERT_INGEST_INTERVAL:10m}
+  initial-delay: ${ALERT_INGEST_INITIAL_DELAY:30s}
+
 jwt:
   # Dev-only fallback - any real deployment must override via JWT_SECRET.
   secret: ${JWT_SECRET:local-dev-only-secret-key-please-override-in-any-real-deployment}
