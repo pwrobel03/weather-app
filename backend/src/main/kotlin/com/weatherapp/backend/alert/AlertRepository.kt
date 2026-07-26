@@ -1,5 +1,6 @@
 package com.weatherapp.backend.alert
 
+import com.weatherapp.backend.meteoalarm.CapEnrichment
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -67,6 +68,35 @@ class AlertRepository(private val jdbcTemplate: JdbcTemplate) {
     }
 
     fun findByImgwId(imgwId: String): Alert? = findIdByImgwId(imgwId)?.let { findById(it) }
+
+    /**
+     * Applies MeteoAlarm's CAP metadata to a stored warning.
+     *
+     * Returns false when the warning is unknown here, which is normal: the
+     * MeteoAlarm feed covers warnings we may not have ingested yet, and it is
+     * not this method's job to invent them.
+     */
+    fun applyCapEnrichment(enrichment: CapEnrichment): Boolean =
+        jdbcTemplate.update(
+            """
+            UPDATE alert SET
+                event_en = ?,
+                cap_severity = ?,
+                cap_urgency = ?,
+                cap_certainty = ?,
+                awareness_level = ?,
+                awareness_type = ?,
+                enriched_at = now()
+            WHERE imgw_id = ?
+            """.trimIndent(),
+            enrichment.eventEn,
+            enrichment.severity,
+            enrichment.urgency,
+            enrichment.certainty,
+            enrichment.awarenessLevel,
+            enrichment.awarenessType,
+            enrichment.imgwId,
+        ) > 0
 
     fun findById(id: Long): Alert? =
         jdbcTemplate.query(

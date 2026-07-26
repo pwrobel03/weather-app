@@ -3,6 +3,8 @@ package com.weatherapp.backend.alert
 import com.weatherapp.backend.imgw.ImgwClient
 import com.weatherapp.backend.imgw.ImgwClientException
 import com.weatherapp.backend.imgw.ImgwWarningResponse
+import com.weatherapp.backend.meteoalarm.CapEnrichmentMapper
+import com.weatherapp.backend.meteoalarm.MeteoAlarmClient
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
@@ -20,7 +22,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `stores every warning in the feed`() {
-        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew(), matchRepository())
+        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper())
 
         val result = service.ingest()
 
@@ -40,6 +42,8 @@ class AlertIngestServiceTest {
             mapper,
             repositoryTreatingAllAsNew(),
             matchRepository(),
+            meteoAlarmClient(),
+            CapEnrichmentMapper(),
         )
 
         val result = service.ingest()
@@ -54,7 +58,7 @@ class AlertIngestServiceTest {
      */
     @Test
     fun `already-known warnings are reported as updates, not arrivals`() {
-        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown(), matchRepository())
+        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper())
 
         val result = service.ingest()
 
@@ -64,7 +68,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `a calm day stores nothing`() {
-        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew(), matchRepository()).ingest()
+        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper()).ingest()
 
         assertEquals(0, result.fetched)
         assertTrue(result.newAlerts.isEmpty())
@@ -78,8 +82,13 @@ class AlertIngestServiceTest {
         }
 
         assertThrows<ImgwClientException> {
-            AlertIngestService(client, mapper, repositoryTreatingAllAsNew(), matchRepository()).ingest()
+            AlertIngestService(client, mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper()).ingest()
         }
+    }
+
+    /** Enrichment is optional decoration; its own mapping is covered in CapEnrichmentMapperTest. */
+    private fun meteoAlarmClient(): MeteoAlarmClient = mock {
+        on { fetchPolishWarnings() } doReturn emptyList()
     }
 
     /** Matching itself is covered against a real database in AlertMatchRepositoryTest. */
