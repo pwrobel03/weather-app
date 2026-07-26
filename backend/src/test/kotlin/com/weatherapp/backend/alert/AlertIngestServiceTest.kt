@@ -5,9 +5,12 @@ import com.weatherapp.backend.imgw.ImgwClientException
 import com.weatherapp.backend.imgw.ImgwWarningResponse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -16,12 +19,14 @@ class AlertIngestServiceTest {
     private val mapper = AlertMapper()
 
     @Test
-    fun `maps every warning in the feed`() {
-        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper)
+    fun `stores every warning in the feed`() {
+        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew())
 
-        val drafts = service.ingest()
+        val result = service.ingest()
 
-        assertEquals(listOf("A", "B"), drafts.map { it.imgwId })
+        assertEquals(2, result.fetched)
+        assertEquals(listOf("A", "B"), result.newAlerts.map { it.imgwId })
+        assertTrue(result.updatedAlerts.isEmpty())
     }
 
     /**
@@ -33,16 +38,35 @@ class AlertIngestServiceTest {
         val service = AlertIngestService(
             clientReturning(warning("A"), warning("BROKEN", stopien = "9"), warning("C")),
             mapper,
+            repositoryTreatingAllAsNew(),
         )
 
-        val drafts = service.ingest()
+        val result = service.ingest()
 
-        assertEquals(listOf("A", "C"), drafts.map { it.imgwId })
+        assertEquals(listOf("A", "C"), result.newAlerts.map { it.imgwId })
+        assertEquals(1, result.rejected)
+    }
+
+    /**
+     * The feed is a snapshot of what is in force, not a stream of events, so
+     * an already-known warning must not read as an arrival.
+     */
+    @Test
+    fun `already-known warnings are reported as updates, not arrivals`() {
+        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown())
+
+        val result = service.ingest()
+
+        assertTrue(result.newAlerts.isEmpty())
+        assertEquals(listOf("A"), result.updatedAlerts.map { it.imgwId })
     }
 
     @Test
-    fun `a calm day maps to no drafts`() {
-        assertTrue(AlertIngestService(clientReturning(), mapper).ingest().isEmpty())
+    fun `a calm day stores nothing`() {
+        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew()).ingest()
+
+        assertEquals(0, result.fetched)
+        assertTrue(result.newAlerts.isEmpty())
     }
 
     /** Upstream failure propagates here; the scheduler is what swallows it. */
@@ -52,8 +76,36 @@ class AlertIngestServiceTest {
             on { fetchMeteoWarnings() } doThrow ImgwClientException("upstream down")
         }
 
-        assertThrows<ImgwClientException> { AlertIngestService(client, mapper).ingest() }
+        assertThrows<ImgwClientException> {
+            AlertIngestService(client, mapper, repositoryTreatingAllAsNew()).ingest()
+        }
     }
+
+    private fun repositoryTreatingAllAsNew(): AlertRepository = repositoryReporting(isNew = true)
+
+    private fun repositoryTreatingAllAsKnown(): AlertRepository = repositoryReporting(isNew = false)
+
+    private fun repositoryReporting(isNew: Boolean): AlertRepository = mock {
+        on { upsert(any()) } doAnswer { invocation ->
+            val draft = invocation.getArgument<AlertDraft>(0)
+            AlertUpsertResult(alert = draft.toStoredAlert(), isNew = isNew)
+        }
+    }
+
+    private fun AlertDraft.toStoredAlert() = Alert(
+        id = 1L,
+        imgwId = imgwId,
+        event = event,
+        severity = severity,
+        probabilityPercent = probabilityPercent,
+        validFrom = validFrom,
+        validTo = validTo,
+        publishedAt = publishedAt,
+        content = content,
+        comment = comment,
+        office = office,
+        terytCodes = terytCodes,
+    )
 
     private fun clientReturning(vararg warnings: ImgwWarningResponse): ImgwClient =
         mock { on { fetchMeteoWarnings() } doReturn warnings.toList() }
