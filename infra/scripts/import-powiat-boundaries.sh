@@ -56,3 +56,26 @@ COUNT="$(docker exec "$CONTAINER_NAME" \
     psql -tA "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB" \
     -c 'SELECT count(*) FROM powiat_boundary;')"
 echo "Done. powiat_boundary now has $COUNT rows."
+
+# Boundaries just changed underneath saved_location.teryt_code, which is a
+# denormalisation resolved once at save time and then trusted as the sole
+# source of truth for alert matching. Rebuild it, and evict the TERYT cache
+# in the running backend - a SQL-only fixup cannot reach that cache, and would
+# leave the app serving stale resolutions for up to 24h.
+#
+# Needs an ADMIN access token; skipped with a warning when absent so a
+# boundaries-only import on a machine with no backend running still succeeds.
+BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+if [ -n "${ADMIN_ACCESS_TOKEN:-}" ]; then
+    echo "Rebuilding saved_location.teryt_code via $BACKEND_URL ..."
+    curl -fsS -X POST "$BACKEND_URL/api/admin/boundaries/refresh" \
+        -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
+    echo
+else
+    echo "WARNING: ADMIN_ACCESS_TOKEN not set - skipping the TERYT rebuild." >&2
+    echo "         saved_location.teryt_code may now be stale, which shows up as" >&2
+    echo "         alerts silently not being delivered. Run this once a token is" >&2
+    echo "         available:" >&2
+    echo "         curl -X POST $BACKEND_URL/api/admin/boundaries/refresh \\" >&2
+    echo "              -H \"Authorization: Bearer \$ADMIN_ACCESS_TOKEN\"" >&2
+fi
