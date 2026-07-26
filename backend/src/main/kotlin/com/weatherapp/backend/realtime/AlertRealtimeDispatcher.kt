@@ -7,6 +7,7 @@ import com.weatherapp.backend.alert.AlertDeliveryRepository
 import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.alert.AlertQueryRepository
 import com.weatherapp.backend.alert.WarningSeverity
+import com.weatherapp.backend.user.UserPushTokenRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -39,6 +40,8 @@ class AlertRealtimeDispatcher(
     private val alertDeliveryRepository: AlertDeliveryRepository,
     private val alertMatchRepository: AlertMatchRepository,
     private val alertQueryRepository: AlertQueryRepository,
+    private val userPushTokenRepository: UserPushTokenRepository,
+    private val expoPushClient: ExpoPushClient,
     private val sessionManager: AlertWebSocketSessionManager,
 ) {
 
@@ -48,7 +51,8 @@ class AlertRealtimeDispatcher(
         .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
 
     /**
-     * Fans out warnings to currently connected WebSocket clients using coroutines.
+     * Fans out warnings to currently connected WebSocket clients using coroutines,
+     * or delivers via Expo APNs/FCM push notifications if the client is in the background.
      *
      * Uses the pre-calculated matches from [AlertDeliveryRepository.findUsersAwaitingDelivery],
      * which runs an indexed TERYT lookup in PostgreSQL.
@@ -93,12 +97,8 @@ class AlertRealtimeDispatcher(
         val awaitingUsers = alertDeliveryRepository.findUsersAwaitingDelivery(alert.id)
         if (awaitingUsers.isEmpty()) return
 
-        // Fan out only to users who have an active WebSocket session
-        val connectedUsers = awaitingUsers.filter { sessionManager.getSessions(it).isNotEmpty() }
-        if (connectedUsers.isEmpty()) return
-
         coroutineScope {
-            for (userId in connectedUsers) {
+            for (userId in awaitingUsers) {
                 launch(Dispatchers.IO) {
                     deliverToUser(alert, userId)
                 }
@@ -107,7 +107,10 @@ class AlertRealtimeDispatcher(
     }
 
     private fun deliverToUser(alert: Alert, userId: Long) {
-        if (sessionManager.getSessions(userId).isEmpty()) return
+        val sessions = sessionManager.getSessions(userId)
+        val pushTokens = if (sessions.isEmpty()) userPushTokenRepository.findTokensByUserId(userId) else emptyList()
+
+        if (sessions.isEmpty() && pushTokens.isEmpty()) return
 
         // Claim delivery right in the database to prevent duplicate notifications
         // across racing channels (e.g. WebSocket and Push).
@@ -127,7 +130,11 @@ class AlertRealtimeDispatcher(
             matchedLocations = locationNames,
         )
 
-        sendNotification(notification, userId)
+        if (sessions.isNotEmpty()) {
+            sendNotification(notification, userId)
+        } else if (pushTokens.isNotEmpty()) {
+            sendPushNotification(notification, pushTokens)
+        }
     }
 
     private fun sendNotification(notification: AlertRealtimeNotification, userId: Long) {
@@ -145,5 +152,31 @@ class AlertRealtimeDispatcher(
                 }
             }
         }
+    }
+
+    private fun sendPushNotification(notification: AlertRealtimeNotification, tokens: List<String>) {
+        val title = "Ostrzeżenie: ${notification.event} (stopień ${notification.severity.level})"
+        val locationsText = if (notification.matchedLocations.isNotEmpty()) {
+            "Dotyczy: ${notification.matchedLocations.joinToString(", ")}. "
+        } else {
+            ""
+        }
+        val body = "$locationsText${notification.content ?: ""}".trim()
+
+        val messages = tokens.map { token ->
+            ExpoPushMessage(
+                to = token,
+                title = title,
+                body = body,
+                data = mapOf(
+                    "alertId" to notification.id,
+                    "event" to notification.event,
+                    "severity" to notification.severity.name,
+                    "matchedLocations" to notification.matchedLocations,
+                ),
+            )
+        }
+        expoPushClient.sendPushNotifications(messages)
+        log.debug("Dispatched {} push notification(s) for alert {} via Expo", messages.size, notification.id)
     }
 }
