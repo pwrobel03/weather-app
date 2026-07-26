@@ -7,6 +7,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.client.standard.StandardWebSocketClient
 import org.springframework.web.socket.handler.TextWebSocketHandler
@@ -32,6 +33,9 @@ class WebSocketAuthTest {
 
     @Autowired
     lateinit var sessionManager: AlertWebSocketSessionManager
+
+    @MockitoBean
+    lateinit var alertRealtimeDispatcher: AlertRealtimeDispatcher
 
     @Test
     fun `connects successfully with valid access token and registers user session`() {

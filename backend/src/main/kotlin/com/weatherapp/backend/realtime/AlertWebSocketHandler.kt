@@ -10,11 +10,13 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
  * WebSocket handler managing alert stream connections for authenticated users.
  *
  * Sessions are authenticated during the handshake via [JwtWebSocketHandshakeInterceptor],
- * which stores the validated user ID in session attributes.
+ * which stores the validated user ID in session attributes. Upon successful connection,
+ * missed alerts are immediately dispatched to bring returning clients up to date.
  */
 @Component
 class AlertWebSocketHandler(
     private val sessionManager: AlertWebSocketSessionManager,
+    private val alertRealtimeDispatcher: AlertRealtimeDispatcher,
 ) : TextWebSocketHandler() {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -28,6 +30,11 @@ class AlertWebSocketHandler(
         }
         sessionManager.register(userId, session)
         log.info("User {} connected to alert WebSocket (session {})", userId, session.id)
+        try {
+            alertRealtimeDispatcher.deliverMissedAlerts(userId)
+        } catch (ex: Exception) {
+            log.warn("Failed delivering missed alerts on reconnect for user {}: {}", userId, ex.message, ex)
+        }
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {

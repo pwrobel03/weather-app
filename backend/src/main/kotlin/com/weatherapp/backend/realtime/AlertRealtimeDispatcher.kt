@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.weatherapp.backend.alert.Alert
 import com.weatherapp.backend.alert.AlertDeliveryRepository
 import com.weatherapp.backend.alert.AlertMatchRepository
+import com.weatherapp.backend.alert.AlertQueryRepository
 import com.weatherapp.backend.alert.WarningSeverity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -37,6 +38,7 @@ data class AlertRealtimeNotification(
 class AlertRealtimeDispatcher(
     private val alertDeliveryRepository: AlertDeliveryRepository,
     private val alertMatchRepository: AlertMatchRepository,
+    private val alertQueryRepository: AlertQueryRepository,
     private val sessionManager: AlertWebSocketSessionManager,
 ) {
 
@@ -59,6 +61,34 @@ class AlertRealtimeDispatcher(
         }
     }
 
+    /**
+     * Delivers any active, undelivered warnings to a freshly connected user.
+     *
+     * Called when a WebSocket session opens so a client returning from network loss
+     * (or after a server restart) immediately catches up on anything published while offline.
+     */
+    fun deliverMissedAlerts(userId: Long) {
+        val activeAlerts = alertQueryRepository.findActiveForUser(userId)
+        if (activeAlerts.isEmpty()) return
+
+        for (alertForUser in activeAlerts) {
+            val alertId = alertForUser.alert.id
+            if (alertDeliveryRepository.claimDelivery(alertId, userId)) {
+                val notification = AlertRealtimeNotification(
+                    id = alertId,
+                    event = alertForUser.alert.event,
+                    severity = alertForUser.alert.severity,
+                    probabilityPercent = alertForUser.alert.probabilityPercent,
+                    validFrom = alertForUser.alert.validFrom,
+                    validTo = alertForUser.alert.validTo,
+                    content = alertForUser.alert.content,
+                    matchedLocations = alertForUser.affectedLocations.map { it.name },
+                )
+                sendNotification(notification, userId)
+            }
+        }
+    }
+
     private suspend fun dispatchAlert(alert: Alert) {
         val awaitingUsers = alertDeliveryRepository.findUsersAwaitingDelivery(alert.id)
         if (awaitingUsers.isEmpty()) return
@@ -77,8 +107,7 @@ class AlertRealtimeDispatcher(
     }
 
     private fun deliverToUser(alert: Alert, userId: Long) {
-        val sessions = sessionManager.getSessions(userId)
-        if (sessions.isEmpty()) return
+        if (sessionManager.getSessions(userId).isEmpty()) return
 
         // Claim delivery right in the database to prevent duplicate notifications
         // across racing channels (e.g. WebSocket and Push).
@@ -98,14 +127,21 @@ class AlertRealtimeDispatcher(
             matchedLocations = locationNames,
         )
 
+        sendNotification(notification, userId)
+    }
+
+    private fun sendNotification(notification: AlertRealtimeNotification, userId: Long) {
+        val sessions = sessionManager.getSessions(userId)
+        if (sessions.isEmpty()) return
+
         val textMessage = TextMessage(mapper.writeValueAsString(notification))
         for (session in sessions) {
             if (session.isOpen) {
                 try {
                     session.sendMessage(textMessage)
-                    log.debug("Delivered alert {} over WebSocket session {} to user {}", alert.id, session.id, userId)
+                    log.debug("Delivered alert {} over WebSocket session {} to user {}", notification.id, session.id, userId)
                 } catch (ex: IOException) {
-                    log.warn("Failed sending alert {} over WebSocket session {} to user {}", alert.id, session.id, userId, ex)
+                    log.warn("Failed sending alert {} over WebSocket session {} to user {}", notification.id, session.id, userId, ex)
                 }
             }
         }
