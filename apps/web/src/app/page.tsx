@@ -1,7 +1,7 @@
-import { CloudLightning } from "lucide-react";
-import { createWeatherApiClient } from "@weather-app/api-client";
+import { WeatherBackground } from "@/components/weather-background";
+import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 
-// Warszawa - placeholder default location until location search (Faza 3) lands.
+// Warszawa - placeholder default location until location search (Faza 7) lands.
 const DEFAULT_LATITUDE = 52.23;
 const DEFAULT_LONGITUDE = 21.01;
 
@@ -10,25 +10,25 @@ const DEFAULT_LONGITUDE = 21.01;
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const client = createWeatherApiClient(
-    process.env.API_BASE_URL ? { baseUrl: process.env.API_BASE_URL } : undefined,
-  );
+  const conditions = await fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE);
 
-  const { data, error } = await client.GET("/api/forecast/current", {
-    params: { query: { latitude: DEFAULT_LATITUDE, longitude: DEFAULT_LONGITUDE } },
-  });
+  // With no reading there is no state to encode, so the background falls back
+  // to a neutral overcast rather than inventing weather.
+  const weatherCode = conditions?.weatherCode ?? 3;
+  const temperatureCelsius = conditions?.temperatureCelsius ?? 0;
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-background text-foreground">
-      <CloudLightning className="size-10 text-primary" />
-      <p className="text-muted-foreground">Weather App</p>
-      {data ? (
-        <p className="text-4xl font-light tabular-nums">{Math.round(data.temperatureCelsius)}°C</p>
-      ) : (
-        <p className="text-sm text-destructive">
-          Nie udało się pobrać prognozy{error ? `: ${JSON.stringify(error)}` : ""}
-        </p>
-      )}
-    </div>
+    <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
+      <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
+        {conditions ? (
+          <p className="text-[4.5rem] font-extralight leading-[0.92] tracking-[-0.045em] tabular-nums">
+            {Math.round(conditions.temperatureCelsius)}
+            <sup className="align-super text-[0.35em] font-light tracking-normal">°C</sup>
+          </p>
+        ) : (
+          <p className="text-sm text-[#8a94a6]">—</p>
+        )}
+      </main>
+    </WeatherBackground>
   );
 }

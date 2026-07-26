@@ -130,3 +130,127 @@
     @apply font-sans;
   }
 }
+/* ---------------------------------------------------------------------------
+   Weather background — channel composition (markdown/design.md)
+
+   Layered radial gradients driven by data attributes and one custom property.
+   No JavaScript: the background is a function of the weather, not of input.
+
+   The palette lives in cool neutrals on purpose. The IMGW warning scale
+   (#F5C518 / #F08A24 / #E0342B) is reserved for warnings and must never show
+   up as decoration — which is why dusk leans violet instead of the literal
+   orange of a sunset, a hue that would collide with severity 2 and 3.
+--------------------------------------------------------------------------- */
+.weather-background {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --earth: #0b0e14;
+
+  /* Overwritten per time of day below. */
+  --glow-a: rgba(46, 111, 168, 0.6);
+  --glow-b: rgba(38, 84, 138, 0.42);
+  --glow-y: 8%;
+
+  /* Overwritten per phenomenon below. */
+  --veil-opacity: 0;
+  --veil-contrast: 1;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100%;
+  background: var(--earth);
+  color: #e8ecf2;
+}
+
+.weather-background__glow,
+.weather-background__phenomenon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.weather-background__glow {
+  z-index: 0;
+  filter: saturate(var(--bg-saturation, 1));
+  transition: opacity 700ms var(--ease-out);
+  background:
+    radial-gradient(120% 70% at 50% var(--glow-y), var(--glow-a) 0%, transparent 62%),
+    radial-gradient(90% 55% at 18% 34%, var(--glow-b) 0%, transparent 70%);
+}
+
+/* Phenomenon channel: a veil, never a particle field. A full-screen rain or
+   snow layer was rejected in design.md — motion without information, competing
+   for attention with the alert, and two separate implementations to maintain. */
+.weather-background__phenomenon {
+  z-index: 1;
+  opacity: var(--veil-opacity);
+  backdrop-filter: contrast(var(--veil-contrast));
+  background:
+    linear-gradient(180deg, rgba(10, 14, 20, 0.55) 0%, transparent 45%),
+    radial-gradient(140% 90% at 50% 110%, rgba(8, 11, 16, 0.7) 0%, transparent 60%);
+}
+
+.weather-background__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* Time-of-day channel: glow colour, intensity and vertical position.
+   Values are the poświata tokens from design.md. */
+.weather-background[data-time-of-day="dawn"] {
+  --glow-a: rgba(88, 116, 176, 0.5);
+  --glow-b: rgba(46, 84, 140, 0.4);
+  --glow-y: 22%;
+}
+.weather-background[data-time-of-day="day"] {
+  --glow-a: rgba(46, 111, 168, 0.6);
+  --glow-b: rgba(38, 84, 138, 0.42);
+  --glow-y: 8%;
+}
+.weather-background[data-time-of-day="dusk"] {
+  --glow-a: rgba(120, 78, 168, 0.55);
+  --glow-b: rgba(58, 74, 150, 0.45);
+  --glow-y: 30%;
+}
+.weather-background[data-time-of-day="night"] {
+  --glow-a: rgba(32, 58, 104, 0.62);
+  --glow-b: rgba(18, 32, 64, 0.55);
+  --glow-y: 14%;
+}
+
+/* Phenomenon channel: how heavily the sky sits on the scene. */
+.weather-background[data-phenomenon="clear"] {
+  --veil-opacity: 0;
+}
+.weather-background[data-phenomenon="cloud"] {
+  --veil-opacity: 0.3;
+  --veil-contrast: 0.97;
+}
+.weather-background[data-phenomenon="fog"] {
+  --veil-opacity: 0.55;
+  --veil-contrast: 0.88;
+}
+.weather-background[data-phenomenon="drizzle"] {
+  --veil-opacity: 0.42;
+  --veil-contrast: 0.95;
+}
+.weather-background[data-phenomenon="rain"] {
+  --veil-opacity: 0.58;
+  --veil-contrast: 0.92;
+}
+.weather-background[data-phenomenon="snow"] {
+  --veil-opacity: 0.34;
+  --veil-contrast: 1.04;
+}
+.weather-background[data-phenomenon="hail"] {
+  --veil-opacity: 0.62;
+  --veil-contrast: 1.06;
+}
+.weather-background[data-phenomenon="thunderstorm"] {
+  --veil-opacity: 0.72;
+  --veil-contrast: 1.1;
+}
