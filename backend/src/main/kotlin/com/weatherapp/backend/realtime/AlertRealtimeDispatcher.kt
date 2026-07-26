@@ -192,7 +192,11 @@ class AlertRealtimeDispatcher(
                 data = mapOf(
                     "alertId" to notification.id,
                     "event" to notification.event,
-                    "severity" to notification.severity.name,
+                    // The IMGW level ("1"/"2"/"3"), matching both the WebSocket
+                    // payload and WarningSeveritySchema in packages/contract.
+                    // Using .name here handed the mobile client "LEVEL_1" over
+                    // push and "1" over the socket for the same field.
+                    "severity" to notification.severity.level,
                     "matchedLocations" to notification.matchedLocations,
                 ),
             )
