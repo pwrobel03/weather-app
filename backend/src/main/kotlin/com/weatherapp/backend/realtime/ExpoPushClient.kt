@@ -31,10 +31,14 @@ class ExpoPushClient(
 
     /**
      * Sends a batch of push notifications to Expo's push servers.
+     *
+     * Returns whether the batch was accepted. The caller uses this to decide
+     * if the delivery claim can stand: reporting success on a failed relay
+     * would mark the user as warned about a storm they were never told about.
      */
-    fun sendPushNotifications(messages: List<ExpoPushMessage>) {
-        if (messages.isEmpty()) return
-        try {
+    fun sendPushNotifications(messages: List<ExpoPushMessage>): Boolean {
+        if (messages.isEmpty()) return false
+        return try {
             restClient.post()
                 .uri("/--/api/v2/push/send")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -42,8 +46,10 @@ class ExpoPushClient(
                 .body(messages)
                 .retrieve()
                 .toBodilessEntity()
+            true
         } catch (ex: RestClientException) {
             log.warn("Failed sending push notifications to Expo relay: {}", ex.message, ex)
+            false
         }
     }
 }

@@ -88,7 +88,9 @@ class AlertRealtimeDispatcher(
                     content = alertForUser.alert.content,
                     matchedLocations = alertForUser.affectedLocations.map { it.name },
                 )
-                sendNotification(notification, userId)
+                if (!sendNotification(notification, userId)) {
+                    releaseUndelivered(alertId, userId)
+                }
             }
         }
     }
@@ -130,31 +132,50 @@ class AlertRealtimeDispatcher(
             matchedLocations = locationNames,
         )
 
-        if (sessions.isNotEmpty()) {
+        val delivered = if (sessions.isNotEmpty()) {
             sendNotification(notification, userId)
-        } else if (pushTokens.isNotEmpty()) {
+        } else {
             sendPushNotification(notification, pushTokens)
         }
-    }
 
-    private fun sendNotification(notification: AlertRealtimeNotification, userId: Long) {
-        val sessions = sessionManager.getSessions(userId)
-        if (sessions.isEmpty()) return
-
-        val textMessage = TextMessage(mapper.writeValueAsString(notification))
-        for (session in sessions) {
-            if (session.isOpen) {
-                try {
-                    session.sendMessage(textMessage)
-                    log.debug("Delivered alert {} over WebSocket session {} to user {}", notification.id, session.id, userId)
-                } catch (ex: IOException) {
-                    log.warn("Failed sending alert {} over WebSocket session {} to user {}", notification.id, session.id, userId, ex)
-                }
-            }
+        if (!delivered) {
+            releaseUndelivered(alert.id, userId)
         }
     }
 
-    private fun sendPushNotification(notification: AlertRealtimeNotification, tokens: List<String>) {
+    /**
+     * Hands the claim back so the user is offered this alert again - on the
+     * next poll, or on their next reconnect via [deliverMissedAlerts].
+     */
+    private fun releaseUndelivered(alertId: Long, userId: Long) {
+        alertDeliveryRepository.releaseDelivery(alertId, userId)
+        log.warn("Released undelivered alert {} for user {}; will be retried", alertId, userId)
+    }
+
+    /** Returns true once the payload has actually gone out over at least one open session. */
+    private fun sendNotification(notification: AlertRealtimeNotification, userId: Long): Boolean {
+        val sessions = sessionManager.getSessions(userId)
+        if (sessions.isEmpty()) return false
+
+        val textMessage = TextMessage(mapper.writeValueAsString(notification))
+        var delivered = false
+        for (session in sessions) {
+            if (!session.isOpen) continue
+            try {
+                // Synchronized because a WebSocketSession is not safe for
+                // concurrent writes, and one user can be targeted by the
+                // fan-out and by a reconnect catch-up at the same time.
+                synchronized(session) { session.sendMessage(textMessage) }
+                delivered = true
+                log.debug("Delivered alert {} over WebSocket session {} to user {}", notification.id, session.id, userId)
+            } catch (ex: IOException) {
+                log.warn("Failed sending alert {} over WebSocket session {} to user {}", notification.id, session.id, userId, ex)
+            }
+        }
+        return delivered
+    }
+
+    private fun sendPushNotification(notification: AlertRealtimeNotification, tokens: List<String>): Boolean {
         val title = "Ostrzeżenie: ${notification.event} (stopień ${notification.severity.level})"
         val locationsText = if (notification.matchedLocations.isNotEmpty()) {
             "Dotyczy: ${notification.matchedLocations.joinToString(", ")}. "
@@ -176,7 +197,10 @@ class AlertRealtimeDispatcher(
                 ),
             )
         }
-        expoPushClient.sendPushNotifications(messages)
-        log.debug("Dispatched {} push notification(s) for alert {} via Expo", messages.size, notification.id)
+        val delivered = expoPushClient.sendPushNotifications(messages)
+        if (delivered) {
+            log.debug("Dispatched {} push notification(s) for alert {} via Expo", messages.size, notification.id)
+        }
+        return delivered
     }
 }
