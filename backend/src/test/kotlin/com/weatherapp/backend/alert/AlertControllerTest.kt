@@ -164,6 +164,89 @@ class AlertControllerTest {
         assertEquals(listOf("3", "1"), activeAlerts(token).map { it["severity"].asText() })
     }
 
+    @Test
+    fun `history returns expired warnings too, newest first`() {
+        val token = register("alice@example.com")
+        val userId = userId("alice@example.com")
+        val locationId = createLocation(userId, "Dom", "1465")
+
+        matchRepository.recordMatches(
+            storeAlert(
+                imgwId = "older",
+                validFrom = Instant.now().minus(Duration.ofDays(3)),
+                validTo = Instant.now().minus(Duration.ofDays(2)),
+            ),
+        )
+        matchRepository.recordMatches(
+            storeAlert(
+                imgwId = "newer",
+                validFrom = Instant.now().minus(Duration.ofDays(1)),
+                validTo = Instant.now().plus(Duration.ofHours(4)),
+            ),
+        )
+
+        val history = historyFor(token, locationId)
+
+        assertEquals(2, history.size)
+        // Newest first, and the expired one is still present - a timeline that
+        // dropped past warnings would not be a timeline.
+        assertTrue(
+            Instant.parse(history[0]["validFrom"].asText()) > Instant.parse(history[1]["validFrom"].asText()),
+        )
+        assertTrue(Instant.parse(history[1]["validTo"].asText()) < Instant.now())
+    }
+
+    @Test
+    fun `history covers only the requested location`() {
+        val token = register("alice@example.com")
+        val userId = userId("alice@example.com")
+        val warsaw = createLocation(userId, "Dom", "1465")
+        val krakow = createLocation(userId, "Praca", "1261")
+
+        matchRepository.recordMatches(storeAlert(teryt = listOf("1465")))
+
+        assertEquals(1, historyFor(token, warsaw).size)
+        assertTrue(historyFor(token, krakow).isEmpty())
+    }
+
+    /** Another account's location must be indistinguishable from a missing one. */
+    @Test
+    fun `history 404s for a location belonging to someone else`() {
+        val aliceToken = register("alice@example.com")
+        register("bob@example.com")
+        val bobLocation = createLocation(userId("bob@example.com"), "Dom", "1465")
+
+        val error = try {
+            historyFor(aliceToken, bobLocation)
+            throw AssertionError("expected an HTTP error response")
+        } catch (ex: HttpClientErrorException) {
+            ex
+        }
+        assertEquals(HttpStatus.NOT_FOUND, error.statusCode)
+    }
+
+    @Test
+    fun `history 404s for a location that never existed`() {
+        val token = register("alice@example.com")
+
+        val error = try {
+            historyFor(token, 999_999L)
+            throw AssertionError("expected an HTTP error response")
+        } catch (ex: HttpClientErrorException) {
+            ex
+        }
+        assertEquals(HttpStatus.NOT_FOUND, error.statusCode)
+    }
+
+    private fun historyFor(token: String, locationId: Long): List<JsonNode> {
+        val body = client.get()
+            .uri("/api/users/me/locations/$locationId/alerts")
+            .header("Authorization", "Bearer $token")
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readTree(body).toList()
+    }
+
     private fun activeAlerts(token: String): List<JsonNode> {
         val body = client.get()
             .uri("/api/alerts/active")
@@ -186,16 +269,20 @@ class AlertControllerTest {
     private fun userId(email: String): Long =
         jdbcTemplate.queryForObject("SELECT id FROM users WHERE email = ?", Long::class.java, email)!!
 
-    private fun createLocation(userId: Long, name: String, terytCode: String?) {
-        jdbcTemplate.update(
-            "INSERT INTO saved_location (user_id, name, latitude, longitude, teryt_code) VALUES (?, ?, ?, ?, ?)",
+    private fun createLocation(userId: Long, name: String, terytCode: String?): Long =
+        jdbcTemplate.queryForObject(
+            """
+            INSERT INTO saved_location (user_id, name, latitude, longitude, teryt_code)
+            VALUES (?, ?, ?, ?, ?)
+            RETURNING id
+            """.trimIndent(),
+            Long::class.java,
             userId,
             name,
             name.hashCode() % 90 / 1.0,
             name.hashCode() % 180 / 1.0,
             terytCode,
-        )
-    }
+        )!!
 
     private fun storeAlert(
         imgwId: String = "Gd2026072600001",
