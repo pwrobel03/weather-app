@@ -20,7 +20,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `stores every warning in the feed`() {
-        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew())
+        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew(), matchRepository())
 
         val result = service.ingest()
 
@@ -39,6 +39,7 @@ class AlertIngestServiceTest {
             clientReturning(warning("A"), warning("BROKEN", stopien = "9"), warning("C")),
             mapper,
             repositoryTreatingAllAsNew(),
+            matchRepository(),
         )
 
         val result = service.ingest()
@@ -53,7 +54,7 @@ class AlertIngestServiceTest {
      */
     @Test
     fun `already-known warnings are reported as updates, not arrivals`() {
-        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown())
+        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown(), matchRepository())
 
         val result = service.ingest()
 
@@ -63,7 +64,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `a calm day stores nothing`() {
-        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew()).ingest()
+        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew(), matchRepository()).ingest()
 
         assertEquals(0, result.fetched)
         assertTrue(result.newAlerts.isEmpty())
@@ -77,8 +78,13 @@ class AlertIngestServiceTest {
         }
 
         assertThrows<ImgwClientException> {
-            AlertIngestService(client, mapper, repositoryTreatingAllAsNew()).ingest()
+            AlertIngestService(client, mapper, repositoryTreatingAllAsNew(), matchRepository()).ingest()
         }
+    }
+
+    /** Matching itself is covered against a real database in AlertMatchRepositoryTest. */
+    private fun matchRepository(matches: Int = 1): AlertMatchRepository = mock {
+        on { recordMatches(any()) } doReturn matches
     }
 
     private fun repositoryTreatingAllAsNew(): AlertRepository = repositoryReporting(isNew = true)
