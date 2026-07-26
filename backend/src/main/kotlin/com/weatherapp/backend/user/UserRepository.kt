@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository
 import java.sql.ResultSet
 
 private const val SELECT_COLUMNS =
-    "id, email, password_hash, display_name, temperature_unit, wind_speed_unit, precipitation_unit, created_at"
+    "id, email, password_hash, display_name, role, temperature_unit, wind_speed_unit, precipitation_unit, created_at"
 
 @Repository
 class UserRepository(private val jdbcTemplate: JdbcTemplate) {
@@ -55,6 +55,7 @@ class UserRepository(private val jdbcTemplate: JdbcTemplate) {
         email = getString("email"),
         passwordHash = getString("password_hash"),
         displayName = getString("display_name"),
+        role = UserRole.valueOf(getString("role")),
         temperatureUnit = TemperatureUnit.valueOf(getString("temperature_unit")),
         windSpeedUnit = WindSpeedUnit.valueOf(getString("wind_speed_unit")),
         precipitationUnit = PrecipitationUnit.valueOf(getString("precipitation_unit")),

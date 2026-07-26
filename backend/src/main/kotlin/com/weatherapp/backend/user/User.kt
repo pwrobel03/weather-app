@@ -7,11 +7,14 @@ data class User(
     val email: String,
     val passwordHash: String,
     val displayName: String?,
+    val role: UserRole,
     val temperatureUnit: TemperatureUnit,
     val windSpeedUnit: WindSpeedUnit,
     val precipitationUnit: PrecipitationUnit,
     val createdAt: Instant,
 )
+
+enum class UserRole { USER, ADMIN }
 
 enum class TemperatureUnit { CELSIUS, FAHRENHEIT }
 
