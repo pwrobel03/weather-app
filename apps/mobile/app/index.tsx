@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { appMessages, DEFAULT_LOCALE, hourOf, weatherMessages } from "@weather-app/core";
+import { appMessages, authMessages, DEFAULT_LOCALE, hourOf, weatherMessages } from "@weather-app/core";
+import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -8,6 +9,7 @@ import { Hero } from "../src/components/hero";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
+import { useAuth } from "../src/lib/auth/context";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
 /** Warszawa - until a location is chosen or picked up from a saved one. */
@@ -29,6 +31,7 @@ export default function HomeScreen() {
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
   const weather = weatherMessages[locale];
+  const { session, ready } = useAuth();
 
   const conditions = useQuery({
     queryKey: ["current", latitude, longitude],
@@ -69,10 +72,25 @@ export default function HomeScreen() {
               locale={locale}
               localHour={localHour}
               header={
-                <View style={{ paddingTop: insets.top + 8 }} className="px-6">
-                  <Text className="text-center text-base font-semibold text-white">
+                <View
+                  style={{ paddingTop: insets.top + 8 }}
+                  className="flex-row items-center justify-between px-5"
+                >
+                  {/* Balances the row so the name stays optically centred. */}
+                  <View className="w-24" />
+                  <Text className="text-base font-semibold text-white">
                     {DEFAULT_LOCATION.name}
                   </Text>
+                  <View className="w-24 items-end">
+                    {ready && !session && (
+                      <Link
+                        href="/login"
+                        className="text-sm font-semibold text-white/90"
+                      >
+                        {authMessages[locale].signIn}
+                      </Link>
+                    )}
+                  </View>
                 </View>
               }
             />

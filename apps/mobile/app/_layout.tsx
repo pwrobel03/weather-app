@@ -1,11 +1,14 @@
 import "../global.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { DEFAULT_LOCALE } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import { AuthProvider } from "../src/lib/auth/context";
 
 /**
  * The app shell.
@@ -38,15 +41,17 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: tokens.colors.tloCiemne },
-          }}
-        />
-      </SafeAreaProvider>
+      <AuthProvider locale={DEFAULT_LOCALE}>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: tokens.colors.tloCiemne },
+            }}
+          />
+        </SafeAreaProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

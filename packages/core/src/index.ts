@@ -12,6 +12,7 @@
  * *types* are shared - see ./weather/forecast.
  */
 export * from "./i18n/app";
+export * from "./i18n/auth";
 export * from "./i18n/messages";
 export * from "./weather/channels";
 export * from "./weather/condition";
