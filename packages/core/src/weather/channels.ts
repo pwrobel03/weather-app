@@ -146,14 +146,25 @@ const SATURATION_MAX = 1.14;
  *
  * Clamped at both ends so a freak reading cannot drain the background to grey
  * or oversaturate it into competing with the warning scale.
+ *
+ * The ramp is eased rather than linear, and that is the whole point of the
+ * calibration. Poland's record extremes are about -41 and +40, but a Polish
+ * year lives between roughly -10 and +30; a linear ramp across the full range
+ * spends half its resolution on temperatures that occur a few days a decade,
+ * so ordinary days - which is every day a user actually opens the app - all
+ * land within a few percent of each other and the channel says nothing.
+ *
+ * Smoothstep keeps the endpoints and the monotonicity exactly as they were and
+ * moves the slope into the middle, where the readings are.
  */
 export function temperatureSaturation(celsius: number): number {
   if (Number.isNaN(celsius)) return 1;
 
   const clamped = Math.min(Math.max(celsius, SATURATION_FLOOR_C), SATURATION_CEILING_C);
   const ratio = (clamped - SATURATION_FLOOR_C) / (SATURATION_CEILING_C - SATURATION_FLOOR_C);
+  const eased = ratio * ratio * (3 - 2 * ratio);
 
-  return Number((SATURATION_MIN + ratio * (SATURATION_MAX - SATURATION_MIN)).toFixed(3));
+  return Number((SATURATION_MIN + eased * (SATURATION_MAX - SATURATION_MIN)).toFixed(3));
 }
 
 export type WeatherChannels = {
