@@ -1,3 +1,4 @@
+import { DailyForecastList } from "@/components/daily-forecast-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { TemperatureDisplay } from "@/components/temperature-display";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -5,6 +6,7 @@ import { WeatherBackground } from "@/components/weather-background";
 import { WeatherIcon } from "@/components/weather-icon";
 import { timeOfDay } from "@/lib/weather/channels";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
+import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
 
 // Warszawa - placeholder default location until location search (Faza 7) lands.
@@ -16,9 +18,10 @@ const DEFAULT_LONGITUDE = 21.01;
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [conditions, hourly] = await Promise.all([
+  const [conditions, hourly, daily] = await Promise.all([
     fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
     fetchHourlyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
+    fetchDailyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
   ]);
 
   // With no reading there is no state to encode, so the background falls back
@@ -48,11 +51,14 @@ export default async function Home() {
         </WeatherBackground>
       </div>
 
-      {/* design.md: "osobna powierzchnia na prognozę godzinową" - daily list
-          (commit 61) joins this surface next. */}
+      {/* design.md: "osobna powierzchnia na prognozę godzinową" - hourly
+          strip on top, daily list below, same surface. */}
       <div className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8 md:px-6">
         <section className="mt-4 rounded-3xl bg-card p-6 text-card-foreground md:mt-6">
           <HourlyForecastStrip entries={hourly} />
+          <div className="mt-4 border-t border-border pt-2">
+            <DailyForecastList entries={daily} />
+          </div>
         </section>
       </div>
     </div>

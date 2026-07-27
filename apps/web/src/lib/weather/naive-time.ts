@@ -19,6 +19,19 @@ export function formatHourMinute(naiveIsoTimestamp: string): string {
   return naiveIsoTimestamp.slice(11, 16);
 }
 
+/**
+ * "2026-07-25" -> "sob" (Polish, short form).
+ *
+ * Date-only ISO strings are the one case where JS parsing is *not* naive-
+ * local: the spec parses bare `YYYY-MM-DD` as UTC midnight. Anchoring both
+ * the parse and the format to UTC keeps that calendar date exact regardless
+ * of the server's own timezone.
+ */
+export function weekdayName(dateOnly: string, locale = "pl-PL"): string {
+  const date = new Date(`${dateOnly}T00:00:00Z`);
+  return new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(date);
+}
+
 /** Same naive-local-time shape as the backend emits, for the given zone -
  * so it can be compared to backend timestamps with plain string comparison. */
 export function nowAsNaiveIsoTimestamp(now: Date, timeZone = "Europe/Warsaw"): string {
