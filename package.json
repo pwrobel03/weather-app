@@ -9,6 +9,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev:mobile": "pnpm --filter mobile start",
     "generate:api-client": "(cd backend && ./gradlew generateOpenApiDocs) && pnpm --filter @weather-app/api-client generate",
+    "generate:design-tokens": "pnpm --filter @weather-app/design-tokens build",
     "typecheck": "pnpm -r typecheck"
   }
 }

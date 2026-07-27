@@ -3,7 +3,10 @@ packages:
   - "packages/*"
 
 # Next.js (image optimization) and ESLint (import resolution) run native
-# postinstall builds for these — known-safe, explicitly allowed.
+# postinstall builds for these — known-safe, explicitly allowed. esbuild
+# (transitive via tsx, used by packages/design-tokens' build script) is a
+# well-known, widely-used bundler — same trust level as the other two.
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true
