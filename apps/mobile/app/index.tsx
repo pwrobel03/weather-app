@@ -9,11 +9,9 @@ import { Hero } from "../src/components/hero";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
+import { useActiveLocation } from "../src/lib/active-location";
 import { useAuth } from "../src/lib/auth/context";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
-
-/** Warszawa - until a location is chosen or picked up from a saved one. */
-const DEFAULT_LOCATION = { name: "Warszawa", latitude: 52.2297, longitude: 21.0122 };
 
 /**
  * The home screen, matching apps/web's: a weather-driven gradient hero filling
@@ -27,7 +25,8 @@ const DEFAULT_LOCATION = { name: "Warszawa", latitude: 52.2297, longitude: 21.01
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { latitude, longitude } = DEFAULT_LOCATION;
+  const { active } = useActiveLocation();
+  const { latitude, longitude } = active;
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
   const weather = weatherMessages[locale];
@@ -79,17 +78,19 @@ export default function HomeScreen() {
                   {/* Balances the row so the name stays optically centred. */}
                   <View className="w-24" />
                   <Text className="text-base font-semibold text-white">
-                    {DEFAULT_LOCATION.name}
+                    {active.name}
                   </Text>
                   <View className="w-24 items-end">
-                    {ready && !session && (
-                      <Link
-                        href="/login"
-                        className="text-sm font-semibold text-white/90"
-                      >
-                        {authMessages[locale].signIn}
-                      </Link>
-                    )}
+                    {ready &&
+                      (session ? (
+                        <Link href="/locations" className="text-sm font-semibold text-white/90">
+                          {messages.savedPlaces}
+                        </Link>
+                      ) : (
+                        <Link href="/login" className="text-sm font-semibold text-white/90">
+                          {authMessages[locale].signIn}
+                        </Link>
+                      ))}
                   </View>
                 </View>
               }

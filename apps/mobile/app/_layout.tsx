@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ActiveLocationProvider } from "../src/lib/active-location";
 import { AuthProvider } from "../src/lib/auth/context";
 
 /**
@@ -42,15 +43,17 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider locale={DEFAULT_LOCALE}>
-        <SafeAreaProvider>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: tokens.colors.tloCiemne },
-            }}
-          />
-        </SafeAreaProvider>
+        <ActiveLocationProvider>
+          <SafeAreaProvider>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: tokens.colors.tloCiemne },
+              }}
+            />
+          </SafeAreaProvider>
+        </ActiveLocationProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
