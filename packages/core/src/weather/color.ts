@@ -99,6 +99,34 @@ export function adjust(
   });
 }
 
+/**
+ * Blends two colours in OKLCH.
+ *
+ * Interpolating hex triplets directly walks a straight line through sRGB,
+ * which passes through desaturated mud whenever the two ends differ much in
+ * hue - the dusk-to-night transition would visibly go grey halfway. In OKLCH
+ * the path stays on the colour circle.
+ *
+ * The hue takes the short way round: from 350 degrees to 10, that is 20
+ * degrees forward, not 340 degrees backward through every other hue in the
+ * spectrum.
+ */
+export function mix(from: string, to: string, t: number): string {
+  const ratio = Math.min(1, Math.max(0, t));
+  const a = hexToOklch(from);
+  const b = hexToOklch(to);
+
+  let delta = b.h - a.h;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+
+  return oklchToHex({
+    l: a.l + (b.l - a.l) * ratio,
+    c: a.c + (b.c - a.c) * ratio,
+    h: (((a.h + delta * ratio) % 360) + 360) % 360,
+  });
+}
+
 /** Comfortably past what sRGB can show at any hue. */
 const MAX_CHROMA = 0.4;
 

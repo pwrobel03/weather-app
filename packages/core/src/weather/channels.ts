@@ -36,6 +36,66 @@ export function timeOfDayFromHour(hour: number): TimeOfDay {
 }
 
 /**
+ * Where the day currently sits between two time-of-day anchors.
+ *
+ * The discrete bucket above is still what a data attribute or a test wants,
+ * but it is the wrong thing to paint from: it makes the sky jump at 17:00,
+ * from the middle of afternoon to the middle of dusk in one frame, on a
+ * background whose whole job is to be a state nobody has to read.
+ *
+ * Each bucket gets an anchor hour where it is fully itself, and every other
+ * moment is a blend of the two it lies between. Sunrise and sunset would be
+ * more faithful anchors than fixed hours, and they move by three hours across
+ * a Polish year - noted as the obvious next step rather than smuggled in here,
+ * since it needs a solar calculation and a location, and this channel is meant
+ * to be a function of the clock alone.
+ */
+export type TimeOfDayBlend = { from: TimeOfDay; to: TimeOfDay; t: number };
+
+/** Hour at which each bucket is fully itself. Wraps: night owns both ends. */
+const ANCHORS: readonly { timeOfDay: TimeOfDay; at: number }[] = [
+  { timeOfDay: "night", at: 1 },
+  { timeOfDay: "dawn", at: 7 },
+  { timeOfDay: "day", at: 13 },
+  { timeOfDay: "dusk", at: 19 },
+  { timeOfDay: "night", at: 25 },
+];
+
+export function timeOfDayBlendFromHour(hourOfDay: number): TimeOfDayBlend {
+  // Everything before the first anchor belongs to the night segment that wraps
+  // past midnight, so 00:30 is 24.5 rather than a case of its own.
+  const hour = hourOfDay < ANCHORS[0]!.at ? hourOfDay + 24 : hourOfDay;
+
+  for (let index = 0; index < ANCHORS.length - 1; index += 1) {
+    const from = ANCHORS[index]!;
+    const to = ANCHORS[index + 1]!;
+    if (hour >= from.at && hour < to.at) {
+      return {
+        from: from.timeOfDay,
+        to: to.timeOfDay,
+        t: (hour - from.at) / (to.at - from.at),
+      };
+    }
+  }
+
+  return { from: "night", to: "night", t: 0 };
+}
+
+export function timeOfDayBlend(now: Date, timeZone = "Europe/Warsaw"): TimeOfDayBlend {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  }).formatToParts(now);
+
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  return timeOfDayBlendFromHour(value("hour") + value("minute") / 60);
+}
+
+/**
  * Drives glow brightness and position.
  *
  * Hours are local to the location being displayed, not to the viewer: someone

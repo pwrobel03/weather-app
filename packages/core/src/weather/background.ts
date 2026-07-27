@@ -1,12 +1,14 @@
 import { tokens } from "@weather-app/design-tokens";
 
-import { adjust } from "./color";
+import { adjust, mix } from "./color";
 import {
   phenomenonFromWeatherCode,
   temperatureSaturation,
   timeOfDay,
+  timeOfDayBlend,
   type Phenomenon,
   type TimeOfDay,
+  type TimeOfDayBlend,
 } from "./channels";
 
 /**
@@ -38,7 +40,12 @@ export type BackgroundInput = {
 
 export type BackgroundComposition = {
   /** Which bucket each channel resolved to, for debugging and for tests. */
-  channels: { timeOfDay: TimeOfDay; phenomenon: Phenomenon; saturation: number };
+  channels: {
+    timeOfDay: TimeOfDay;
+    phenomenon: Phenomenon;
+    saturation: number;
+    blend: TimeOfDayBlend;
+  };
   /** Vertical gradient, top to bottom. */
   sky: { from: string; to: string };
   /** Primary radial glow: its colour and how far down the panel it sits. */
@@ -48,11 +55,16 @@ export type BackgroundComposition = {
 };
 
 export function composeBackground(input: BackgroundInput): BackgroundComposition {
-  const resolvedTimeOfDay = timeOfDay(input.now ?? new Date(), input.timeZone);
+  const now = input.now ?? new Date();
+  const resolvedTimeOfDay = timeOfDay(now, input.timeZone);
   const phenomenon = phenomenonFromWeatherCode(input.weatherCode);
   const saturation = temperatureSaturation(input.temperatureCelsius);
 
-  const sky = tokens.sky[resolvedTimeOfDay];
+  // The sky is a blend between two anchors rather than a lookup on the current
+  // bucket, so it moves through the day instead of switching at 17:00.
+  const blend = timeOfDayBlend(now, input.timeZone);
+  const from = tokens.sky[blend.from];
+  const to = tokens.sky[blend.to];
   const veil = tokens.veil[phenomenon];
 
   // Temperature is a chroma scale rather than a CSS `saturate` filter. The
@@ -61,16 +73,55 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
   const chromaScale = saturation;
 
   return {
-    channels: { timeOfDay: resolvedTimeOfDay, phenomenon, saturation },
+    channels: { timeOfDay: resolvedTimeOfDay, phenomenon, saturation, blend },
     sky: {
-      from: adjust(sky.a, { chromaScale }),
-      to: adjust(sky.b, { chromaScale }),
+      from: adjust(mix(from.a, to.a, blend.t), { chromaScale }),
+      to: adjust(mix(from.b, to.b, blend.t), { chromaScale }),
     },
     glow: {
-      color: tokens.glow[resolvedTimeOfDay],
-      y: sky.glowY,
-      secondary: sky.glowB,
+      color: mixRgba(tokens.glow[blend.from], tokens.glow[blend.to], blend.t),
+      // Percentages, so the glow travels down the panel as the day passes
+      // rather than teleporting between four fixed heights.
+      y: `${mixNumber(percent(from.glowY), percent(to.glowY), blend.t).toFixed(1)}%`,
+      secondary: mixRgba(from.glowB, to.glowB, blend.t),
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
   };
+}
+
+/**
+ * Blends two `rgba(...)` strings component-wise.
+ *
+ * The glows are authored as rgba rather than hex because their alpha is part
+ * of the design, and OKLCH has nothing to say about alpha - so these
+ * interpolate in plain sRGB. Acceptable here and nowhere else: the glow colours
+ * of two adjacent times of day are close in hue, so the straight-line path
+ * does not pass through the grey that makes sRGB interpolation a bad default.
+ */
+function mixRgba(from: string, to: string, t: number): string {
+  const a = parseRgba(from);
+  const b = parseRgba(to);
+  if (!a || !b) return t < 0.5 ? from : to;
+
+  const channel = (index: number) => Math.round(mixNumber(a[index]!, b[index]!, t));
+
+  return `rgba(${channel(0)}, ${channel(1)}, ${channel(2)}, ${mixNumber(a[3]!, b[3]!, t).toFixed(3)})`;
+}
+
+function parseRgba(value: string): [number, number, number, number] | null {
+  const match = value.match(/rgba?\(([^)]+)\)/);
+  if (!match) return null;
+
+  const parts = match[1]!.split(",").map((part) => Number(part.trim()));
+  if (parts.length < 3 || parts.some(Number.isNaN)) return null;
+
+  return [parts[0]!, parts[1]!, parts[2]!, parts[3] ?? 1];
+}
+
+function percent(value: string): number {
+  return Number(value.replace("%", ""));
+}
+
+function mixNumber(from: number, to: number, t: number): number {
+  return from + (to - from) * t;
 }
