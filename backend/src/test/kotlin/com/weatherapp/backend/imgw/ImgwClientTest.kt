@@ -3,10 +3,12 @@ package com.weatherapp.backend.imgw
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
 import org.springframework.test.web.client.response.MockRestResponseCreators.withServerError
+import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
 import kotlin.test.assertEquals
@@ -61,6 +63,27 @@ class ImgwClientTest {
     fun `an empty feed is a valid response`() {
         mockServer.expect(requestTo("$BASE_URL/api/data/warningsmeteo"))
             .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON))
+
+        assertTrue(client.fetchMeteoWarnings().isEmpty())
+    }
+
+    /**
+     * The real calm-day response, verified against the live endpoint on
+     * 2026-07-27 while nothing was in force anywhere in Poland.
+     *
+     * Getting this wrong means the ingest throws on every run of every quiet
+     * day, so warnings that have ended are never cleared and the app cannot
+     * get back from "warning in force" to "all quiet" - the wrong way round for
+     * a warning app, where the calm case has to be the reliable one.
+     */
+    @Test
+    fun `a 404 means no warnings are in force, not a failure`() {
+        mockServer.expect(requestTo("$BASE_URL/api/data/warningsmeteo"))
+            .andRespond(
+                withStatus(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body("""{"status":false,"message":"No products were found"}"""),
+            )
 
         assertTrue(client.fetchMeteoWarnings().isEmpty())
     }
