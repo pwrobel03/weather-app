@@ -2,13 +2,19 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import { tokens } from "@weather-app/design-tokens";
 import type { LngLat, Map as MapLibreMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
 import { PowiatPopover, type PowiatAlertSummary } from "@/components/map/powiat-popover";
 import type { PowiatFeatureCollection } from "@/lib/map/geojson";
-import { POLAND_BOUNDS, powiatFillPaint, warningMapStyle } from "@/lib/map/style";
+import {
+  POLAND_BOUNDS,
+  powiatFillPaint,
+  toRenderableColor,
+  warningMapStyle,
+} from "@/lib/map/style";
 import type { Locale } from "@weather-app/core";
 
 type WarningMapProps = {
@@ -76,8 +82,14 @@ export function WarningMap({
       // unmount leaks a WebGL context that never gets released.
       if (disposed || !container.current) return;
 
-      const styles = getComputedStyle(document.documentElement);
-      const background = styles.getPropertyValue("--muted").trim() || "#16202F";
+      // The app's own tokens, not the Tailwind theme variables.
+      //
+      // The theme values are almost right and therefore worse than wrong:
+      // `--card` and `--muted` are both near-black navies in the dark theme,
+      // so the powiats painted correctly and were invisible against the
+      // ground. On a map with no basemap the shapes *are* the content, so
+      // their contrast against the ground is not a detail to inherit.
+      const background = tokens.colors.tloCiemne;
 
       created = new Map({
         container: container.current,
@@ -174,7 +186,7 @@ export function WarningMap({
   // arrive first, and neither is useful without the other.
   useEffect(() => {
     if (!map || !boundaries || map.getSource("powiats")) return;
-    addBoundaryLayers(map, boundaries, getComputedStyle(document.documentElement));
+    addBoundaryLayers(map, boundaries);
   }, [map, boundaries]);
 
   // Severity is applied separately from the layers, and re-applied whenever it
@@ -243,12 +255,12 @@ export function WarningMap({
 function addBoundaryLayers(
   map: MapLibreMap,
   boundaries: PowiatFeatureCollection,
-  styles: CSSStyleDeclaration,
 ) {
   if (boundaries.features.length === 0) return;
 
-  const surface = styles.getPropertyValue("--card").trim() || "#1B2534";
-  const border = styles.getPropertyValue("--border").trim() || "#2A3547";
+  const surface = tokens.colors.powierzchnia;
+  // Bright enough to read at country zoom, where 380 borders are hairlines.
+  const border = toRenderableColor(tokens.colors.tekstMuted, "#8A94A6");
 
   map.addSource("powiats", {
     type: "geojson",
@@ -259,7 +271,7 @@ function addBoundaryLayers(
   });
 
   const severityColor = (level: 1 | 2 | 3) =>
-    styles.getPropertyValue(`--dt-color-warning-${level}`).trim() || surface;
+    tokens.colors[`warning${level}`];
 
   map.addLayer({
     id: "powiat-fill",
@@ -278,9 +290,10 @@ function addBoundaryLayers(
     source: "powiats",
     paint: {
       "line-color": border,
+      "line-opacity": 0.55,
       // Thin when zoomed out: 380 borders at a fixed width read as a grey mesh
       // rather than as a country.
-      "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.4, 10, 1.2],
+      "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.7, 10, 1.4],
     },
   });
 }

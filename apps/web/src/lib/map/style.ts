@@ -31,9 +31,15 @@ export const POLAND_BOUNDS: [number, number, number, number] = [14.12, 48.95, 24
 export function warningMapStyle(background: string): StyleSpecification {
   return {
     version: 8,
-    // Required by the spec even with no symbol layers; an empty object keeps
-    // MapLibre from reaching for a default glyph server on the open internet.
-    glyphs: undefined,
+    // `glyphs` is deliberately absent rather than set to undefined. MapLibre
+    // validates the style object, and a key that is present with an undefined
+    // value fails that validation with "glyphs: string expected, undefined
+    // found" - which aborts the style load, so `load` never fires and no
+    // layers are ever added. The map renders as an empty rectangle with its
+    // controls, and nothing about it suggests a colour-parsing problem.
+    //
+    // Same class of mistake as the API client's `baseUrl: undefined`: an
+    // explicit undefined is not the same as an omission.
     sources: {},
     layers: [
       {
@@ -127,4 +133,48 @@ export function powiatFillPaint(
       0.9,
     ],
   } as const;
+}
+
+/**
+ * Turns any CSS colour into something MapLibre can parse.
+ *
+ * Necessary because the theme's custom properties resolve to modern colour
+ * functions - Tailwind v4 emits `oklch()`, and the browser hands back
+ * `lab(100% 0 0 / .1)` for some of them. MapLibre's style validator accepts
+ * neither, and it rejects the whole layer rather than the one property:
+ * `line-color: color expected, "lab(100% 0 0 / .1)" found`, after which the
+ * layer is simply absent and the map renders as an empty rectangle with its
+ * controls still on it. Nothing about that picture suggests a colour problem.
+ *
+ * Round-tripping through a canvas is the fix that does not need a list of
+ * which properties are safe: the browser parses whatever CSS it supports, and
+ * we read back four numbers.
+ */
+export function toRenderableColor(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return fallback;
+
+    context.clearRect(0, 0, 1, 1);
+    context.fillStyle = trimmed;
+    // An unparseable value leaves fillStyle at its default black, which would
+    // silently paint every powiat black rather than fail.
+    if (context.fillStyle === "#000000" && !/^(#000000|black|rgb\(0, ?0, ?0\))$/i.test(trimmed)) {
+      return fallback;
+    }
+
+    context.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+
+    return `rgba(${r}, ${g}, ${b}, ${((a ?? 255) / 255).toFixed(3)})`;
+  } catch {
+    return fallback;
+  }
 }
