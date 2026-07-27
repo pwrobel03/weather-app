@@ -99,6 +99,35 @@ class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
      * expire correct caches nightly; a deploy-based one would serve stale
      * geometry after an import with no deploy.
      */
+    /**
+     * Every powiat's simplified boundary.
+     *
+     * The map needs the whole country, not a selection: with no basemap behind
+     * it, a handful of highlighted shapes would float in an empty rectangle
+     * with nothing to place them against. 380 polygons drawn once is what makes
+     * the outline of Poland readable at all.
+     */
+    fun findAllSimplifiedGeoJson(): List<PowiatGeoJsonFeature> =
+        jdbcTemplate.query(
+            """
+            SELECT teryt_code, name, voivodeship,
+                   ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(boundary::geometry, ?))) AS geometry
+            FROM powiat_boundary
+            ORDER BY teryt_code
+            """.trimIndent(),
+            { rs, _ ->
+                PowiatGeoJsonFeature(
+                    properties = PowiatGeoJsonFeature.Properties(
+                        terytCode = rs.getString("teryt_code"),
+                        name = rs.getString("name"),
+                        voivodeship = rs.getString("voivodeship"),
+                    ),
+                    geometry = rs.getString("geometry"),
+                )
+            },
+            SIMPLIFY_TOLERANCE_DEGREES,
+        )
+
     fun datasetVersion(): Instant? =
         jdbcTemplate.queryForObject(
             "SELECT max(created_at) FROM powiat_boundary",

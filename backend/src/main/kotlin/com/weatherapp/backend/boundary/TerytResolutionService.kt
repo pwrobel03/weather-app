@@ -32,6 +32,10 @@ class TerytResolutionService(private val repository: PowiatBoundaryRepository) {
         return PowiatGeoJsonFeatureCollection(repository.findSimplifiedGeoJson(distinct))
     }
 
+    /** Every powiat, for the map's base layer. */
+    fun getAllSimplifiedGeoJson(): PowiatGeoJsonFeatureCollection =
+        PowiatGeoJsonFeatureCollection(repository.findAllSimplifiedGeoJson())
+
     /**
      * An opaque tag identifying the current boundary dataset, for HTTP
      * validation. Null when nothing has been imported yet - there is no

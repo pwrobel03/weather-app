@@ -188,6 +188,19 @@ class BoundaryControllerTest {
         assertTrue(response.headers.getFirst("Cache-Control")!!.contains("no-store"))
     }
 
+    @Test
+    fun `returns every powiat when no code is given`() {
+        // The map's base layer: with no basemap behind it, a handful of shapes
+        // would float in an empty rectangle with nothing to place them against.
+        whenever(terytResolutionService.getAllSimplifiedGeoJson()).thenReturn(
+            PowiatGeoJsonFeatureCollection(listOf(feature("1401", "powiat bialski"))),
+        )
+
+        val body = get("/api/boundaries/geojson")
+
+        assertTrue(body.contains("\"terytCode\":\"1401\""))
+    }
+
     private fun feature(terytCode: String, name: String) =
         PowiatGeoJsonFeature(
             properties = PowiatGeoJsonFeature.Properties(terytCode, name, "mazowieckie"),

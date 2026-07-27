@@ -40,7 +40,9 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
     @Operation(
         summary = "Get several powiats' boundaries as one GeoJSON FeatureCollection",
         description =
-            "Returns simplified boundaries for the given TERYT codes in a single response. " +
+            "Returns simplified boundaries for the given TERYT codes in a single response, " +
+                "or every powiat when the parameter is omitted - which is what the map's base " +
+                "layer needs. " +
                 "A single IMGW warning can cover more than a hundred powiats, and one request " +
                 "per powiat would mean the map issuing a hundred round trips for geometry that " +
                 "never changes.",
@@ -51,9 +53,9 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
     )
     @GetMapping("/api/boundaries/geojson")
     fun geojsonBatch(
-        @Parameter(description = "Powiat TERYT codes", example = "1465,1401,3064")
-        @RequestParam(name = "teryt")
-        terytCodes: List<String>,
+        @Parameter(description = "Powiat TERYT codes; omit for every powiat", example = "1465,1401,3064")
+        @RequestParam(name = "teryt", required = false)
+        terytCodes: List<String>?,
         request: WebRequest,
     ): ResponseEntity<PowiatGeoJsonFeatureCollection> {
         val version = terytResolutionService.datasetVersion()
@@ -62,10 +64,14 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
         BoundaryHttpCaching.notModified<PowiatGeoJsonFeatureCollection>(
             request,
             version,
-            terytCodes.sorted().joinToString(","),
+            terytCodes?.sorted()?.joinToString(",") ?: ALL_POWIATS,
         )?.let { return it }
 
-        return BoundaryHttpCaching.cacheable(terytResolutionService.getSimplifiedGeoJson(terytCodes), version)
+        val collection = terytCodes
+            ?.let(terytResolutionService::getSimplifiedGeoJson)
+            ?: terytResolutionService.getAllSimplifiedGeoJson()
+
+        return BoundaryHttpCaching.cacheable(collection, version)
     }
 
     @Operation(
@@ -97,4 +103,10 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleTooManyCodes(ex: IllegalArgumentException): ResponseEntity<Map<String, String?>> =
         ResponseEntity.badRequest().body(mapOf("error" to ex.message))
+
+    private companion object {
+        /** ETag discriminator for the whole-country request, which has no code
+         * list of its own to hash. */
+        const val ALL_POWIATS = "*"
+    }
 }

@@ -146,6 +146,13 @@ class PowiatBoundaryRepositoryTest {
     }
 
     @Test
+    fun `returns every powiat for the map base layer`() {
+        val features = repository.findAllSimplifiedGeoJson()
+
+        assertEquals(listOf("1261", "1421", "1465"), features.map { it.properties.terytCode })
+    }
+
+    @Test
     fun `returns null geojson for an unknown teryt code`() {
         val feature = repository.findSimplifiedGeoJson("9999")
 
