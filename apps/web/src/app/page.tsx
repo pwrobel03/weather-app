@@ -76,17 +76,14 @@ export default async function Home() {
   const renderedAt = new Date();
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-3 px-3 py-3 lg:grid-cols-12 lg:gap-5 lg:px-6 lg:py-6">
-      {/* Hero and warnings share the top band. Warnings used to be the
-          smallest tile on a screen whose entire purpose is IMGW warnings,
-          while the saved-places list took nearly twice its area - the layout
-          said the opposite of what the product is. */}
-      <div className="lg:col-span-8">
+    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-12 lg:gap-6 lg:px-8 lg:py-8">
+      {/* Hero and warnings share the top band. Engineered spatial layout with staggered motion. */}
+      <div className="lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] border border-white/15">
         <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-20 micro-press">
             <ThemeToggle />
           </div>
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
             <LocationSwitcher active={active} savedLocations={savedLocations} />
             {authenticated ? (
               <Button
@@ -95,17 +92,16 @@ export default async function Home() {
                 variant="glass"
                 size="icon-sm"
                 aria-label="Ustawienia"
+                className="micro-press shadow-sm hover:rotate-4"
               >
                 <Settings />
               </Button>
             ) : (
-              <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
+              <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm" className="micro-press shadow-sm">
                 Zaloguj się
               </Button>
             )}
           </div>
-          {/* The one client-side, TanStack Query-backed fragment on this page
-              (roadmap commit 62) - everything else here is plain RSC. */}
           <CurrentConditionsClient
             latitude={latitude}
             longitude={longitude}
@@ -116,45 +112,38 @@ export default async function Home() {
         </WeatherBackground>
       </div>
 
-      <div className="lg:col-span-4">
+      <div className="lg:col-span-4 animate-in-card stagger-2 h-full">
         <AlertsTile alerts={alerts} authenticated={authenticated} locale={locale} now={renderedAt} />
       </div>
 
-      {/* d.png keeps the hourly strip directly under the hero, as part of the
-          same visual block. */}
-      <div className="lg:col-span-8">
-        <Tile>
+      <div className="lg:col-span-8 animate-in-card stagger-3 h-full flex flex-col justify-center">
+        <Tile className="h-full justify-center">
           <HourlyForecastStrip entries={hourly} />
         </Tile>
       </div>
 
       {outline && (
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-4 animate-in-card stagger-4 h-full">
           <PowiatTile outline={outline} severity={powiatSeverity} locale={locale} />
         </div>
       )}
 
-      <div className="lg:col-span-8">
-        <Tile title={weatherMessages[locale].sevenDays}>
+      <div className="lg:col-span-8 animate-in-card stagger-5 h-full flex flex-col justify-center">
+        <Tile title={weatherMessages[locale].sevenDays} className="h-full justify-center">
           <DailyForecastList entries={daily} />
         </Tile>
       </div>
 
-      <div className="lg:col-span-4">
+      <div className="lg:col-span-4 animate-in-card stagger-6 h-full">
         {conditions && <MetricsTile conditions={conditions} locale={locale} />}
       </div>
 
-      {/* A chart earns its width - full span rather than a quarter. */}
-      <div className="lg:col-span-12">
+      {/* A chart earns its width - full span analytical precipitation curve. */}
+      <div className="lg:col-span-12 animate-in-card stagger-6">
         <PrecipitationTile entries={hourly} locale={locale} />
       </div>
 
-      {/* Saved places left the home screen entirely: it is a setup task, looked
-          at once, and it was taking nearly twice the area of the warnings. It
-          lives at /locations, reachable from the location switcher. */}
-
-      {/* Live delivery of warnings over the WebSocket (roadmap 77). Renders
-          nothing until one arrives. */}
+      {/* Live delivery of warnings over the WebSocket (roadmap 77). Renders nothing until one arrives. */}
       {authenticated && <AlertLiveConnection locale={locale} />}
     </div>
   );

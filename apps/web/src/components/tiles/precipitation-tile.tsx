@@ -54,36 +54,45 @@ export function PrecipitationTile({
   return (
     <Tile
       title={labels.title}
+      className="h-full flex flex-col justify-between"
       aside={
-        <span className="on-glass font-mono text-sm tabular-nums">
-          {peak}% <span className="on-glass-muted text-xs">{labels.peak}</span>
+        <span className="on-glass inline-flex items-center gap-1.5 rounded-full bg-sky-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold tabular-nums text-sky-500 dark:text-sky-400 ring-1 ring-sky-500/20">
+          <span className="size-1.5 rounded-full bg-sky-400 animate-pulse-subtle" aria-hidden="true" />
+          {peak}% <span className="text-[0.65rem] uppercase tracking-wide opacity-80">{labels.peak}</span>
         </span>
       }
     >
-      {peak === 0 ? (
-        <p className="on-glass-muted text-sm">{labels.none}</p>
-      ) : (
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="h-20 w-full"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={`${labels.title}: ${peak}% ${labels.peak}`}
-        >
-          <defs>
-            <linearGradient id="precip-area" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={HEIGHT}>
-              <stop offset="0%" stopColor="#7CC0F0" stopOpacity="0.55" />
-              <stop offset="100%" stopColor="#2E6FA8" stopOpacity="0.05" />
-            </linearGradient>
-          </defs>
-          <path d={area} fill="url(#precip-area)" />
-          <path d={line} fill="none" stroke="#7CC0F0" strokeWidth="2.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        </svg>
-      )}
+      <div className="flex flex-1 flex-col justify-center py-2">
+        {peak === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-6 text-center text-muted-foreground opacity-85">
+            <span className="text-sm font-semibold tracking-wide">{labels.none}</span>
+            <span className="text-[0.7rem] uppercase tracking-wider text-emerald-500 dark:text-emerald-400 font-bold">Status: Czyste Niebo</span>
+          </div>
+        ) : (
+          <div className="relative w-full overflow-hidden rounded-xl pt-2">
+            <svg
+              viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+              className="h-28 w-full overflow-visible drop-shadow-[0_4px_12px_rgba(56,189,248,0.35)]"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={`${labels.title}: ${peak}% ${labels.peak}`}
+            >
+              <defs>
+                <linearGradient id="precip-area" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={HEIGHT}>
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.65" />
+                  <stop offset="100%" stopColor="#0284c7" stopOpacity="0.02" />
+                </linearGradient>
+              </defs>
+              <path d={area} fill="url(#precip-area)" />
+              <path d={line} fill="none" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+        )}
+      </div>
 
-      <ol className="on-glass-muted flex justify-between font-mono text-[0.625rem] tabular-nums">
-        {[window[0], window[Math.floor(window.length / 2)], window[window.length - 1]].map((entry) => (
-          <li key={entry.time}>{formatHourMinute(entry.time)}</li>
+      <ol className="mt-auto flex justify-between border-t border-border/30 pt-2 font-mono text-[0.7rem] font-medium tabular-nums text-muted-foreground">
+        {[window[0], window[Math.floor(window.length / 2)], window[window.length - 1]].map((entry, idx) => (
+          <li key={entry?.time || idx}>{entry ? formatHourMinute(entry.time) : ""}</li>
         ))}
       </ol>
     </Tile>

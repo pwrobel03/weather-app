@@ -28,27 +28,27 @@ export function Tile({ title, aside, className, variant = "matte", children }: T
   return (
     <section
       className={cn(
-        "flex flex-col gap-3 rounded-3xl p-5",
+        "group/tile relative flex flex-col gap-4 rounded-3xl p-5.5 md:p-6 transition-[transform,box-shadow,border-color,background-color] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
         variant === "glass"
-          ? "glass"
-          : "border border-border/60 bg-card/85 text-card-foreground shadow-sm",
+          ? "glass hover:shadow-xl hover:-translate-y-0.5"
+          : "interactive-tile border border-border/75 bg-gradient-to-br from-card via-card/95 to-card/90 text-card-foreground shadow-sm backdrop-blur-md dark:from-[var(--dt-color-powierzchnia)] dark:via-[#161b24] dark:to-[#131820]",
         className,
       )}
     >
       {(title || aside) && (
-        <header className="flex items-baseline justify-between gap-3">
+        <header className="flex items-center justify-between gap-3 border-b border-border/30 pb-3">
           {title && (
             <h2
-              className="text-[0.6875rem] uppercase opacity-55"
-              style={{ letterSpacing: "var(--dt-type-heading-tracking)" }}
+              className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground opacity-85 group-hover/tile:opacity-100 transition-opacity duration-[200ms]"
+              style={{ letterSpacing: "var(--dt-type-heading-tracking, 0.08em)" }}
             >
               {title}
             </h2>
           )}
-          {aside}
+          <div className="text-right">{aside}</div>
         </header>
       )}
-      {children}
+      <div className="flex-1 flex flex-col justify-center">{children}</div>
     </section>
   );
 }

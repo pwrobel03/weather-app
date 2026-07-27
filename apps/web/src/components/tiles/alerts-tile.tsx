@@ -71,29 +71,35 @@ export function AlertsTile({
     <Tile
       title={labels.title}
       variant="glass"
-      className={quiet ? undefined : "h-full"}
+      className="h-full flex flex-col justify-between"
       aside={
         alerts.length > 0 ? (
-          <span className="font-mono text-2xl leading-none font-light tabular-nums">
+          <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 px-2.5 py-0.5 font-mono text-xs font-bold text-destructive ring-1 ring-destructive/30 tabular-nums animate-pulse-subtle">
             {alerts.length}
           </span>
         ) : null
       }
     >
       {!authenticated ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm opacity-75">{labels.anonymous}</p>
-          <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
+        <div className="flex flex-col items-start justify-center gap-4 rounded-2xl border border-white/15 bg-black/20 p-4 backdrop-blur-md dark:bg-white/5">
+          <p className="text-sm font-medium opacity-90">{labels.anonymous}</p>
+          <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm" className="w-full justify-center shadow-sm">
             {labels.signIn}
           </Button>
         </div>
       ) : quiet ? (
-        <div className="flex items-center gap-2">
-          <ShieldCheck aria-hidden="true" className="size-4 opacity-60" />
-          <p className="text-sm opacity-75">{labels.none}</p>
+        <div className="flex items-center gap-3.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-foreground shadow-xs backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-[200ms] hover:border-emerald-500/40 hover:shadow-sm">
+          <div className="relative flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-25 animate-pulse-subtle" />
+            <ShieldCheck aria-hidden="true" className="relative size-5" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <p className="text-sm font-semibold tracking-tight">{labels.none}</p>
+            <p className="text-[0.7rem] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 opacity-90">Status: Bezpiecznie</p>
+          </div>
         </div>
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-3">
           {alerts.map((alert) => {
             const remaining = formatRemaining(alert.validTo, now, locale);
             const colour = `var(--dt-color-warning-${alert.severity})`;
@@ -101,38 +107,39 @@ export function AlertsTile({
               <li key={alert.id}>
                 <Link
                   href={`/alerts/${alert.id}`}
-                  className="flex gap-3 rounded-xl outline-offset-4 transition-opacity hover:opacity-80"
+                  className="group/alert relative flex gap-3.5 rounded-2xl border border-border/50 bg-black/20 p-4 backdrop-blur-md outline-offset-4 transition-[transform,background-color,border-color,box-shadow] duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.02] hover:border-white/30 hover:bg-black/35 hover:shadow-md active:scale-[0.97] dark:bg-white/5 dark:hover:bg-white/10"
                 >
-                  {/* Severity is a signal, so it never rides on colour alone:
-                      the bar always travels with the level in words and an
-                      icon (design.md §3). */}
                   <span
                     aria-hidden="true"
-                    className="w-1 shrink-0 rounded-full"
+                    className="w-1.5 shrink-0 rounded-full shadow-sm"
                     style={{ background: colour }}
                   />
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="text-base leading-tight font-semibold">{alert.event}</p>
-                    <p
-                      className="flex items-center gap-1.5 text-xs font-semibold"
-                      style={{ color: colour }}
-                    >
-                      <TriangleAlert aria-hidden="true" className="size-3.5" />
-                      {messages.severityLabel[alert.severity]}
-                    </p>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-base leading-tight font-bold tracking-tight text-white">{alert.event}</p>
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider text-white bg-black/30 shadow-xs"
+                        style={{ borderColor: colour, borderWidth: "1px" }}
+                      >
+                        <TriangleAlert aria-hidden="true" className="size-3" style={{ color: colour }} />
+                        {messages.severityLabel[alert.severity]}
+                      </span>
+                    </div>
                     {alert.affectedLocations.length > 0 && (
-                      <p className="truncate text-xs opacity-70">
+                      <p className="truncate text-xs text-white/80 font-medium">
                         {listFormat(alert.affectedLocations.map((l) => l.name), locale)}
                       </p>
                     )}
-                    <p className="font-mono text-lg leading-none font-light tabular-nums">
-                      {remaining ?? formatValidity(alert.validTo, locale)}
-                      {remaining && (
-                        <span className="ml-1.5 font-sans text-[0.625rem] tracking-wide uppercase opacity-60">
-                          {labels.remaining}
-                        </span>
-                      )}
-                    </p>
+                    <div className="mt-1 flex items-baseline justify-between pt-2 border-t border-white/10">
+                      <p className="font-mono text-base leading-none font-semibold tabular-nums text-white">
+                        {remaining ?? formatValidity(alert.validTo, locale)}
+                        {remaining && (
+                          <span className="ml-2 font-sans text-[0.65rem] font-semibold tracking-wider uppercase text-white/70">
+                            {labels.remaining}
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </Link>
               </li>

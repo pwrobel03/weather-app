@@ -62,12 +62,11 @@ export function CurrentConditionsClient({
           variant="glass"
           size="icon-sm"
           aria-label="Odśwież prognozę"
-          // Sits left of the theme toggle, which the page pins at right-4.
-          className="absolute top-0 right-11"
+          className="absolute top-4 right-16 z-20 micro-press shadow-sm hover:rotate-12 transition-all duration-[200ms]"
           onClick={() => refetch()}
           disabled={isFetching}
         >
-          <RefreshCw className={isFetching ? "animate-spin" : ""} />
+          <RefreshCw className={isFetching ? "animate-spin text-primary" : "text-white/90"} />
         </Button>
       }
     />
