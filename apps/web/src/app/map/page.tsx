@@ -5,6 +5,8 @@ import type { PowiatAlertSummary } from "@/components/map/powiat-popover";
 import { WarningMap } from "@/components/map/warning-map";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { fetchAllPowiatBoundaries } from "@/lib/map/boundaries";
+import { boundsForLocations } from "@/lib/map/style";
+import { fetchSavedLocations } from "@/lib/saved-locations/api";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +20,10 @@ export const dynamic = "force-dynamic";
 export default async function MapPage() {
   const locale = DEFAULT_LOCALE;
   const labels = alertUiMessages[locale];
-  const [boundaries, alerts] = await Promise.all([
+  const [boundaries, alerts, savedLocations] = await Promise.all([
     fetchAllPowiatBoundaries(),
     fetchActiveAlerts(),
+    fetchSavedLocations(),
   ]);
 
   // A powiat can sit under several warnings at once; the map shows the worst
@@ -58,6 +61,7 @@ export default async function MapPage() {
           severityByTeryt={severityByTeryt}
           alertsByTeryt={alertsByTeryt}
           locale={locale}
+          initialBounds={boundsForLocations(savedLocations)}
           className="size-full overflow-hidden rounded-[2rem] border border-border/60 shadow-md"
         />
         <MapLegend locale={locale} countsByLevel={countsByLevel} />

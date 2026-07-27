@@ -44,3 +44,51 @@ export function warningMapStyle(background: string): StyleSpecification {
     ],
   };
 }
+
+/**
+ * The opening frame: everything the user watches, or the whole country when
+ * they watch nothing yet.
+ *
+ * Opening on Poland for someone who saved only Gdańsk means their own powiat
+ * is a few pixels wide in the corner, and the first thing they have to do is
+ * find it. The frame follows what they chose to care about.
+ *
+ * A single saved location has no extent of its own, so a bare bounding box
+ * would be a point and MapLibre would zoom to its maximum. `MIN_SPAN_DEGREES`
+ * gives it roughly a region's worth of context - enough to see which
+ * neighbours are also under a warning, which is usually the actual question.
+ */
+export function boundsForLocations(
+  locations: readonly { latitude: number; longitude: number }[],
+): [number, number, number, number] {
+  if (locations.length === 0) return POLAND_BOUNDS;
+
+  const latitudes = locations.map((location) => location.latitude);
+  const longitudes = locations.map((location) => location.longitude);
+
+  let west = Math.min(...longitudes);
+  let east = Math.max(...longitudes);
+  let south = Math.min(...latitudes);
+  let north = Math.max(...latitudes);
+
+  const padLongitude = Math.max(0, MIN_SPAN_DEGREES - (east - west)) / 2;
+  const padLatitude = Math.max(0, MIN_SPAN_DEGREES - (north - south)) / 2;
+
+  west -= padLongitude;
+  east += padLongitude;
+  south -= padLatitude;
+  north += padLatitude;
+
+  // Never wider than the country. Padding a location near the border would
+  // otherwise push the frame past maxBounds, and MapLibre answers that by
+  // silently clamping to somewhere neither we nor the user chose.
+  return [
+    Math.max(west, POLAND_BOUNDS[0]),
+    Math.max(south, POLAND_BOUNDS[1]),
+    Math.min(east, POLAND_BOUNDS[2]),
+    Math.min(north, POLAND_BOUNDS[3]),
+  ];
+}
+
+/** About 110 km of latitude - a powiat plus its neighbours. */
+const MIN_SPAN_DEGREES = 1.0;

@@ -22,6 +22,8 @@ type WarningMapProps = {
   /** TERYT code -> the warnings covering it, for the popover. */
   alertsByTeryt: Record<string, PowiatAlertSummary[]>;
   locale: Locale;
+  /** Opening frame, derived from the user's saved locations (lib/map/style). */
+  initialBounds: [number, number, number, number];
 };
 
 type Selection = {
@@ -51,6 +53,7 @@ export function WarningMap({
   severityByTeryt,
   alertsByTeryt,
   locale,
+  initialBounds,
 }: WarningMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
@@ -80,7 +83,7 @@ export function WarningMap({
       created = new Map({
         container: container.current,
         style: warningMapStyle(background),
-        bounds: POLAND_BOUNDS,
+        bounds: initialBounds,
         fitBoundsOptions: { padding: 24 },
         maxBounds: POLAND_BOUNDS,
         // No basemap means no attribution to display, and an empty control
