@@ -11,6 +11,7 @@ import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AlertLiveConnection } from "../src/components/alert-live-connection";
 import { AlertsTile } from "../src/components/alerts-tile";
 import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
@@ -155,6 +156,9 @@ export default function HomeScreen() {
       <Tile title={weather.sevenDays}>
         <DailyForecastList entries={daily.data ?? []} locale={locale} />
       </Tile>
+      {/* Live delivery over the WebSocket, plus push registration. Renders
+          nothing until a warning arrives. */}
+      {session && <AlertLiveConnection locale={locale} />}
     </ScrollView>
   );
 }

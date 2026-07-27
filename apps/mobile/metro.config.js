@@ -26,8 +26,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
-// Follow symlinks to their real location - pnpm's entire layout is symlinks.
-config.resolver.unstable_enableSymlinks = true;
+// Symlink resolution (which is pnpm's entire layout) is on by default in
+// expo/metro-config, so it is deliberately not set here - expo-doctor flags an
+// explicit `unstable_enableSymlinks` as an override of a value Expo now owns.
 
 // Note: `disableHierarchicalLookup` is the usual advice for a monorepo, to
 // stop a hoisted second copy of react being picked up alongside the app's own.

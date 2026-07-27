@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
+import { releasePushToken } from "../src/lib/realtime/push";
 import { fetchProfile, updatePreferences, type UnitPreferences } from "../src/lib/user";
 
 type UnitField = keyof typeof unitLabels;
@@ -122,6 +123,12 @@ export default function SettingsScreen() {
 
       <Pressable
         onPress={async () => {
+          // Before signOut, not after: unregistering is itself an
+          // authenticated call, so clearing the tokens first would leave this
+          // device registered with no way left to reach the registration -
+          // and the next warning for this account landing on a phone somebody
+          // else is now holding.
+          await releasePushToken();
           await signOut();
           // The cached profile, saved places and warnings all belong to the
           // account that just left. Without this the next person to sign in on
