@@ -3,7 +3,6 @@ import { alertUiMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { MapLegend } from "@/components/map/map-legend";
 import { WarningMap } from "@/components/map/warning-map";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
-import { fetchAllPowiatBoundaries } from "@/lib/map/boundaries";
 import { resolveMapSeverity } from "@/lib/map/severity";
 import { boundsForLocations } from "@/lib/map/style";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
@@ -20,8 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function MapPage() {
   const locale = DEFAULT_LOCALE;
   const labels = alertUiMessages[locale];
-  const [boundaries, alerts, savedLocations] = await Promise.all([
-    fetchAllPowiatBoundaries(),
+  const [alerts, savedLocations] = await Promise.all([
     fetchActiveAlerts(),
     fetchSavedLocations(),
   ]);
@@ -36,7 +34,6 @@ export default async function MapPage() {
       <div className="relative min-h-0 flex-1">
         <WarningMap
           label={labels.warnings}
-          boundaries={boundaries}
           severityByTeryt={severityByTeryt}
           alertsByTeryt={alertsByTeryt}
           locale={locale}

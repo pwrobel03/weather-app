@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
 import { PowiatPopover, type PowiatAlertSummary } from "@/components/map/powiat-popover";
-import type { PowiatFeatureCollection } from "@/lib/map/boundaries";
+import type { PowiatFeatureCollection } from "@/lib/map/geojson";
 import { POLAND_BOUNDS, powiatFillPaint, warningMapStyle } from "@/lib/map/style";
 import type { Locale } from "@weather-app/core";
 
@@ -15,8 +15,7 @@ type WarningMapProps = {
   className?: string;
   /** Announced to assistive technology - the canvas itself says nothing. */
   label: string;
-  /** Every powiat, fetched on the server (see lib/map/boundaries). */
-  boundaries: PowiatFeatureCollection;
+
   /** TERYT code -> the highest IMGW level in force there, if any. */
   severityByTeryt: Record<string, WarningSeverityLevel>;
   /** TERYT code -> the warnings covering it, for the popover. */
@@ -49,7 +48,6 @@ type Selection = {
 export function WarningMap({
   className,
   label,
-  boundaries,
   severityByTeryt,
   alertsByTeryt,
   locale,
@@ -57,6 +55,7 @@ export function WarningMap({
 }: WarningMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
+  const [boundaries, setBoundaries] = useState<PowiatFeatureCollection | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   // Where the selected point currently sits on screen. Recomputed as the map
   // moves, so the card stays glued to its powiat while panning rather than
@@ -99,7 +98,6 @@ export function WarningMap({
       created.addControl(new NavigationControl({ showCompass: false }), "top-right");
       created.on("load", () => {
         if (disposed || !created) return;
-        addBoundaryLayers(created, boundaries, styles);
         setMap(created);
       });
 
@@ -140,17 +138,51 @@ export function WarningMap({
       created?.remove();
       setMap(null);
     };
-    // `boundaries` is server-fetched and stable for the life of the page;
-    // rebuilding the map on a new object identity would flash the whole canvas.
+    // `initialBounds` is the *opening* frame by definition: recreating the
+    // map to honour a changed one would yank the viewport out from under
+    // someone who had panned away from it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * The geometry is fetched by the browser rather than rendered into the page.
+   *
+   * It is 2.4MB and identical for everyone, so inlining it made every visit to
+   * this page ship the whole country again - and threw away the backend's HTTP
+   * caching (commit 81), which a browser cannot use for bytes it never asked
+   * for. Fetched here it is downloaded once and revalidated with an ETag after
+   * that.
+   *
+   * The cost is honest: the map paints a beat later than the page. That is the
+   * right trade for not delaying everything else on the page by 2.4MB.
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch("/api/boundaries/geojson", { signal: controller.signal })
+      .then((response) => response.json() as Promise<PowiatFeatureCollection>)
+      .then(setBoundaries)
+      .catch(() => {
+        // An empty map is a visible failure; a thrown promise here would be an
+        // invisible one.
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  // Layers are added once both the map and its geometry exist - either can
+  // arrive first, and neither is useful without the other.
+  useEffect(() => {
+    if (!map || !boundaries || map.getSource("powiats")) return;
+    addBoundaryLayers(map, boundaries, getComputedStyle(document.documentElement));
+  }, [map, boundaries]);
 
   // Severity is applied separately from the layers, and re-applied whenever it
   // changes. A warning arriving over the WebSocket must repaint the map, and
   // rebuilding the source to do it would drop the viewport back to Poland
   // while the user was looking at their own powiat.
   useEffect(() => {
-    if (!map) return;
+    if (!map || !boundaries) return;
     applySeverity(map, boundaries, severityByTeryt);
   }, [map, boundaries, severityByTeryt]);
 
