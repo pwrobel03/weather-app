@@ -68,10 +68,10 @@ export const tokens = {
    * the detail that reads as light catching a real material.
    */
   glass: {
-    darkBackground: "rgba(255, 255, 255, 0.07)",
-    lightBackground: "rgba(255, 255, 255, 0.55)",
-    darkBorder: "rgba(255, 255, 255, 0.12)",
-    lightBorder: "rgba(255, 255, 255, 0.65)",
+    darkBackground: "rgba(255, 255, 255, 0.10)",
+    lightBackground: "rgba(255, 255, 255, 0.28)",
+    darkBorder: "rgba(255, 255, 255, 0.14)",
+    lightBorder: "rgba(255, 255, 255, 0.30)",
     darkEdge: "rgba(255, 255, 255, 0.30)",
     lightEdge: "rgba(255, 255, 255, 1)",
     /**
@@ -80,8 +80,13 @@ export const tokens = {
      * indistinguishable from a matte panel. Paired with the page backdrop in
      * globals.css, which gives it something to work on.
      */
-    blur: "28px",
-    saturate: "190%",
+    /**
+     * Low on purpose. The frosted read comes from the inner glow in the box
+     * shadow, not from the blur - which is why the material still looks like
+     * glass over a flat ground, where a heavy blur has nothing to bend.
+     */
+    blur: "5px",
+    saturate: "180%",
   },
   /**
    * Tracking is size-specific by rule - a single letter-spacing value is wrong
