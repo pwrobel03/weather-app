@@ -19,11 +19,13 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        // design.md Backlog 1: translucent surface for use over the weather
-        // gradient. Falls back to an opaque, matte surface under
-        // prefers-reduced-transparency - never removed, just de-glassed.
-        glass:
-          "border-white/15 bg-card/55 text-card-foreground backdrop-blur-md hover:bg-card/70 reduce-transparency:border-border reduce-transparency:bg-card reduce-transparency:backdrop-blur-none reduce-transparency:hover:bg-muted",
+        // design.md §4: iOS-flavoured glass for use over the weather gradient.
+        // Uses the shared `glass` utility rather than its own blur values, so
+        // a button and a bento tile are demonstrably the same material - the
+        // previous hand-rolled `backdrop-blur-md bg-card/55` was neither the
+        // documented recipe nor consistent with anything else.
+        // The reduced-transparency fallback lives in the utility itself.
+        glass: "glass text-foreground hover:bg-white/20 dark:hover:bg-white/[0.16]",
       },
       size: {
         default:

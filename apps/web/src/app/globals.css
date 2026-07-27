@@ -414,3 +414,93 @@
   font-size: 0.6875rem;
   color: #8a94a6;
 }
+
+/* ---------------------------------------------------------------------------
+   Szkło w duchu iOS (design.md §4)
+
+   Blur bez wzmocnienia nasycenia daje szarą breję — przepuszczone tło traci
+   kolor. Dopiero saturate() sprawia, że materiał czyta się jako szkło.
+
+   Jasna górna krawędź to detal, który odróżnia szkło iOS od zwykłego
+   półprzezroczystego prostokąta: światło pada z góry i zatrzymuje się na
+   krawędzi materiału.
+--------------------------------------------------------------------------- */
+@utility glass {
+  background: var(--dt-glass-light-background);
+  border: 1px solid var(--dt-glass-light-border);
+  border-top-color: var(--dt-glass-light-edge);
+  backdrop-filter: blur(var(--dt-glass-blur)) saturate(var(--dt-glass-saturate));
+  -webkit-backdrop-filter: blur(var(--dt-glass-blur)) saturate(var(--dt-glass-saturate));
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.12);
+
+  .dark & {
+    background: var(--dt-glass-dark-background);
+    border-color: var(--dt-glass-dark-border);
+    border-top-color: var(--dt-glass-dark-edge);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.24);
+  }
+}
+
+/* Większa powierzchnia = grubsze szkło. Materiał ma wagę: duży kafelek nie
+   może mieć tego samego blura co mały chip, bo przestaje czytać się jako
+   osobna warstwa. */
+@utility glass-heavy {
+  backdrop-filter: blur(40px) saturate(var(--dt-glass-saturate));
+  -webkit-backdrop-filter: blur(40px) saturate(var(--dt-glass-saturate));
+  box-shadow: 0 16px 48px rgb(0 0 0 / 0.18);
+
+  .dark & {
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.36);
+  }
+}
+
+/* Szkło materializuje się, nie wyłania z nicości: promień blura rośnie razem
+   ze skalą, więc powierzchnia czyta się jako przybywający materiał, a nie
+   płaskie rozjaśnienie krycia. */
+@keyframes glass-materialize {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    backdrop-filter: blur(0) saturate(100%);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    backdrop-filter: blur(var(--dt-glass-blur)) saturate(var(--dt-glass-saturate));
+  }
+}
+
+@utility glass-enter {
+  animation: glass-materialize 260ms var(--dt-ease-out) both;
+}
+
+/* design.md §4 pkt 5: przy prefers-reduced-transparency szkło staje się
+   materiałem matowym. Kafelek zostaje — znika tylko przezroczystość. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass,
+  .glass-heavy {
+    background: var(--card);
+    border-color: var(--border);
+    border-top-color: var(--border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-enter {
+    animation: none;
+  }
+}
+
+/* Nad szkłem płaska szarość przestaje być czytelna — tekst dostaje wyższy
+   kontrast i odrobinę większą wagę (design.md §9). */
+@utility on-glass {
+  color: color-mix(in srgb, var(--foreground) 92%, transparent);
+  font-weight: 500;
+}
+
+@utility on-glass-muted {
+  color: color-mix(in srgb, var(--foreground) 68%, transparent);
+  font-weight: 500;
+}
