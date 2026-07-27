@@ -254,6 +254,53 @@
     radial-gradient(140% 90% at 50% 110%, rgba(8, 11, 16, 0.7) 0%, transparent 60%);
 }
 
+/* Precipitation texture — the streaks, separate from the veil above.
+
+   Two values because they are two different quantities: fog is the heaviest
+   veil in the set and has no streaks at all, while drizzle barely darkens the
+   sky and is visibly full of them.
+
+   Repeating gradients rather than a particle layer (design.md, rejected):
+   thousands of moving sprites behind a screen whose actual job is to stay
+   readable is a lot of battery spent making text harder to read. */
+.weather-background__texture {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--texture-density, 0);
+  /* Overdrawn and rotated about the centre, so rotating the streaks never
+     exposes an uncovered corner. */
+  inset: -30%;
+  transform: rotate(var(--texture-angle, 0deg));
+  background-image: var(--texture-image, none);
+  background-size: var(--texture-size, auto);
+}
+
+.weather-background[data-texture="drizzle"] {
+  /* Fine, closely spaced, low contrast: many strokes, none of them assertive. */
+  --texture-image: repeating-linear-gradient(
+    180deg,
+    rgba(226, 238, 252, 0.5) 0px,
+    rgba(226, 238, 252, 0.5) 6px,
+    transparent 6px,
+    transparent 13px
+  );
+  --texture-size: 3px 19px;
+}
+
+.weather-background[data-texture="rain"] {
+  /* Longer strokes, wider gaps, more contrast — read as falling, not as noise. */
+  --texture-image: repeating-linear-gradient(
+    180deg,
+    rgba(214, 233, 252, 0.62) 0px,
+    rgba(214, 233, 252, 0.62) 14px,
+    transparent 14px,
+    transparent 30px
+  );
+  --texture-size: 4px 44px;
+}
+
 .weather-background__content {
   position: relative;
   z-index: 2;

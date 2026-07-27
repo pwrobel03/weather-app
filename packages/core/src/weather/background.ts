@@ -54,6 +54,30 @@ export type BackgroundComposition = {
   glow: { color: string; y: string; secondary: string };
   /** Dark veil over the sky, carrying the phenomenon's weight. */
   veil: { opacity: number; contrast: number };
+  /**
+   * The falling-water overlay.
+   *
+   * Described as parameters rather than drawn here, because the two clients
+   * draw it with completely different tools - CSS gradients on web, a shader
+   * on mobile - and only the description is shared.
+   *
+   * Explicitly not a particle layer (design.md, rejected): thousands of moving
+   * sprites behind a screen whose actual job is to stay readable is a lot of
+   * battery spent making text harder to read.
+   */
+  texture: BackgroundTexture;
+};
+
+export type TextureKind = "none" | "fog" | "drizzle" | "rain" | "snow" | "hail" | "storm";
+
+export type BackgroundTexture = {
+  kind: TextureKind;
+  /** How strongly the overlay reads, 0-1. */
+  density: number;
+  /** Degrees from vertical. Driven by the wind channel. */
+  angle: number;
+  /** How fast it should appear to travel, 0-1, for renderers that animate. */
+  speed: number;
 };
 
 export function composeBackground(input: BackgroundInput): BackgroundComposition {
@@ -99,7 +123,36 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
       secondary: mixRgba(from.glowB, to.glowB, blend.t),
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
+    texture: resolveTexture(phenomenon),
   };
+}
+
+/**
+ * How the phenomenon falls.
+ *
+ * Density is not the same quantity as the veil's opacity, and keeping them
+ * apart is the reason both exist: fog is the heaviest veil in the set and has
+ * no streaks at all, while drizzle barely darkens the sky and is visibly full
+ * of them. One value cannot carry both.
+ */
+function resolveTexture(phenomenon: Phenomenon): BackgroundTexture {
+  const still = { angle: 0, speed: 0 };
+
+  switch (phenomenon) {
+    case "drizzle":
+      // Fine and slow. Dense in count, faint in contrast - which is what makes
+      // it read as drizzle rather than as weak rain.
+      return { kind: "drizzle", density: 0.55, ...still };
+    case "rain":
+      return { kind: "rain", density: 0.8, ...still };
+    case "fog":
+      // A veil, not a fall. Density stays at zero on purpose: fog has the
+      // heaviest veil in the set and no streaks whatsoever, and giving it
+      // texture is the single easiest way to make it read as rain.
+      return { kind: "fog", density: 0, ...still };
+    default:
+      return { kind: "none", density: 0, ...still };
+  }
 }
 
 /** The season tilt at a point between two season anchors. */

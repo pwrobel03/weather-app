@@ -58,6 +58,7 @@ export function WeatherBackground({
       data-time-of-day={composition.channels.timeOfDay}
       data-phenomenon={composition.channels.phenomenon}
       data-alert-severity={alertSeverity ?? undefined}
+      data-texture={composition.texture.kind}
       style={
         {
           "--sky-a": composition.sky.from,
@@ -67,11 +68,14 @@ export function WeatherBackground({
           "--glow-y": composition.glow.y,
           "--veil-opacity": composition.veil.opacity,
           "--veil-contrast": composition.veil.contrast,
+          "--texture-density": composition.texture.density,
+          "--texture-angle": `${composition.texture.angle}deg`,
         } as CSSProperties
       }
     >
       <div className="weather-background__glow" aria-hidden="true" />
       <div className="weather-background__phenomenon" aria-hidden="true" />
+      <div className="weather-background__texture" aria-hidden="true" />
       {alertSeverity && <div className="weather-background__alert" aria-hidden="true" />}
       <div className="weather-background__content">{children}</div>
     </div>
