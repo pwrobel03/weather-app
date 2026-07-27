@@ -1,10 +1,8 @@
+import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
-import { TemperatureDisplay } from "@/components/temperature-display";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WeatherBackground } from "@/components/weather-background";
-import { WeatherIcon } from "@/components/weather-icon";
-import { timeOfDay } from "@/lib/weather/channels";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
@@ -28,7 +26,6 @@ export default async function Home() {
   // to a neutral overcast rather than inventing weather.
   const weatherCode = conditions?.weatherCode ?? 3;
   const temperatureCelsius = conditions?.temperatureCelsius ?? 0;
-  const currentTimeOfDay = timeOfDay(new Date());
 
   return (
     <div className="flex flex-1 flex-col">
@@ -40,14 +37,13 @@ export default async function Home() {
           <div className="absolute top-4 right-4 z-10">
             <ThemeToggle />
           </div>
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
-            <WeatherIcon weatherCode={weatherCode} timeOfDay={currentTimeOfDay} className="size-14" />
-            {conditions ? (
-              <TemperatureDisplay temperatureCelsius={conditions.temperatureCelsius} />
-            ) : (
-              <p className="text-sm text-[#8a94a6]">—</p>
-            )}
-          </div>
+          {/* The one client-side, TanStack Query-backed fragment on this
+              page (roadmap commit 62) - everything else here is plain RSC. */}
+          <CurrentConditionsClient
+            latitude={DEFAULT_LATITUDE}
+            longitude={DEFAULT_LONGITUDE}
+            initialData={conditions ?? undefined}
+          />
         </WeatherBackground>
       </div>
 
