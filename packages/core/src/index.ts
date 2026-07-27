@@ -11,6 +11,7 @@
  * auth transport (cookies on web, SecureStore on mobile), so only the response
  * *types* are shared - see ./weather/forecast.
  */
+export * from "./i18n/alert-ui";
 export * from "./i18n/app";
 export * from "./i18n/auth";
 export * from "./i18n/messages";

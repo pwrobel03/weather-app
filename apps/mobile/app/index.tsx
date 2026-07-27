@@ -1,9 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { appMessages, authMessages, DEFAULT_LOCALE, hourOf, weatherMessages } from "@weather-app/core";
+import {
+  alertUiMessages,
+  appMessages,
+  authMessages,
+  DEFAULT_LOCALE,
+  hourOf,
+  weatherMessages,
+} from "@weather-app/core";
 import { Link } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AlertsTile } from "../src/components/alerts-tile";
 import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
@@ -11,6 +19,7 @@ import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation } from "../src/lib/active-location";
 import { useAuth } from "../src/lib/auth/context";
+import { fetchActiveAlerts } from "../src/lib/alerts";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
 /**
@@ -45,6 +54,12 @@ export default function HomeScreen() {
   const daily = useQuery({
     queryKey: ["daily", latitude, longitude],
     queryFn: () => fetchDailyForecast(latitude, longitude),
+  });
+
+  const alerts = useQuery({
+    queryKey: ["active-alerts"],
+    queryFn: fetchActiveAlerts,
+    enabled: Boolean(session),
   });
 
   const localHour = hourOf(hourly.data?.[0]?.time ?? new Date().toISOString());
@@ -119,6 +134,14 @@ export default function HomeScreen() {
           )}
         </WeatherBackground>
       </View>
+
+      <Tile title={alertUiMessages[locale].warnings}>
+        <AlertsTile
+          alerts={alerts.data ?? []}
+          authenticated={Boolean(session)}
+          locale={locale}
+        />
+      </Tile>
 
       <Tile title={weather.today}>
         <HourlyForecastStrip entries={hourly.data ?? []} />

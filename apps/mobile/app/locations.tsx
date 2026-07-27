@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { appMessages, authMessages, DEFAULT_LOCALE } from "@weather-app/core";
+import { alertUiMessages, appMessages, authMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { Link, router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -162,6 +162,7 @@ export default function LocationsScreen() {
               location={item}
               isActive={item.id === active.savedLocationId}
               removeLabel={messages.remove}
+              historyLabel={alertUiMessages[locale].warnings}
               onSelect={async () => {
                 await choose({
                   savedLocationId: item.id,
@@ -184,12 +185,14 @@ function SavedRow({
   location,
   isActive,
   removeLabel,
+  historyLabel,
   onSelect,
   onRemove,
 }: {
   location: SavedLocation;
   isActive: boolean;
   removeLabel: string;
+  historyLabel: string;
   onSelect: () => void;
   onRemove: () => void;
 }) {
@@ -201,6 +204,12 @@ function SavedRow({
     >
       <Pressable onPress={onSelect} className="flex-1 active:opacity-70">
         <Text className="text-base font-semibold text-tekst">{location.name}</Text>
+        <Link
+          href={{ pathname: "/locations/[id]/alerts", params: { id: location.id } }}
+          className="mt-0.5 text-xs text-tekst-muted"
+        >
+          {historyLabel}
+        </Link>
       </Pressable>
       <Pressable onPress={onRemove} hitSlop={8} className="active:opacity-60">
         <Text className="text-sm font-medium text-tekst-muted">{removeLabel}</Text>
