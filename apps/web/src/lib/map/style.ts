@@ -92,3 +92,39 @@ export function boundsForLocations(
 
 /** About 110 km of latitude - a powiat plus its neighbours. */
 const MIN_SPAN_DEGREES = 1.0;
+
+/**
+ * The fill paint for the powiat layer, as a MapLibre expression.
+ *
+ * Extracted from the component because this is where "47 powiats under a level
+ * 3 warning are drawn in the level 3 colour" is actually decided, and it
+ * cannot be asserted through the map: MapLibre needs a WebGL context that
+ * jsdom does not provide.
+ *
+ * `severityColor` is a lookup rather than a literal palette, so the colours
+ * stay whatever the design tokens say they are.
+ */
+export function powiatFillPaint(
+  quietColor: string,
+  severityColor: (level: 1 | 2 | 3) => string,
+) {
+  return {
+    "fill-color": [
+      "match",
+      ["coalesce", ["feature-state", "severity"], 0],
+      3, severityColor(3),
+      2, severityColor(2),
+      1, severityColor(1),
+      quietColor,
+    ],
+    "fill-opacity": [
+      "case",
+      ["boolean", ["to-boolean", ["coalesce", ["feature-state", "severity"], 0]], false],
+      // Saturated fills are heavy at full opacity across a hundred
+      // neighbouring shapes, and the border layer has to stay readable
+      // through them.
+      0.75,
+      0.9,
+    ],
+  } as const;
+}

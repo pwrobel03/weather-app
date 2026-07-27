@@ -1,10 +1,10 @@
 import { alertUiMessages, DEFAULT_LOCALE } from "@weather-app/core";
 
 import { MapLegend } from "@/components/map/map-legend";
-import type { PowiatAlertSummary } from "@/components/map/powiat-popover";
 import { WarningMap } from "@/components/map/warning-map";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { fetchAllPowiatBoundaries } from "@/lib/map/boundaries";
+import { resolveMapSeverity } from "@/lib/map/severity";
 import { boundsForLocations } from "@/lib/map/style";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
 
@@ -28,28 +28,7 @@ export default async function MapPage() {
 
   // A powiat can sit under several warnings at once; the map shows the worst
   // one. Averaging or last-wins would let a level 1 hide a level 3.
-  const severityByTeryt: Record<string, "1" | "2" | "3"> = {};
-  const alertsByTeryt: Record<string, PowiatAlertSummary[]> = {};
-
-  for (const alert of alerts) {
-    for (const terytCode of alert.terytCodes) {
-      const current = severityByTeryt[terytCode];
-      if (!current || Number(alert.severity) > Number(current)) {
-        severityByTeryt[terytCode] = alert.severity;
-      }
-
-      (alertsByTeryt[terytCode] ??= []).push({
-        id: alert.id,
-        event: alert.event,
-        severity: alert.severity,
-      });
-    }
-  }
-
-  const countsByLevel = { "1": 0, "2": 0, "3": 0 };
-  for (const level of Object.values(severityByTeryt)) {
-    countsByLevel[level] += 1;
-  }
+  const { severityByTeryt, alertsByTeryt, countsByLevel } = resolveMapSeverity(alerts);
 
   return (
     <main className="flex h-[100dvh] w-full flex-col gap-4 p-4 md:p-6">

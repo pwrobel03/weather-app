@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
 import { PowiatPopover, type PowiatAlertSummary } from "@/components/map/powiat-popover";
 import type { PowiatFeatureCollection } from "@/lib/map/boundaries";
-import { POLAND_BOUNDS, warningMapStyle } from "@/lib/map/style";
+import { POLAND_BOUNDS, powiatFillPaint, warningMapStyle } from "@/lib/map/style";
 import type { Locale } from "@weather-app/core";
 
 type WarningMapProps = {
@@ -233,26 +233,11 @@ function addBoundaryLayers(
     id: "powiat-fill",
     type: "fill",
     source: "powiats",
-    paint: {
-      // The one place outside the alert surfaces where IMGW's scale is
-      // allowed (design.md §3): here it *is* severity, not decoration. It
-      // never carries the meaning alone - the legend in commit 85 and the
-      // popover in 86 name the level in words.
-      "fill-color": [
-        "match",
-        ["coalesce", ["feature-state", "severity"], 0],
-        3, severityColor(3),
-        2, severityColor(2),
-        1, severityColor(1),
-        surface,
-      ],
-      "fill-opacity": [
-        "case",
-        ["boolean", ["to-boolean", ["coalesce", ["feature-state", "severity"], 0]], false],
-        0.75,
-        0.9,
-      ],
-    },
+    // The one place outside the alert surfaces where IMGW's scale is allowed
+    // (design.md §3): here the colour *is* the severity rather than standing
+    // in for it. It never carries the meaning alone - the legend names each
+    // level in words, and so does the popover.
+    paint: powiatFillPaint(surface, severityColor) as never,
   });
 
   map.addLayer({
