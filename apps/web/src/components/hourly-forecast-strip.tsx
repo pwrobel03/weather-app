@@ -1,6 +1,6 @@
 import { timeOfDayFromHour } from "@/lib/weather/channels";
 import type { HourlyForecastEntry } from "@/lib/weather/hourly-forecast";
-import { weatherIcon } from "@/lib/weather/icon";
+import { WeatherArt } from "@/components/weather-art/weather-art";
 import { formatHourMinute, hourOf, nowAsNaiveIsoTimestamp } from "@/lib/weather/naive-time";
 
 type HourlyForecastStripProps = {
@@ -30,7 +30,11 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
             {formatHourMinute(entry.time)}
           </span>
-          {weatherIcon(entry.weatherCode, timeOfDayFromHour(hourOf(entry.time)), { className: "size-6" })}
+          <WeatherArt
+            code={entry.weatherCode}
+            timeOfDay={timeOfDayFromHour(hourOf(entry.time))}
+            className="size-8"
+          />
           <span className="font-mono text-sm font-medium tabular-nums">
             {Math.round(entry.temperatureCelsius)}°
           </span>

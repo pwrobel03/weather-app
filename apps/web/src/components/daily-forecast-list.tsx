@@ -1,5 +1,5 @@
 import type { DailyForecastEntry } from "@/lib/weather/daily-forecast";
-import { weatherIcon } from "@/lib/weather/icon";
+import { WeatherArt } from "@/components/weather-art/weather-art";
 import { weekdayName } from "@/lib/weather/naive-time";
 
 type DailyForecastListProps = {
@@ -21,7 +21,7 @@ export function DailyForecastList({ entries }: DailyForecastListProps) {
           <span className="w-10 shrink-0 text-sm font-medium capitalize">
             {weekdayName(entry.date)}
           </span>
-          {weatherIcon(entry.weatherCode, "day", { className: "size-5 shrink-0 text-muted-foreground" })}
+          <WeatherArt code={entry.weatherCode} timeOfDay="day" className="size-7 shrink-0" />
           <span className="ml-auto flex items-baseline gap-2 font-mono text-sm tabular-nums">
             <span className="text-muted-foreground">{Math.round(entry.temperatureMinCelsius)}°</span>
             <span className="font-medium">{Math.round(entry.temperatureMaxCelsius)}°</span>

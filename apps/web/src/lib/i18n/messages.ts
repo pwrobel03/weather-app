@@ -14,6 +14,8 @@
  * translating a safety message is a risk nobody asked us to take.
  */
 
+import type { ConditionKey } from "@/lib/weather/condition";
+
 export const LOCALES = ["pl", "en"] as const;
 
 export type Locale = (typeof LOCALES)[number];
@@ -76,4 +78,67 @@ export function listFormat(items: readonly string[], locale: Locale): string {
     style: "long",
     type: "conjunction",
   }).format(items);
+}
+
+/** Phrase under the temperature, plus the metric strip labels (design.md §6). */
+export type WeatherMessages = {
+  condition: Record<ConditionKey, string>;
+  wind: string;
+  humidity: string;
+  precipitation: string;
+  feelsLike: string;
+};
+
+export const weatherMessages: Record<Locale, WeatherMessages> = {
+  pl: {
+    condition: {
+      clear: "Bezchmurnie",
+      mainlyClear: "Przeważnie bezchmurnie",
+      partlyCloudy: "Częściowe zachmurzenie",
+      overcast: "Zachmurzenie całkowite",
+      fog: "Mgła",
+      drizzle: "Mżawka",
+      rain: "Deszcz",
+      heavyRain: "Silny deszcz",
+      showers: "Przelotny deszcz",
+      snow: "Śnieg",
+      heavySnow: "Intensywny śnieg",
+      thunderstorm: "Burza",
+      thunderstormHail: "Burza z gradem",
+    },
+    wind: "Wiatr",
+    humidity: "Wilgotność",
+    precipitation: "Opad",
+    feelsLike: "Odczuwalna",
+  },
+  en: {
+    condition: {
+      clear: "Clear",
+      mainlyClear: "Mainly clear",
+      partlyCloudy: "Partly cloudy",
+      overcast: "Overcast",
+      fog: "Fog",
+      drizzle: "Drizzle",
+      rain: "Rain",
+      heavyRain: "Heavy rain",
+      showers: "Showers",
+      snow: "Snow",
+      heavySnow: "Heavy snow",
+      thunderstorm: "Thunderstorm",
+      thunderstormHail: "Thunderstorm with hail",
+    },
+    wind: "Wind",
+    humidity: "Humidity",
+    precipitation: "Precipitation",
+    feelsLike: "Feels like",
+  },
+};
+
+/** Weekday plus day and month, as under the temperature in major.png. */
+export function formatHeroDate(value: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(value);
 }

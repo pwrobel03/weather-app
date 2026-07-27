@@ -160,6 +160,8 @@
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
+  --sky-a: #4FA3E3;
+  --sky-b: #2A5F96;
 
   /* Overwritten per phenomenon below. */
   --veil-opacity: 0;
@@ -194,13 +196,19 @@
   pointer-events: none;
 }
 
+/* design.md revision (2026-07-27) §1: the gradient stops being a dark
+   underlay and becomes the main character. major.png's hero is a living blue,
+   not a near-black field with a faint glow on it — so time of day now drives a
+   full sky gradient, with the radial glow layered on top of it rather than
+   being the whole effect. */
 .weather-background__glow {
   z-index: 0;
   filter: saturate(var(--bg-saturation, 1));
   transition: opacity 700ms var(--ease-out);
   background:
     radial-gradient(120% 70% at 50% var(--glow-y), var(--glow-a) 0%, transparent 62%),
-    radial-gradient(90% 55% at 18% 34%, var(--glow-b) 0%, transparent 70%);
+    radial-gradient(90% 55% at 18% 34%, var(--glow-b) 0%, transparent 70%),
+    linear-gradient(170deg, var(--sky-a) 0%, var(--sky-b) 100%);
 }
 
 /* Phenomenon channel: a veil, never a particle field. A full-screen rain or
@@ -226,21 +234,29 @@
 /* Time-of-day channel: glow colour, intensity and vertical position.
    Values are the poświata tokens from design.md. */
 .weather-background[data-time-of-day="dawn"] {
+  --sky-a: #6E86C4;
+  --sky-b: #2F3F70;
   --glow-a: rgba(88, 116, 176, 0.5);
   --glow-b: rgba(46, 84, 140, 0.4);
   --glow-y: 22%;
 }
 .weather-background[data-time-of-day="day"] {
+  --sky-a: #4FA3E3;
+  --sky-b: #2A5F96;
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
 }
 .weather-background[data-time-of-day="dusk"] {
+  --sky-a: #7B57B0;
+  --sky-b: #33305E;
   --glow-a: var(--dt-glow-dusk);
   --glow-b: rgba(58, 74, 150, 0.45);
   --glow-y: 30%;
 }
 .weather-background[data-time-of-day="night"] {
+  --sky-a: #1B2E52;
+  --sky-b: #0B0E14;
   --glow-a: var(--dt-glow-night);
   --glow-b: rgba(18, 32, 64, 0.55);
   --glow-y: 14%;
@@ -503,4 +519,25 @@
 @utility on-glass-muted {
   color: color-mix(in srgb, var(--foreground) 68%, transparent);
   font-weight: 500;
+}
+
+/* Szkło wewnątrz hero zawsze bierze wariant ciemny, niezależnie od motywu.
+   Hero ignoruje preferencję jasny/ciemny (design.md §7) i zawsze niesie
+   nasycony gradient z białą typografią — jasny wariant szkła dawał na nim
+   mleczną płytę zamiast materiału. */
+.weather-background .glass {
+  background: var(--dt-glass-dark-background);
+  border-color: var(--dt-glass-dark-border);
+  border-top-color: var(--dt-glass-dark-edge);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 0.24);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .weather-background .glass {
+    background: rgb(11 14 20 / 0.72);
+    border-color: rgb(255 255 255 / 0.2);
+    border-top-color: rgb(255 255 255 / 0.2);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

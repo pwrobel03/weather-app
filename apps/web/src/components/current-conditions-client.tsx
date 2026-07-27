@@ -3,15 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 
+import { HeroContent } from "@/components/hero-content";
 import { Button } from "@/components/ui/button";
-import { TemperatureDisplay } from "@/components/temperature-display";
-import { WeatherIcon } from "@/components/weather-icon";
-import { timeOfDay } from "@/lib/weather/channels";
+import type { Locale } from "@/lib/i18n/messages";
 import type { CurrentConditions } from "@/lib/weather/current-conditions";
 
 type CurrentConditionsClientProps = {
   latitude: number;
   longitude: number;
+  locale: Locale;
+  /** Hour at the displayed location, computed on the server so the first paint
+   * matches and hydration does not disagree about what time it is. */
+  localHour: number;
   /** Seeds the query so first paint is still the server-rendered value -
    * this component only takes over for refetches after that. Undefined when
    * the server-side fetch itself failed; the query then fetches on mount. */
@@ -28,32 +31,45 @@ async function fetchViaProxy(latitude: number, longitude: number): Promise<Curre
 
 /** The one interactive fragment on the home screen (roadmap commit 62) - the
  * rest of the page stays plain RSC. */
-export function CurrentConditionsClient({ latitude, longitude, initialData }: CurrentConditionsClientProps) {
+export function CurrentConditionsClient({
+  latitude,
+  longitude,
+  locale,
+  localHour,
+  initialData,
+}: CurrentConditionsClientProps) {
   const { data, refetch, isFetching } = useQuery({
     queryKey: ["current-conditions", latitude, longitude],
     queryFn: () => fetchViaProxy(latitude, longitude),
     initialData,
   });
 
+  if (!data) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-sm text-white/70">—</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
-      {data ? (
-        <>
-          <WeatherIcon weatherCode={data.weatherCode} timeOfDay={timeOfDay(new Date())} className="size-14" />
-          <TemperatureDisplay temperatureCelsius={data.temperatureCelsius} />
-        </>
-      ) : (
-        <p className="text-sm text-[#8a94a6]">—</p>
-      )}
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        aria-label="Odśwież prognozę"
-        onClick={() => refetch()}
-        disabled={isFetching}
-      >
-        <RefreshCw className={isFetching ? "animate-spin" : ""} />
-      </Button>
-    </div>
+    <HeroContent
+      conditions={data}
+      locale={locale}
+      localHour={localHour}
+      actions={
+        <Button
+          variant="glass"
+          size="icon-sm"
+          aria-label="Odśwież prognozę"
+          // Sits left of the theme toggle, which the page pins at right-4.
+          className="absolute top-0 right-11"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw className={isFetching ? "animate-spin" : ""} />
+        </Button>
+      }
+    />
   );
 }

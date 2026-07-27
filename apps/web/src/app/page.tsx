@@ -10,6 +10,8 @@ import { WeatherBackground } from "@/components/weather-background";
 import { getActiveLocation, type ActiveLocation } from "@/lib/active-location/cookie";
 import { isAuthenticated } from "@/lib/auth/session";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
+import { DEFAULT_LOCALE } from "@/lib/i18n/messages";
+import { hourOf } from "@/lib/weather/naive-time";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
@@ -43,6 +45,9 @@ export default async function Home() {
   // to a neutral overcast rather than inventing weather.
   const weatherCode = conditions?.weatherCode ?? 3;
   const temperatureCelsius = conditions?.temperatureCelsius ?? 0;
+  // Hour at the displayed location, not on the server: someone in London
+  // looking at Warszawa should see Warszawa's night.
+  const localHour = conditions ? hourOf(conditions.observedAt) : 12;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -69,6 +74,8 @@ export default async function Home() {
           <CurrentConditionsClient
             latitude={latitude}
             longitude={longitude}
+            locale={DEFAULT_LOCALE}
+            localHour={localHour}
             initialData={conditions ?? undefined}
           />
         </WeatherBackground>
