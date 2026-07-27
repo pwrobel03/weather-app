@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 
+import { AlertLiveConnection } from "@/components/alert-live-connection";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
@@ -81,7 +83,24 @@ export default async function Home() {
           </div>
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
             <LocationSwitcher active={active} savedLocations={savedLocations} />
-            {!authenticated && (
+            {authenticated ? (
+              // A signed-in visitor must be able to find their places and
+              // their settings without being told where to look.
+              <>
+                <Button render={<Link href="/locations" />} nativeButton={false} variant="glass" size="sm">
+                  Moje miejsca
+                </Button>
+                <Button
+                  render={<Link href="/settings" />}
+                  nativeButton={false}
+                  variant="glass"
+                  size="icon-sm"
+                  aria-label="Ustawienia"
+                >
+                  <Settings />
+                </Button>
+              </>
+            ) : (
               <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
                 Zaloguj się
               </Button>
@@ -138,6 +157,10 @@ export default async function Home() {
       <div className={`px-4 pb-8 lg:px-0 lg:pb-0 ${outline ? "lg:col-span-3" : "lg:col-span-2"}`}>
         <SavedLocationsTile locations={savedLocations} locale={locale} />
       </div>
+
+      {/* Live delivery of warnings over the WebSocket (roadmap 77). Renders
+          nothing until one arrives. */}
+      {authenticated && <AlertLiveConnection locale={locale} />}
     </div>
   );
 }
