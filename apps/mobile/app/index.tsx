@@ -141,7 +141,16 @@ export default function HomeScreen() {
         </WeatherBackground>
       </View>
 
-      <Tile title={alertUiMessages[locale].warnings}>
+      <Tile
+        title={alertUiMessages[locale].warnings}
+        aside={
+          session ? (
+            <Link href="/map" className="text-sm font-semibold text-primary">
+              {alertUiMessages[locale].map}
+            </Link>
+          ) : undefined
+        }
+      >
         <AlertsTile
           alerts={alerts.data ?? []}
           authenticated={Boolean(session)}

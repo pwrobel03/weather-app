@@ -12,6 +12,7 @@ import type { Locale } from "@weather-app/contract";
 export type AlertUiMessages = {
   warning: string;
   warnings: string;
+  map: string;
   from: string;
   expired: string;
   probability: string;
@@ -26,6 +27,7 @@ export const alertUiMessages: Record<Locale, AlertUiMessages> = {
   pl: {
     warning: "Ostrzeżenie",
     warnings: "Ostrzeżenia",
+    map: "Mapa",
     from: "Od",
     expired: "Zakończone",
     probability: "Prawdopodobieństwo",
@@ -38,6 +40,7 @@ export const alertUiMessages: Record<Locale, AlertUiMessages> = {
   en: {
     warning: "Warning",
     warnings: "Warnings",
+    map: "Map",
     from: "From",
     expired: "Expired",
     probability: "Probability",
