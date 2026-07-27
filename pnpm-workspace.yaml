@@ -7,6 +7,11 @@ packages:
 # (transitive via tsx, used by packages/design-tokens' build script) is a
 # well-known, widely-used bundler — same trust level as the other two.
 allowBuilds:
+  # Skia ships prebuilt native binaries and its install script unpacks them for
+  # the current platform. Without it the package installs but the native module
+  # is missing, which surfaces at runtime as a blank canvas rather than as a
+  # failed install. The dependency itself was signed off (follow-up.md 11).
+  '@shopify/react-native-skia': true
   esbuild: true
   # msw's postinstall only copies a browser service worker into public/.
   # The tests run in Node, so it has nothing to do here.

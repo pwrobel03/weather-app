@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.7",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@shopify/react-native-skia": "2.6.2",
     "@tanstack/react-query": "^5.101.4",
     "@weather-app/api-client": "workspace:*",
     "@weather-app/contract": "workspace:*",
@@ -13,7 +14,6 @@
     "expo": "~57.0.8",
     "expo-constants": "~57.0.7",
     "expo-device": "~57.0.1",
-    "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.4",
     "expo-notifications": "~57.0.7",
     "expo-router": "~57.0.8",
