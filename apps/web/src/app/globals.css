@@ -7,6 +7,9 @@
 @import "../../../../packages/design-tokens/generated/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
+/* design.md, Backlog 1: glass surfaces must fall back to an opaque, matte
+   material when the user has asked for reduced transparency. */
+@custom-variant reduce-transparency (@media (prefers-reduced-transparency: reduce));
 
 @theme inline {
   --color-background: var(--background);

@@ -1,6 +1,7 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { GlassSurface } from "@/lib/glass-surface"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -18,6 +19,11 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        // design.md Backlog 1: translucent surface for use over the weather
+        // gradient. Falls back to an opaque, matte surface under
+        // prefers-reduced-transparency - never removed, just de-glassed.
+        glass:
+          "border-white/15 bg-card/55 text-card-foreground backdrop-blur-md hover:bg-card/70 reduce-transparency:border-border reduce-transparency:bg-card reduce-transparency:backdrop-blur-none reduce-transparency:hover:bg-muted",
       },
       size: {
         default:
@@ -44,6 +50,7 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  children,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
@@ -51,7 +58,9 @@ function Button({
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      <GlassSurface active={variant === "glass"}>{children}</GlassSurface>
+    </ButtonPrimitive>
   )
 }
 
