@@ -37,6 +37,14 @@ export type BackgroundInput = {
   timeZone?: string;
   /** Injectable clock, so a render is deterministic in tests. */
   now?: Date;
+  /**
+   * Drives how far the falling texture leans and how fast it travels.
+   *
+   * Optional because the forecast endpoint can fail and the background still
+   * has to render; absent means still air, which is the honest default - a
+   * guessed wind would be a claim about the weather.
+   */
+  windSpeedKmh?: number;
 };
 
 export type BackgroundComposition = {
@@ -123,9 +131,51 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
       secondary: mixRgba(from.glowB, to.glowB, blend.t),
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
-    texture: resolveTexture(phenomenon, input.weatherCode),
+    texture: applyWind(resolveTexture(phenomenon, input.weatherCode), input.windSpeedKmh),
   };
 }
+
+/**
+ * The wind channel: how far the fall leans, and how fast it travels.
+ *
+ * A separate step applied *over* whatever the phenomenon resolved to, rather
+ * than a parameter inside it. That is the architecture's own rule at work -
+ * wind knows nothing about what is falling, and snow at 60 km/h needs no case
+ * of its own.
+ *
+ * The ramp saturates instead of running linearly to some maximum. Above about
+ * 60 km/h everything already looks driven sideways, and a linear ramp scaled
+ * to gale force would leave the 5-25 km/h band - which is most days in Poland -
+ * indistinguishable from still air.
+ *
+ * The lean is always to one side. Open-Meteo publishes a wind direction but
+ * the backend's CurrentConditions does not carry it (only windSpeedKmh), so
+ * picking a side from the data is not possible yet; leaning consistently is
+ * honest, while alternating on something unrelated would be a lie about the
+ * weather. Adding direction is a backend field plus a sign here.
+ */
+function applyWind(texture: BackgroundTexture, windSpeedKmh: number | undefined): BackgroundTexture {
+  // Nothing falling has nothing to lean. Wind still exists, but the background
+  // has no way to show it that is not decoration.
+  if (texture.density === 0 || !windSpeedKmh || windSpeedKmh <= 0) return texture;
+
+  const strength = 1 - Math.exp(-windSpeedKmh / WIND_SCALE_KMH);
+
+  return {
+    ...texture,
+    angle: Number((MAX_LEAN_DEGREES * strength).toFixed(1)),
+    speed: Number(strength.toFixed(3)),
+  };
+}
+
+/** Where the ramp has spent about two thirds of its range, in km/h. */
+const WIND_SCALE_KMH = 22;
+
+/**
+ * Past this the streaks stop reading as falling and start reading as a
+ * pattern, which is worse than showing less wind than there is.
+ */
+const MAX_LEAN_DEGREES = 24;
 
 /** Thunderstorm with slight and with heavy hail. */
 const HAIL_CODES = new Set([96, 99]);

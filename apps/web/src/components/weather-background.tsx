@@ -7,6 +7,8 @@ type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */
   weatherCode: number;
   temperatureCelsius: number;
+  /** Drives how far the falling texture leans. Absent means still air. */
+  windSpeedKmh?: number;
   /** IANA zone of the displayed location, not of the viewer. */
   timeZone?: string;
   /** Injectable clock, so the render is deterministic in tests and stories. */
@@ -42,12 +44,19 @@ type WeatherBackgroundProps = {
 export function WeatherBackground({
   weatherCode,
   temperatureCelsius,
+  windSpeedKmh,
   timeZone,
   now,
   alertSeverity,
   children,
 }: WeatherBackgroundProps) {
-  const composition = composeBackground({ weatherCode, temperatureCelsius, timeZone, now });
+  const composition = composeBackground({
+    weatherCode,
+    temperatureCelsius,
+    windSpeedKmh,
+    timeZone,
+    now,
+  });
 
   return (
     <div

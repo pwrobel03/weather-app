@@ -80,6 +80,7 @@ export default function HomeScreen() {
         <WeatherBackground
           weatherCode={conditions.data?.weatherCode ?? 0}
           temperatureCelsius={conditions.data?.temperatureCelsius ?? 0}
+          windSpeedKmh={conditions.data?.windSpeedKmh}
         >
           {conditions.data ? (
             <Hero
