@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
+import type { WarningSeverityLevel } from "@/components/alert-takeover";
 import type { PowiatFeatureCollection } from "@/lib/map/boundaries";
 import { POLAND_BOUNDS, warningMapStyle } from "@/lib/map/style";
 
@@ -14,6 +15,8 @@ type WarningMapProps = {
   label: string;
   /** Every powiat, fetched on the server (see lib/map/boundaries). */
   boundaries: PowiatFeatureCollection;
+  /** TERYT code -> the highest IMGW level in force there, if any. */
+  severityByTeryt: Record<string, WarningSeverityLevel>;
 };
 
 /**
@@ -29,7 +32,7 @@ type WarningMapProps = {
  * paints into a canvas and cannot read `var()`, so it has to be read out once
  * and handed over.
  */
-export function WarningMap({ className, label, boundaries }: WarningMapProps) {
+export function WarningMap({ className, label, boundaries, severityByTeryt }: WarningMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
 
@@ -84,6 +87,15 @@ export function WarningMap({ className, label, boundaries }: WarningMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Severity is applied separately from the layers, and re-applied whenever it
+  // changes. A warning arriving over the WebSocket must repaint the map, and
+  // rebuilding the source to do it would drop the viewport back to Poland
+  // while the user was looking at their own powiat.
+  useEffect(() => {
+    if (!map) return;
+    applySeverity(map, boundaries, severityByTeryt);
+  }, [map, boundaries, severityByTeryt]);
+
   return (
     <div
       ref={container}
@@ -122,11 +134,33 @@ function addBoundaryLayers(
     promoteId: "terytCode",
   });
 
+  const severityColor = (level: 1 | 2 | 3) =>
+    styles.getPropertyValue(`--dt-color-warning-${level}`).trim() || surface;
+
   map.addLayer({
     id: "powiat-fill",
     type: "fill",
     source: "powiats",
-    paint: { "fill-color": surface, "fill-opacity": 0.9 },
+    paint: {
+      // The one place outside the alert surfaces where IMGW's scale is
+      // allowed (design.md §3): here it *is* severity, not decoration. It
+      // never carries the meaning alone - the legend in commit 85 and the
+      // popover in 86 name the level in words.
+      "fill-color": [
+        "match",
+        ["coalesce", ["feature-state", "severity"], 0],
+        3, severityColor(3),
+        2, severityColor(2),
+        1, severityColor(1),
+        surface,
+      ],
+      "fill-opacity": [
+        "case",
+        ["boolean", ["to-boolean", ["coalesce", ["feature-state", "severity"], 0]], false],
+        0.75,
+        0.9,
+      ],
+    },
   });
 
   map.addLayer({
@@ -140,4 +174,32 @@ function addBoundaryLayers(
       "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.4, 10, 1.2],
     },
   });
+}
+
+/**
+ * Paints the powiats a warning covers, through feature state.
+ *
+ * Feature state rather than a filter or a rebuilt source: it changes what is
+ * painted without touching the geometry, so a warning arriving live repaints
+ * in place instead of dropping the viewport back to the whole country while
+ * someone is looking at their own powiat.
+ *
+ * Every feature is written on each pass, including the ones with no warning.
+ * State is sticky - a powiat left alone keeps whatever level it had when its
+ * warning expired, which is the worst possible stale value to show.
+ */
+function applySeverity(
+  map: MapLibreMap,
+  boundaries: PowiatFeatureCollection,
+  severityByTeryt: Record<string, WarningSeverityLevel>,
+) {
+  if (!map.getSource("powiats")) return;
+
+  for (const feature of boundaries.features) {
+    const terytCode = feature.properties.terytCode;
+    map.setFeatureState(
+      { source: "powiats", id: terytCode },
+      { severity: Number(severityByTeryt[terytCode] ?? 0) },
+    );
+  }
 }
