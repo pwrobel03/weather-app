@@ -45,3 +45,57 @@ export async function fetchActiveAlerts(): Promise<ActiveAlert[]> {
     return [];
   }
 }
+
+/**
+ * Every warning ever recorded for one saved location, newest first.
+ *
+ * Scoped by location id; the backend additionally scopes by user, so a guessed
+ * id returns 404 rather than someone else's timeline.
+ */
+export async function fetchAlertHistory(locationId: number): Promise<ActiveAlert[]> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return [];
+  }
+
+  const params = { params: { path: { locationId } } } as const;
+
+  try {
+    const first = await client(accessToken).GET("/api/users/me/locations/{locationId}/alerts", params);
+    let data = first.data;
+    if (first.response.status === 401) {
+      const refreshed = await refreshSession();
+      if (!refreshed) {
+        return [];
+      }
+      data = (await client(refreshed).GET("/api/users/me/locations/{locationId}/alerts", params)).data;
+    }
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * One warning by id, searched across everything the caller can see.
+ *
+ * The backend exposes no GET /api/alerts/{id} - warnings are only ever listed,
+ * as active or as a location's history. Rather than add an endpoint for a
+ * single screen, this resolves the id from those lists, which also means a
+ * caller can only ever open a warning that actually concerns them.
+ */
+export async function findAlertById(alertId: number): Promise<ActiveAlert | null> {
+  const active = await fetchActiveAlerts();
+  const fromActive = active.find((alert) => alert.id === alertId);
+  if (fromActive) {
+    return fromActive;
+  }
+
+  const { fetchSavedLocations } = await import("@/lib/saved-locations/api");
+  const locations = await fetchSavedLocations();
+
+  const histories = await Promise.all(
+    locations.map((location) => fetchAlertHistory(location.id)),
+  );
+  return histories.flat().find((alert) => alert.id === alertId) ?? null;
+}

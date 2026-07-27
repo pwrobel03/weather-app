@@ -3,7 +3,7 @@
 import { createWeatherApiClient } from "@weather-app/api-client";
 import { redirect } from "next/navigation";
 
-import { setSessionCookies } from "./session";
+import { clearSessionCookies, setSessionCookies } from "./session";
 
 export type AuthActionState = { error?: string };
 
@@ -57,5 +57,17 @@ export async function registerAction(_prevState: AuthActionState, formData: Form
   }
 
   await setSessionCookies(data.accessToken, data.refreshToken);
+  redirect("/");
+}
+
+/**
+ * Clears the session cookies and returns to the home screen.
+ *
+ * Only the cookies are dropped - the refresh token stays valid in the backend
+ * until it expires or is rotated. Revoking it server-side would need an
+ * endpoint that does not exist yet; noted rather than silently pretended.
+ */
+export async function logoutAction(): Promise<void> {
+  await clearSessionCookies();
   redirect("/");
 }

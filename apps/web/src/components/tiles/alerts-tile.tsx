@@ -85,7 +85,8 @@ export function AlertsTile({
           {alerts.map((alert) => {
             const remaining = formatRemaining(alert.validTo, now, locale);
             return (
-              <li key={alert.id} className="flex items-start gap-3">
+              <li key={alert.id}>
+                <Link href={`/alerts/${alert.id}`} className="flex items-start gap-3 rounded-xl outline-offset-4">
                 <TriangleAlert
                   aria-hidden="true"
                   className="mt-0.5 size-4 shrink-0"
@@ -110,6 +111,7 @@ export function AlertsTile({
                       : `${messages.inForceUntil} ${formatValidity(alert.validTo, locale)}`}
                   </p>
                 </div>
+                </Link>
               </li>
             );
           })}
