@@ -18,7 +18,7 @@ export const tokens = {
     /** Page ground in the light theme. Never pure white - a saturated or very
      * dark block against #FFF is the harsh edge that made the first version
      * hurt to look at. */
-    tloJasne: "#EEF2F8",
+    tloJasne: "#E8EDF5",
     /**
      * Page ground in the dark theme. Deliberately much darker than the hero
      * (d.png): when the page and the hero share a value the hero stops reading
@@ -55,10 +55,10 @@ export const tokens = {
    * replacing it.
    */
   glow: {
-    dawn: "rgba(96, 124, 184, 0.30)",
-    day: "rgba(64, 132, 194, 0.34)",
-    dusk: "rgba(126, 90, 176, 0.32)",
-    night: "rgba(38, 66, 116, 0.26)",
+    dawn: "rgba(132, 158, 214, 0.42)",
+    day: "rgba(122, 186, 236, 0.46)",
+    dusk: "rgba(164, 126, 214, 0.42)",
+    night: "rgba(52, 88, 148, 0.34)",
   },
   /**
    * iOS-flavoured glass (design.md §4).

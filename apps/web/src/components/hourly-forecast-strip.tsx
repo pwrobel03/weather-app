@@ -25,17 +25,26 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
       className="flex gap-5 overflow-x-auto pb-1"
       aria-label="Prognoza godzinowa"
     >
-      {upcoming.map((entry) => (
-        <li key={entry.time} className="flex shrink-0 flex-col items-center gap-1.5">
-          <span className="font-mono text-xs tabular-nums text-muted-foreground">
+      {upcoming.map((entry, index) => (
+        <li
+          key={entry.time}
+          className="flex shrink-0 flex-col items-center gap-1.5 rounded-2xl px-3 py-2"
+          style={{
+            // The nearest hour is the anchor, highlighted the way the active
+            // chip is in d.png - one accent in the row, not a row of accents.
+            background:
+              index === 0 ? "color-mix(in srgb, var(--primary) 18%, transparent)" : undefined,
+          }}
+        >
+          <span className="font-mono text-xs tabular-nums opacity-60">
             {formatHourMinute(entry.time)}
           </span>
           <WeatherArt
             code={entry.weatherCode}
             timeOfDay={timeOfDayFromHour(hourOf(entry.time))}
-            className="size-8"
+            className="size-9"
           />
-          <span className="font-mono text-sm font-medium tabular-nums">
+          <span className="font-mono text-lg leading-none font-light tabular-nums">
             {Math.round(entry.temperatureCelsius)}°
           </span>
         </li>

@@ -176,8 +176,8 @@
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
-  --sky-a: #1C3350;
-  --sky-b: #101B2B;
+  --sky-a: #4C9EDE;
+  --sky-b: #245A93;
 
   /* Overwritten per phenomenon below. */
   --veil-opacity: 0;
@@ -199,6 +199,9 @@
      istnieje jako warstwa pod spodem. */
   border-radius: var(--radius-3xl);
   overflow: hidden;
+  /* Cień jest tu połową efektu z d.png: to on odrywa nasycony panel od tła
+     i sprawia, że barwa czyta się jako obiekt, a nie jako rozlane tło. */
+  box-shadow: 0 24px 60px -12px rgb(9 14 26 / 0.45);
   background: var(--earth);
   color: var(--dt-color-tekst);
 }
@@ -290,32 +293,32 @@ body {
 /* Time-of-day channel: glow colour, intensity and vertical position.
    Values are the poświata tokens from design.md. */
 .weather-background[data-time-of-day="dawn"] {
-  --sky-a: #1B2740;
-  --sky-b: #0F1826;
+  --sky-a: #5B7FC7;
+  --sky-b: #2E3F73;
   --glow-a: rgba(88, 116, 176, 0.5);
   --glow-b: rgba(46, 84, 140, 0.4);
   --glow-y: 22%;
 }
 
 .weather-background[data-time-of-day="day"] {
-  --sky-a: #1C3350;
-  --sky-b: #101B2B;
+  --sky-a: #4C9EDE;
+  --sky-b: #245A93;
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
 }
 
 .weather-background[data-time-of-day="dusk"] {
-  --sky-a: #241F3E;
-  --sky-b: #0F1826;
+  --sky-a: #7B5AB8;
+  --sky-b: #332F62;
   --glow-a: var(--dt-glow-dusk);
   --glow-b: rgba(58, 74, 150, 0.45);
   --glow-y: 30%;
 }
 
 .weather-background[data-time-of-day="night"] {
-  --sky-a: #111A2B;
-  --sky-b: #090D14;
+  --sky-a: #1E3358;
+  --sky-b: #0C1220;
   --glow-a: var(--dt-glow-night);
   --glow-b: rgba(18, 32, 64, 0.55);
   --glow-y: 14%;

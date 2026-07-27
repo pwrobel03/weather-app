@@ -11,14 +11,13 @@ import { AlertsTile } from "@/components/tiles/alerts-tile";
 import { MetricsTile } from "@/components/tiles/metrics-tile";
 import { PowiatTile } from "@/components/tiles/powiat-tile";
 import { PrecipitationTile } from "@/components/tiles/precipitation-tile";
-import { SavedLocationsTile } from "@/components/tiles/saved-locations-tile";
 import { Tile } from "@/components/tiles/tile";
 import { Button } from "@/components/ui/button";
 import { WeatherBackground } from "@/components/weather-background";
 import { getActiveLocation, type ActiveLocation } from "@/lib/active-location/cookie";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { isAuthenticated } from "@/lib/auth/session";
-import { DEFAULT_LOCALE } from "@/lib/i18n/messages";
+import { DEFAULT_LOCALE, weatherMessages } from "@/lib/i18n/messages";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
 import { fetchPowiatOutline } from "@/lib/weather/boundary";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
@@ -63,28 +62,26 @@ export default async function Home() {
   // looking at Warszawa should see Warszawa's night.
   const localHour = conditions ? hourOf(conditions.observedAt) : 12;
 
-  // Severity of the warning covering *this* powiat, if any.
-  //
-  // Matched on the warning's own teryt codes, not simply taken from the first
-  // active alert: the user may watch several places, and colouring the county
-  // tile because some other town of theirs is under a storm is a false alarm -
-  // in an app whose whole job is warnings, worse than showing nothing.
+  // Severity of the warning covering *this* powiat, matched on the warning's
+  // own teryt codes rather than taken from the first active alert - a user may
+  // watch several places, and colouring the tile for a storm somewhere else
+  // would be a false alarm.
   const powiatSeverity =
     (outline
       ? alerts.find((alert) => alert.terytCodes.includes(outline.terytCode))?.severity
       : undefined) ?? null;
 
-  // Passed down rather than read inside a component: the React Compiler
-  // rejects impure calls during render, and one clock for the whole page keeps
-  // every countdown consistent with every other.
+  // One clock for the whole page, so every countdown agrees - and because the
+  // React Compiler rejects impure calls during render.
   const renderedAt = new Date();
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5 lg:px-6 lg:py-6">
-      {/* Mobile: hero edge-to-edge, everything else stacked beneath.
-          lg and up: a bento grid with the hero as its largest cell
-          (design.md §6). */}
-      <div className="px-3 pt-3 lg:col-span-2 lg:row-span-2 lg:p-0">
+    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-3 px-3 py-3 lg:grid-cols-12 lg:gap-5 lg:px-6 lg:py-6">
+      {/* Hero and warnings share the top band. Warnings used to be the
+          smallest tile on a screen whose entire purpose is IMGW warnings,
+          while the saved-places list took nearly twice its area - the layout
+          said the opposite of what the product is. */}
+      <div className="lg:col-span-8">
         <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
           <div className="absolute top-4 right-4 z-10">
             <ThemeToggle />
@@ -92,22 +89,15 @@ export default async function Home() {
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
             <LocationSwitcher active={active} savedLocations={savedLocations} />
             {authenticated ? (
-              // A signed-in visitor must be able to find their places and
-              // their settings without being told where to look.
-              <>
-                <Button render={<Link href="/locations" />} nativeButton={false} variant="glass" size="sm">
-                  Moje miejsca
-                </Button>
-                <Button
-                  render={<Link href="/settings" />}
-                  nativeButton={false}
-                  variant="glass"
-                  size="icon-sm"
-                  aria-label="Ustawienia"
-                >
-                  <Settings />
-                </Button>
-              </>
+              <Button
+                render={<Link href="/settings" />}
+                nativeButton={false}
+                variant="glass"
+                size="icon-sm"
+                aria-label="Ustawienia"
+              >
+                <Settings />
+              </Button>
             ) : (
               <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
                 Zaloguj się
@@ -126,45 +116,42 @@ export default async function Home() {
         </WeatherBackground>
       </div>
 
-      {/* Warnings take the top-right cell: the most valuable slot after the
-          hero, and the reason this app exists. */}
-      <div className="px-4 lg:px-0">
+      <div className="lg:col-span-4">
         <AlertsTile alerts={alerts} authenticated={authenticated} locale={locale} now={renderedAt} />
       </div>
 
-      <div className="px-4 lg:px-0">
-        {outline ? (
-          <PowiatTile outline={outline} severity={powiatSeverity} locale={locale} />
-        ) : conditions ? (
-          <MetricsTile conditions={conditions} locale={locale} />
-        ) : null}
-      </div>
-
-      <div className="px-4 lg:col-span-2 lg:px-0">
+      {/* d.png keeps the hourly strip directly under the hero, as part of the
+          same visual block. */}
+      <div className="lg:col-span-8">
         <Tile>
           <HourlyForecastStrip entries={hourly} />
         </Tile>
       </div>
 
-      <div className="px-4 lg:row-span-2 lg:px-0">
-        <Tile>
+      {outline && (
+        <div className="lg:col-span-4">
+          <PowiatTile outline={outline} severity={powiatSeverity} locale={locale} />
+        </div>
+      )}
+
+      <div className="lg:col-span-8">
+        <Tile title={weatherMessages[locale].sevenDays}>
           <DailyForecastList entries={daily} />
         </Tile>
       </div>
 
-      <div className="px-4 lg:px-0">
+      <div className="lg:col-span-4">
+        {conditions && <MetricsTile conditions={conditions} locale={locale} />}
+      </div>
+
+      {/* A chart earns its width - full span rather than a quarter. */}
+      <div className="lg:col-span-12">
         <PrecipitationTile entries={hourly} locale={locale} />
       </div>
 
-      {conditions && outline && (
-        <div className="px-4 lg:px-0">
-          <MetricsTile conditions={conditions} locale={locale} />
-        </div>
-      )}
-
-      <div className={`px-4 pb-8 lg:px-0 lg:pb-0 ${outline ? "lg:col-span-3" : "lg:col-span-2"}`}>
-        <SavedLocationsTile locations={savedLocations} locale={locale} />
-      </div>
+      {/* Saved places left the home screen entirely: it is a setup task, looked
+          at once, and it was taking nearly twice the area of the warnings. It
+          lives at /locations, reachable from the location switcher. */}
 
       {/* Live delivery of warnings over the WebSocket (roadmap 77). Renders
           nothing until one arrives. */}

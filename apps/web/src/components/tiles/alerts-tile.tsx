@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { alertMessages, formatValidity, listFormat, type Locale } from "@/lib/i18n/messages";
 import type { ActiveAlert } from "@/lib/alerts/api";
 
-const LABELS: Record<Locale, { title: string; none: string; anonymous: string; signIn: string; remaining: string }> = {
+const LABELS: Record<
+  Locale,
+  { title: string; none: string; anonymous: string; signIn: string; remaining: string }
+> = {
   pl: {
     title: "Ostrzeżenia",
     none: "Brak ostrzeżeń dla Twoich lokalizacji",
@@ -34,15 +37,17 @@ function formatRemaining(validTo: string, now: Date, locale: Locale): string | n
 }
 
 /**
- * Warnings in force for the user's saved locations, with how much longer each
- * one lasts.
+ * Warnings in force for the user's saved locations.
  *
- * The remaining time is computed from validTo, which the payload already
- * carries - it is the single most useful thing to say about a warning after
- * its severity, and the API needed no change to provide it.
+ * Sized by importance, not by convenience. A measurement of the previous
+ * layout found this the *smallest* tile on a screen whose entire reason for
+ * existing is IMGW warnings, while the saved-places list - looked at once
+ * during setup - was nearly twice its area. Now it is the tall right-hand
+ * column, and each warning is a full entry rather than four lines of small
+ * type.
  *
- * Severity here is a signal, so it never appears as colour alone: every entry
- * carries the level as text and an icon alongside the colour (design.md §3).
+ * The quiet state is genuinely quiet: with nothing in force it collapses to a
+ * single line instead of holding a large empty box open.
  */
 export function AlertsTile({
   alerts,
@@ -58,59 +63,77 @@ export function AlertsTile({
 }) {
   const labels = LABELS[locale];
   const messages = alertMessages[locale];
+  // Anything without warnings to show collapses, including the signed-out
+  // prompt - a large empty box holds space open for nothing.
+  const quiet = alerts.length === 0;
 
   return (
     <Tile
       title={labels.title}
+      variant="glass"
+      className={quiet ? undefined : "h-full"}
       aside={
         alerts.length > 0 ? (
-          <span className="on-glass font-mono text-sm tabular-nums">{alerts.length}</span>
+          <span className="font-mono text-2xl leading-none font-light tabular-nums">
+            {alerts.length}
+          </span>
         ) : null
       }
     >
       {!authenticated ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="on-glass-muted text-sm">{labels.anonymous}</p>
+          <p className="text-sm opacity-75">{labels.anonymous}</p>
           <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
             {labels.signIn}
           </Button>
         </div>
-      ) : alerts.length === 0 ? (
+      ) : quiet ? (
         <div className="flex items-center gap-2">
-          <ShieldCheck aria-hidden="true" className="size-4 opacity-70" />
-          <p className="on-glass-muted text-sm">{labels.none}</p>
+          <ShieldCheck aria-hidden="true" className="size-4 opacity-60" />
+          <p className="text-sm opacity-75">{labels.none}</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-4">
           {alerts.map((alert) => {
             const remaining = formatRemaining(alert.validTo, now, locale);
+            const colour = `var(--dt-color-warning-${alert.severity})`;
             return (
               <li key={alert.id}>
-                <Link href={`/alerts/${alert.id}`} className="flex items-start gap-3 rounded-xl outline-offset-4">
-                <TriangleAlert
-                  aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0"
-                  style={{ color: `var(--dt-color-warning-${alert.severity})` }}
-                />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <p className="on-glass text-sm font-semibold">{alert.event}</p>
-                  <p
-                    className="text-xs font-semibold"
-                    style={{ color: `var(--dt-color-warning-${alert.severity})` }}
-                  >
-                    {messages.severityLabel[alert.severity as "1" | "2" | "3"]}
-                  </p>
-                  {alert.affectedLocations.length > 0 && (
-                    <p className="on-glass-muted truncate text-xs">
-                      {messages.affects}: {listFormat(alert.affectedLocations.map((l) => l.name), locale)}
+                <Link
+                  href={`/alerts/${alert.id}`}
+                  className="flex gap-3 rounded-xl outline-offset-4 transition-opacity hover:opacity-80"
+                >
+                  {/* Severity is a signal, so it never rides on colour alone:
+                      the bar always travels with the level in words and an
+                      icon (design.md §3). */}
+                  <span
+                    aria-hidden="true"
+                    className="w-1 shrink-0 rounded-full"
+                    style={{ background: colour }}
+                  />
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <p className="text-base leading-tight font-semibold">{alert.event}</p>
+                    <p
+                      className="flex items-center gap-1.5 text-xs font-semibold"
+                      style={{ color: colour }}
+                    >
+                      <TriangleAlert aria-hidden="true" className="size-3.5" />
+                      {messages.severityLabel[alert.severity]}
                     </p>
-                  )}
-                  <p className="on-glass-muted font-mono text-xs tabular-nums">
-                    {remaining
-                      ? `${labels.remaining} ${remaining}`
-                      : `${messages.inForceUntil} ${formatValidity(alert.validTo, locale)}`}
-                  </p>
-                </div>
+                    {alert.affectedLocations.length > 0 && (
+                      <p className="truncate text-xs opacity-70">
+                        {listFormat(alert.affectedLocations.map((l) => l.name), locale)}
+                      </p>
+                    )}
+                    <p className="font-mono text-lg leading-none font-light tabular-nums">
+                      {remaining ?? formatValidity(alert.validTo, locale)}
+                      {remaining && (
+                        <span className="ml-1.5 font-sans text-[0.625rem] tracking-wide uppercase opacity-60">
+                          {labels.remaining}
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </Link>
               </li>
             );
