@@ -4,27 +4,39 @@ import { Button } from "@/components/ui/button";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
+import { LocationSwitcher } from "@/components/location-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WeatherBackground } from "@/components/weather-background";
+import { getActiveLocation, type ActiveLocation } from "@/lib/active-location/cookie";
 import { isAuthenticated } from "@/lib/auth/session";
+import { fetchSavedLocations } from "@/lib/saved-locations/api";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
 
-// Warszawa - placeholder default location until location search (Faza 7) lands.
-const DEFAULT_LATITUDE = 52.23;
-const DEFAULT_LONGITUDE = 21.01;
+// Warszawa - fallback until a location is chosen (commit 67's switcher) or
+// picked up from a saved location.
+const DEFAULT_LOCATION: ActiveLocation = {
+  savedLocationId: null,
+  name: "Warszawa",
+  latitude: 52.23,
+  longitude: 21.01,
+};
 
 // Forecast is fetched live from the backend per request - never prerender
 // statically at build time, when no backend is reachable.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [conditions, hourly, daily, authenticated] = await Promise.all([
-    fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
-    fetchHourlyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
-    fetchDailyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
+  const active = (await getActiveLocation()) ?? DEFAULT_LOCATION;
+  const { latitude, longitude } = active;
+
+  const [conditions, hourly, daily, authenticated, savedLocations] = await Promise.all([
+    fetchCurrentConditions(latitude, longitude),
+    fetchHourlyForecast(latitude, longitude),
+    fetchDailyForecast(latitude, longitude),
     isAuthenticated(),
+    fetchSavedLocations(),
   ]);
 
   // With no reading there is no state to encode, so the background falls back
@@ -42,21 +54,21 @@ export default async function Home() {
           <div className="absolute top-4 right-4 z-10">
             <ThemeToggle />
           </div>
-          {/* Saved-locations / settings screens (commits 66, 70) will replace
-              this with a real account menu once there's something to show
-              once logged in. */}
-          {!authenticated && (
-            <div className="absolute top-4 left-4 z-10">
+          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+            <LocationSwitcher active={active} savedLocations={savedLocations} />
+            {/* Settings screen (commit 70) will replace this with a real
+                account menu once there's something to show once logged in. */}
+            {!authenticated && (
               <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
                 Zaloguj się
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           {/* The one client-side, TanStack Query-backed fragment on this
               page (roadmap commit 62) - everything else here is plain RSC. */}
           <CurrentConditionsClient
-            latitude={DEFAULT_LATITUDE}
-            longitude={DEFAULT_LONGITUDE}
+            latitude={latitude}
+            longitude={longitude}
             initialData={conditions ?? undefined}
           />
         </WeatherBackground>

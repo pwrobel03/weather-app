@@ -9,7 +9,10 @@ export type SavedLocation = components["schemas"]["SavedLocation"];
 
 function client(accessToken: string) {
   return createWeatherApiClient({
-    baseUrl: process.env.API_BASE_URL || undefined,
+    // Spreading an explicit `baseUrl: undefined` here would overwrite the
+    // client's own default (it merges as `{ baseUrl: default, ...options }`),
+    // so the key must be omitted entirely when unset, not set to undefined.
+    ...(process.env.API_BASE_URL ? { baseUrl: process.env.API_BASE_URL } : {}),
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
