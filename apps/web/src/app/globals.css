@@ -169,9 +169,22 @@
   isolation: isolate;
   display: flex;
   flex: 1 1 auto;
-  min-height: 100%;
+  min-height: 100dvh;
   background: var(--earth);
   color: var(--dt-color-tekst);
+}
+
+/* design.md revision (2026-07-27): this is a window, not the whole app.
+   Mobile stays near-fullscreen, edge-to-edge (prototype-like); from md up it
+   becomes a rounded tile capped at 50vh, sitting in a normal page layout
+   with the rest of the content (hourly/daily forecast) below it. */
+@media (min-width: 768px) {
+  .weather-background {
+    flex: none;
+    min-height: 0;
+    max-height: 50vh;
+    border-radius: var(--radius-3xl);
+  }
 }
 
 .weather-background__glow,
