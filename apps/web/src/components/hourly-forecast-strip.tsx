@@ -22,7 +22,7 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
 
   return (
     <ol
-      className="flex gap-3 overflow-x-auto pb-3 pt-2 px-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex items-stretch gap-3.5 overflow-x-auto py-6 px-5 -my-4 -mx-4 sm:-mx-5 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-label="Prognoza godzinowa"
     >
       {upcoming.map((entry, index) => {
@@ -30,17 +30,13 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
         return (
           <li
             key={entry.time}
+            style={isCurrent ? { boxShadow: "0 12px 30px -5px rgba(0, 140, 255, 0.65)" } : undefined}
             className={`group/hour relative flex min-w-[5.25rem] sm:min-w-[5.75rem] shrink-0 flex-col items-center justify-between gap-3 rounded-[2rem] border py-4 px-2.5 transition-[transform,background-color,border-color,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.04] active:scale-[0.96] cursor-default ${
               isCurrent
-                ? "border-white/35 bg-gradient-to-br from-[#00d2ff] via-[#0094ff] to-[#0062ff] text-white shadow-lg shadow-sky-500/25 scale-[1.03] z-10"
+                ? "border-white/35 bg-gradient-to-br from-[#00d2ff] via-[#0094ff] to-[#0062ff] text-white scale-[1.03] z-10"
                 : "border-white/5 bg-card text-foreground hover:border-white/20 hover:bg-card/80 dark:hover:bg-[#1c2230] hover:shadow-lg"
             }`}
           >
-            {/* Volumetric rounded glow without square corner artifacts */}
-            {isCurrent && (
-              <div className="absolute -inset-1 rounded-[2.25rem] bg-gradient-to-b from-[#00bfff]/50 to-[#0076ff]/60 blur-md -z-10 pointer-events-none" aria-hidden="true" />
-            )}
-
             {/* Top: Temperature (d.png hierarchy) */}
             <div className="flex flex-col items-center">
               <span className={`font-mono text-xl sm:text-2xl leading-none font-bold tabular-nums tracking-tight ${
