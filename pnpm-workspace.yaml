@@ -8,5 +8,8 @@ packages:
 # well-known, widely-used bundler — same trust level as the other two.
 allowBuilds:
   esbuild: true
+  # msw's postinstall only copies a browser service worker into public/.
+  # The tests run in Node, so it has nothing to do here.
+  msw: false
   sharp: true
   unrs-resolver: true
