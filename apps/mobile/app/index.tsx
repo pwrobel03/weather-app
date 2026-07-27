@@ -90,8 +90,13 @@ export default function HomeScreen() {
                   style={{ paddingTop: insets.top + 8 }}
                   className="flex-row items-center justify-between px-5"
                 >
-                  {/* Balances the row so the name stays optically centred. */}
-                  <View className="w-24" />
+                  <View className="w-24">
+                    {ready && session && (
+                      <Link href="/settings" className="text-sm font-semibold text-white/90">
+                        {messages.settings}
+                      </Link>
+                    )}
+                  </View>
                   <Text className="text-base font-semibold text-white">
                     {active.name}
                   </Text>
