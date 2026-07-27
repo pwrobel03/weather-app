@@ -22,7 +22,15 @@ class SavedLocationService(
         try {
             return repository.create(userId, name, latitude, longitude, terytCode)
         } catch (ex: DataIntegrityViolationException) {
-            throw DuplicateSavedLocationException()
+            // DataIntegrityViolationException also fires for the user_id
+            // foreign key (e.g. a JWT signed for a user that no longer
+            // exists) - only the named unique constraint actually means
+            // "already saved". Anything else should surface as a real
+            // error, not a misleading 409.
+            if (ex.mostSpecificCause.message?.contains("saved_location_user_id_latitude_longitude_key") == true) {
+                throw DuplicateSavedLocationException()
+            }
+            throw ex
         }
     }
 
