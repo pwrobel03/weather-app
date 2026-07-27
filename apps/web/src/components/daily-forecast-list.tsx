@@ -33,16 +33,14 @@ export function DailyForecastList({ entries, locale = "pl" }: DailyForecastListP
         return (
           <div
             key={entry.date}
-            className={`group/day grid grid-cols-[3.5rem_1fr_auto] sm:grid-cols-[4.5rem_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl py-3 px-3.5 sm:px-4 transition-[transform,background-color,border-color,box-shadow] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:translate-x-1.5 hover:bg-muted/50 dark:hover:bg-[#1c2230] cursor-default border ${
-              isToday
-                ? "border-primary/30 bg-primary/10 dark:bg-primary/15 font-semibold shadow-xs"
-                : "border-transparent bg-transparent"
-            }`}
+            className={`group/day grid grid-cols-[3.5rem_1fr_auto] sm:grid-cols-[4.5rem_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl py-3 px-3.5 sm:px-4 transition-[transform,background-color,border-color,box-shadow] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:translate-x-1.5 hover:bg-muted/50 dark:hover:bg-[#1c2230] cursor-default border ${isToday
+              ? "border-transparent bg-card-darker font-semibold shadow-xs"
+              : "border-transparent bg-transparent"
+              }`}
           >
             {/* Left: Day Name */}
-            <span className={`text-sm sm:text-base font-semibold capitalize tracking-wide transition-colors ${
-              isToday ? "text-primary font-bold" : "text-muted-foreground group-hover/day:text-foreground"
-            }`}>
+            <span className={`text-sm sm:text-base font-semibold capitalize tracking-wide transition-colors ${isToday ? "text-primary font-bold" : "text-muted-foreground group-hover/day:text-foreground"
+              }`}>
               {weekdayName(entry.date)}
             </span>
 

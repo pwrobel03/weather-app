@@ -81,7 +81,7 @@ export function AlertsTile({
       }
     >
       {!authenticated ? (
-        <div className="flex flex-col items-start justify-center gap-4 rounded-2xl border border-white/15 bg-black/20 p-4 backdrop-blur-md dark:bg-white/5">
+        <div className="flex flex-col items-start justify-center gap-4 rounded-2xl border border-black/15 dark:border-white/15 p-4 backdrop-blur-md">
           <p className="text-sm font-medium opacity-90">{labels.anonymous}</p>
           <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm" className="w-full justify-center shadow-sm">
             {labels.signIn}
