@@ -32,10 +32,15 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
             key={entry.time}
             className={`group/hour relative flex min-w-[5.25rem] sm:min-w-[5.75rem] shrink-0 flex-col items-center justify-between gap-3 rounded-[2rem] border py-4 px-2.5 transition-[transform,background-color,border-color,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.04] active:scale-[0.96] cursor-default ${
               isCurrent
-                ? "border-white/35 bg-gradient-to-br from-[#00d2ff] via-[#0094ff] to-[#0062ff] text-white shadow-[0_12px_28px_-6px_rgba(0,140,255,0.7)] scale-[1.03] z-10"
-                : "border-white/5 bg-card/60 dark:bg-[#151a24] text-foreground hover:border-white/20 hover:bg-card/80 dark:hover:bg-[#1c2230] hover:shadow-lg"
+                ? "border-white/35 bg-gradient-to-br from-[#00d2ff] via-[#0094ff] to-[#0062ff] text-white shadow-lg shadow-sky-500/25 scale-[1.03] z-10"
+                : "border-white/5 bg-card text-foreground hover:border-white/20 hover:bg-card/80 dark:hover:bg-[#1c2230] hover:shadow-lg"
             }`}
           >
+            {/* Volumetric rounded glow without square corner artifacts */}
+            {isCurrent && (
+              <div className="absolute -inset-1 rounded-[2.25rem] bg-gradient-to-b from-[#00bfff]/50 to-[#0076ff]/60 blur-md -z-10 pointer-events-none" aria-hidden="true" />
+            )}
+
             {/* Top: Temperature (d.png hierarchy) */}
             <div className="flex flex-col items-center">
               <span className={`font-mono text-xl sm:text-2xl leading-none font-bold tabular-nums tracking-tight ${

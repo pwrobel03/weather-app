@@ -68,12 +68,10 @@
 }
 
 :root {
-  /* Jasny motyw (design.md revision 2026-07-27b, a.png). Tło strony NIGDY nie
-     jest bielą — ciemny hero na czystej bieli daje dokładnie tę twardą
-     krawędź, przez którą pierwsza wersja kłuła w oczy. */
-  --background: #eef2f8;
+  /* Jasny motyw (arctic white #f4f7fa, tiles ~10% darker #e3ebf4 for high visual contrast) */
+  --background: #f4f7fa;
   --foreground: #14181f;
-  --card: #ffffff;
+  --card: #e3ebf4;
   --card-foreground: #14181f;
   --popover: #ffffff;
   --popover-foreground: #14181f;
@@ -106,13 +104,10 @@
 }
 
 .dark {
-  /* Ciemny motyw. Tło strony jest ZNACZNIE ciemniejsze od hero (d.png) —
-     przy równych wartościach hero przestawał być osobnym elementem i wtapiał
-     się w tło, i to była prawdziwa przyczyna tego, że jasny motyw wyglądał
-     lepiej. Nie sama barwa, tylko brak separacji. */
-  --background: var(--dt-color-tlo-ciemne);
+  /* Ciemny motyw (#0b0e14 solid dark background, tiles ~10% lighter #151b26 for subtle depth) */
+  --background: #0b0e14;
   --foreground: var(--dt-color-tekst);
-  --card: var(--dt-color-powierzchnia);
+  --card: #151b26;
   --card-foreground: var(--dt-color-tekst);
   --popover: var(--dt-color-powierzchnia);
   --popover-foreground: var(--dt-color-tekst);
@@ -274,20 +269,11 @@
    czego przepuszczać i wygląda jak matowa płyta, niezależnie od siły rozmycia.
    Stąd rozbudowane pole barwne pod całą stroną. */
 body {
-  background-image:
-    radial-gradient(52% 38% at 6% -6%, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 68%),
-    radial-gradient(44% 34% at 98% 2%, color-mix(in srgb, #7E5AB0 22%, transparent) 0%, transparent 66%),
-    radial-gradient(46% 32% at 82% 46%, color-mix(in srgb, #4FA3E3 18%, transparent) 0%, transparent 64%),
-    radial-gradient(58% 42% at 22% 92%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 70%);
-  background-attachment: fixed;
+  background-color: var(--background);
 }
 
 .dark body {
-  background-image:
-    radial-gradient(52% 38% at 6% -6%, color-mix(in srgb, var(--primary) 46%, transparent) 0%, transparent 68%),
-    radial-gradient(44% 34% at 98% 2%, color-mix(in srgb, #7E5AB0 38%, transparent) 0%, transparent 66%),
-    radial-gradient(46% 32% at 82% 46%, color-mix(in srgb, #4FA3E3 26%, transparent) 0%, transparent 64%),
-    radial-gradient(58% 42% at 22% 92%, color-mix(in srgb, var(--primary) 30%, transparent) 0%, transparent 70%);
+  background-color: var(--background);
 }
 
 /* Time-of-day channel: glow colour, intensity and vertical position.

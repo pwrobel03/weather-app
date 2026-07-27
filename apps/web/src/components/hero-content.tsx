@@ -12,6 +12,12 @@ type HeroContentProps = {
   locale: Locale;
   /** Hour at the displayed location, so night is the location's night. */
   localHour: number;
+  /** Top navigation action header (left menu, center location title, right action). */
+  topNav?: ReactNode;
+  /** Whether live background refetch is currently running. */
+  isUpdating?: boolean;
+  /** Whether offline mode or synchronization error is active. */
+  isOffline?: boolean;
   /** Rendered top-right inside the hero (refresh, theme toggle, ...). */
   actions?: ReactNode;
 };
@@ -25,28 +31,41 @@ type HeroContentProps = {
  * leading because letterforms read too far apart as they grow, and every
  * numeric value is tabular so figures do not jump on refresh.
  */
-export function HeroContent({ conditions, locale, localHour, actions }: HeroContentProps) {
+export function HeroContent({ conditions, locale, localHour, topNav, isUpdating, isOffline, actions }: HeroContentProps) {
   const messages = weatherMessages[locale];
   const condition = conditionFromWeatherCode(conditions.weatherCode);
 
   return (
     <div className="relative flex w-full flex-1 flex-col justify-between overflow-hidden h-full">
-      {/* Top right actions vector (refresh, location, settings) */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
-        {actions}
-      </div>
+      {/* Top action header navigation bar */}
+      {topNav || (
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          {actions}
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col items-center sm:items-start justify-center px-6 pt-22 pb-8 md:px-12 md:pt-24 md:pb-12 z-10 w-full max-w-5xl mx-auto">
-        {/* Live Updating Status Badge (Screen 1 style) */}
-        <div className="w-full flex justify-center sm:justify-start mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
-            <span className="size-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" aria-hidden="true" />
-            <span className="font-mono tracking-widest text-[0.7rem]">UPDATING</span>
-            <span className="opacity-40">•</span>
-            <span className="text-white font-medium">{messages.condition[condition]}</span>
+        {/* Live Updating / Offline Status Badge: displayed strictly during active synchronization or offline states */}
+        {(isUpdating || isOffline) && (
+          <div className="w-full flex justify-center sm:justify-start mb-4 sm:mb-6 animate-in fade-in duration-200">
+            {isOffline ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-rose-500/35 bg-black/45 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
+                <span className="size-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.9)]" aria-hidden="true" />
+                <span className="font-mono tracking-widest text-[0.7rem] text-rose-300">OFFLINE</span>
+                <span className="opacity-40">•</span>
+                <span className="text-white font-medium">Brak połączenia</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/35 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
+                <span className="size-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" aria-hidden="true" />
+                <span className="font-mono tracking-widest text-[0.7rem]">UPDATING</span>
+                <span className="opacity-40">•</span>
+                <span className="text-white font-medium">{messages.condition[condition]}</span>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         <div className="flex w-full flex-col items-center justify-between gap-4 sm:flex-row sm:items-end sm:gap-8">
           
