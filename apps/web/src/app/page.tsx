@@ -1,8 +1,12 @@
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WeatherBackground } from "@/components/weather-background";
+import { isAuthenticated } from "@/lib/auth/session";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
@@ -16,10 +20,11 @@ const DEFAULT_LONGITUDE = 21.01;
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [conditions, hourly, daily] = await Promise.all([
+  const [conditions, hourly, daily, authenticated] = await Promise.all([
     fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
     fetchHourlyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
     fetchDailyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
+    isAuthenticated(),
   ]);
 
   // With no reading there is no state to encode, so the background falls back
@@ -37,6 +42,16 @@ export default async function Home() {
           <div className="absolute top-4 right-4 z-10">
             <ThemeToggle />
           </div>
+          {/* Saved-locations / settings screens (commits 66, 70) will replace
+              this with a real account menu once there's something to show
+              once logged in. */}
+          {!authenticated && (
+            <div className="absolute top-4 left-4 z-10">
+              <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm">
+                Zaloguj się
+              </Button>
+            </div>
+          )}
           {/* The one client-side, TanStack Query-backed fragment on this
               page (roadmap commit 62) - everything else here is plain RSC. */}
           <CurrentConditionsClient
