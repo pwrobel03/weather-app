@@ -171,14 +171,15 @@
   --ease-out: var(--dt-ease-out);
   --earth: var(--dt-color-ziemia);
 
-  /* Overwritten per time of day below. */
+  /* Every one of these is set inline by <WeatherBackground>, from the
+     composition computed in @weather-app/core. The values here are the
+     fallback for a render with no data yet - not a table of combinations,
+     which is what used to live below and what Faza 9 exists to remove. */
   --glow-a: var(--dt-glow-day);
-  --glow-b: rgba(38, 84, 138, 0.42);
-  --glow-y: 8%;
-  --sky-a: #4C9EDE;
-  --sky-b: #245A93;
-
-  /* Overwritten per phenomenon below. */
+  --glow-b: var(--dt-sky-day-glow-b);
+  --glow-y: var(--dt-sky-day-glow-y);
+  --sky-a: var(--dt-sky-day-a);
+  --sky-b: var(--dt-sky-day-b);
   --veil-opacity: 0;
   --veil-contrast: 1;
 
@@ -234,7 +235,6 @@
    being the whole effect. */
 .weather-background__glow {
   z-index: 0;
-  filter: saturate(var(--bg-saturation, 1));
   transition: opacity 700ms var(--ease-out);
   background:
     radial-gradient(120% 70% at 50% var(--glow-y), var(--glow-a) 0%, transparent 62%),
@@ -282,78 +282,6 @@ body {
 
 /* Time-of-day channel: glow colour, intensity and vertical position.
    Values are the poświata tokens from design.md. */
-.weather-background[data-time-of-day="dawn"] {
-  --sky-a: var(--dt-sky-dawn-a);
-  --sky-b: var(--dt-sky-dawn-b);
-  --glow-a: var(--dt-glow-dawn);
-  --glow-b: var(--dt-sky-dawn-glow-b);
-  --glow-y: var(--dt-sky-dawn-glow-y);
-}
-
-.weather-background[data-time-of-day="day"] {
-  --sky-a: var(--dt-sky-day-a);
-  --sky-b: var(--dt-sky-day-b);
-  --glow-a: var(--dt-glow-day);
-  --glow-b: var(--dt-sky-day-glow-b);
-  --glow-y: var(--dt-sky-day-glow-y);
-}
-
-.weather-background[data-time-of-day="dusk"] {
-  --sky-a: var(--dt-sky-dusk-a);
-  --sky-b: var(--dt-sky-dusk-b);
-  --glow-a: var(--dt-glow-dusk);
-  --glow-b: var(--dt-sky-dusk-glow-b);
-  --glow-y: var(--dt-sky-dusk-glow-y);
-}
-
-.weather-background[data-time-of-day="night"] {
-  --sky-a: var(--dt-sky-night-a);
-  --sky-b: var(--dt-sky-night-b);
-  --glow-a: var(--dt-glow-night);
-  --glow-b: var(--dt-sky-night-glow-b);
-  --glow-y: var(--dt-sky-night-glow-y);
-}
-
-/* Phenomenon channel: how heavily the sky sits on the scene. */
-.weather-background[data-phenomenon="clear"] {
-  --veil-opacity: var(--dt-veil-clear-opacity);
-}
-
-.weather-background[data-phenomenon="cloud"] {
-  --veil-opacity: var(--dt-veil-cloud-opacity);
-  --veil-contrast: var(--dt-veil-cloud-contrast);
-}
-
-.weather-background[data-phenomenon="fog"] {
-  --veil-opacity: var(--dt-veil-fog-opacity);
-  --veil-contrast: var(--dt-veil-fog-contrast);
-}
-
-.weather-background[data-phenomenon="drizzle"] {
-  --veil-opacity: var(--dt-veil-drizzle-opacity);
-  --veil-contrast: var(--dt-veil-drizzle-contrast);
-}
-
-.weather-background[data-phenomenon="rain"] {
-  --veil-opacity: var(--dt-veil-rain-opacity);
-  --veil-contrast: var(--dt-veil-rain-contrast);
-}
-
-.weather-background[data-phenomenon="snow"] {
-  --veil-opacity: var(--dt-veil-snow-opacity);
-  --veil-contrast: var(--dt-veil-snow-contrast);
-}
-
-.weather-background[data-phenomenon="hail"] {
-  --veil-opacity: var(--dt-veil-hail-opacity);
-  --veil-contrast: var(--dt-veil-hail-contrast);
-}
-
-.weather-background[data-phenomenon="thunderstorm"] {
-  --veil-opacity: var(--dt-veil-thunderstorm-opacity);
-  --veil-contrast: var(--dt-veil-thunderstorm-contrast);
-}
-
 /* ---------------------------------------------------------------------------
    Alert takeover (markdown/design.md, ported from prototype/alert-layer.html)
 

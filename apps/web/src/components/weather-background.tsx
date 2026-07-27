@@ -1,7 +1,7 @@
+import { composeBackground } from "@weather-app/core";
 import type { CSSProperties, ReactNode } from "react";
 
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
-import { resolveWeatherChannels } from "@weather-app/core";
 
 type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */
@@ -23,11 +23,18 @@ type WeatherBackgroundProps = {
  * Data-driven background gradient, composed from independent channels
  * (markdown/design.md).
  *
- * A Server Component on purpose: the whole thing is CSS driven by data
- * attributes and one custom property, so it ships zero JavaScript. Nothing
- * here reacts to user input - the background reacts to the weather.
+ * A Server Component on purpose: the whole thing is CSS driven by custom
+ * properties, so it ships zero JavaScript. Nothing here reacts to user input -
+ * the background reacts to the weather.
  *
- * Note the palette stays in cool neutrals throughout. The IMGW warning scale
+ * The values are computed by `composeBackground` and handed to CSS inline,
+ * rather than selected by a stylesheet keyed on data attributes. Removing that
+ * indirection is what commit 90 is for: with one block per time of day and one
+ * per phenomenon, adding the season channel would have multiplied the
+ * stylesheet by four, and apps/mobile - which paints into a canvas and cannot
+ * read CSS at all - could not have shared a line of it.
+ *
+ * The palette stays in cool neutrals throughout. The IMGW warning scale
  * (yellow / orange / red) is reserved for warnings and must not appear as
  * decoration, which is also why dusk leans violet rather than the literal
  * orange of a sunset - that would collide with severity levels 2 and 3.
@@ -40,15 +47,28 @@ export function WeatherBackground({
   alertSeverity,
   children,
 }: WeatherBackgroundProps) {
-  const channels = resolveWeatherChannels({ weatherCode, temperatureCelsius, now, timeZone });
+  const composition = composeBackground({ weatherCode, temperatureCelsius, timeZone, now });
 
   return (
     <div
       className="weather-background"
-      data-time-of-day={channels.timeOfDay}
-      data-phenomenon={channels.phenomenon}
+      // Kept as attributes although nothing selects on them any more: they are
+      // how a screenshot or a bug report says which channels were active, and
+      // that is worth more than the two lines they cost.
+      data-time-of-day={composition.channels.timeOfDay}
+      data-phenomenon={composition.channels.phenomenon}
       data-alert-severity={alertSeverity ?? undefined}
-      style={{ "--bg-saturation": channels.saturation } as CSSProperties}
+      style={
+        {
+          "--sky-a": composition.sky.from,
+          "--sky-b": composition.sky.to,
+          "--glow-a": composition.glow.color,
+          "--glow-b": composition.glow.secondary,
+          "--glow-y": composition.glow.y,
+          "--veil-opacity": composition.veil.opacity,
+          "--veil-contrast": composition.veil.contrast,
+        } as CSSProperties
+      }
     >
       <div className="weather-background__glow" aria-hidden="true" />
       <div className="weather-background__phenomenon" aria-hidden="true" />
