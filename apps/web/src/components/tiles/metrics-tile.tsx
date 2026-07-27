@@ -2,7 +2,7 @@ import { Droplets, Gauge, Thermometer, Wind } from "lucide-react";
 
 import { Metric } from "@/components/tiles/metric";
 import { Tile } from "@/components/tiles/tile";
-import { weatherMessages, type Locale } from "@/lib/i18n/messages";
+import { weatherMessages, type Locale } from "@weather-app/core";
 import type { CurrentConditions } from "@/lib/weather/current-conditions";
 
 const TITLE: Record<Locale, string> = { pl: "Warunki", en: "Conditions" };

@@ -1,6 +1,7 @@
-import { createWeatherApiClient, type components } from "@weather-app/api-client";
+import { createWeatherApiClient } from "@weather-app/api-client";
+import type { DailyForecastEntry } from "@weather-app/core";
 
-export type DailyForecastEntry = components["schemas"]["DailyForecastEntry"];
+export type { DailyForecastEntry };
 
 /** Same null-on-failure contract as fetchCurrentConditions/fetchHourlyForecast. */
 export async function fetchDailyForecast(

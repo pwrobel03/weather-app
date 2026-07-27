@@ -1,6 +1,7 @@
-import { createWeatherApiClient, type components } from "@weather-app/api-client";
+import { createWeatherApiClient } from "@weather-app/api-client";
+import type { HourlyForecastEntry } from "@weather-app/core";
 
-export type HourlyForecastEntry = components["schemas"]["HourlyForecastEntry"];
+export type { HourlyForecastEntry };
 
 /** Same null-on-failure contract as fetchCurrentConditions - an upstream hiccup
  * should leave the strip empty, not take the whole page down with it. */

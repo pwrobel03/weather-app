@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, weatherMessages, hourOf } from "@weather-app/core";
 import { AlertLiveConnection } from "@/components/alert-live-connection";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
@@ -11,13 +12,11 @@ import { WeatherBackground } from "@/components/weather-background";
 import { getActiveLocation, type ActiveLocation } from "@/lib/active-location/cookie";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { isAuthenticated } from "@/lib/auth/session";
-import { DEFAULT_LOCALE, weatherMessages } from "@/lib/i18n/messages";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
 import { fetchPowiatOutline } from "@/lib/weather/boundary";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
-import { hourOf } from "@/lib/weather/naive-time";
 
 // Warszawa - fallback until a location is chosen or picked up from a saved one.
 const DEFAULT_LOCATION: ActiveLocation = {

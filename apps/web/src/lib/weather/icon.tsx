@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { ReactElement } from "react";
 
-import type { TimeOfDay } from "./channels";
+import type { TimeOfDay } from "@weather-app/core";
 
 /**
  * Maps an Open-Meteo WMO weather code to a Lucide icon element.

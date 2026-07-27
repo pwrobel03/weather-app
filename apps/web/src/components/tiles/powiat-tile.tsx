@@ -1,5 +1,5 @@
 import { Tile } from "@/components/tiles/tile";
-import type { Locale } from "@/lib/i18n/messages";
+import type { Locale } from "@weather-app/core";
 import { outlineToSvgPath, type PowiatOutline } from "@/lib/weather/boundary";
 
 const LABELS: Record<Locale, { title: string; covered: string; clear: string }> = {

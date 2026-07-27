@@ -1,7 +1,6 @@
+import { type Locale, formatHourMinute } from "@weather-app/core";
 import { Tile } from "@/components/tiles/tile";
-import type { Locale } from "@/lib/i18n/messages";
 import type { HourlyForecastEntry } from "@/lib/weather/hourly-forecast";
-import { formatHourMinute } from "@/lib/weather/naive-time";
 
 const HOURS = 12;
 const WIDTH = 240;

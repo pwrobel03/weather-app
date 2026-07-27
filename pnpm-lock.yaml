@@ -68,6 +68,9 @@ importers:
       '@weather-app/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@weather-app/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@weather-app/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
@@ -155,6 +158,19 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+
+  packages/core:
+    dependencies:
+      '@weather-app/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@weather-app/contract':
+        specifier: workspace:*
+        version: link:../contract
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
 
   packages/design-tokens:
     devDependencies:

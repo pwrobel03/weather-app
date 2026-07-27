@@ -3,7 +3,7 @@ import { ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Tile } from "@/components/tiles/tile";
 import { Button } from "@/components/ui/button";
-import { alertMessages, formatValidity, listFormat, type Locale } from "@/lib/i18n/messages";
+import { alertMessages, formatValidity, listFormat, type Locale } from "@weather-app/core";
 import type { ActiveAlert } from "@/lib/alerts/api";
 
 const LABELS: Record<

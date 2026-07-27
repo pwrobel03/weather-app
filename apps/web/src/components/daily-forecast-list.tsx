@@ -1,8 +1,6 @@
+import { weatherMessages, type Locale, conditionFromWeatherCode, weekdayName } from "@weather-app/core";
 import { WeatherArt } from "@/components/weather-art/weather-art";
-import { weatherMessages, type Locale } from "@/lib/i18n/messages";
-import { conditionFromWeatherCode } from "@/lib/weather/condition";
 import type { DailyForecastEntry } from "@/lib/weather/daily-forecast";
-import { weekdayName } from "@/lib/weather/naive-time";
 
 type DailyForecastListProps = {
   entries: DailyForecastEntry[];

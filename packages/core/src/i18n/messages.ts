@@ -14,13 +14,21 @@
  * translating a safety message is a risk nobody asked us to take.
  */
 
-import type { ConditionKey } from "@/lib/weather/condition";
+import { LocaleSchema } from "@weather-app/contract";
 
-export const LOCALES = ["pl", "en"] as const;
+import type { ConditionKey } from "../weather/condition";
 
-export type Locale = (typeof LOCALES)[number];
+/**
+ * The locale list is the contract's, not ours. It used to be declared here as
+ * well, which meant adding a language needed two edits and silently half-worked
+ * if you made one.
+ */
+export const LOCALES = LocaleSchema.options;
 
-export const DEFAULT_LOCALE: Locale = "pl";
+export type { Locale } from "@weather-app/contract";
+export { DEFAULT_LOCALE } from "@weather-app/contract";
+
+type Locale = (typeof LOCALES)[number];
 
 export type AlertMessages = {
   /** Indexed by IMGW severity level, matching WarningSeveritySchema. */

@@ -11,7 +11,7 @@ import { LocationSearch } from "@/components/location-search";
 import { Button } from "@/components/ui/button";
 import { setActiveLocationAction } from "@/lib/active-location/actions";
 import type { ActiveLocation } from "@/lib/active-location/cookie";
-import type { Locale } from "@/lib/i18n/messages";
+import type { Locale } from "@weather-app/core";
 import type { SavedLocation } from "@/lib/saved-locations/api";
 import type { CurrentConditions } from "@/lib/weather/current-conditions";
 

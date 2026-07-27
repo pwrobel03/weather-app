@@ -1,7 +1,6 @@
-import { timeOfDayFromHour } from "@/lib/weather/channels";
+import { timeOfDayFromHour, formatHourMinute, hourOf, nowAsNaiveIsoTimestamp } from "@weather-app/core";
 import type { HourlyForecastEntry } from "@/lib/weather/hourly-forecast";
 import { WeatherArt } from "@/components/weather-art/weather-art";
-import { formatHourMinute, hourOf, nowAsNaiveIsoTimestamp } from "@/lib/weather/naive-time";
 
 type HourlyForecastStripProps = {
   entries: HourlyForecastEntry[];

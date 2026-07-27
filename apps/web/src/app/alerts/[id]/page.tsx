@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { AlertEntry } from "@/components/alert-entry";
 import { findAlertById } from "@/lib/alerts/api";
 import { isAuthenticated } from "@/lib/auth/session";
-import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/messages";
+import { DEFAULT_LOCALE, type Locale } from "@weather-app/core";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
 import { TriangleAlert } from "lucide-react";
 
 import type { ActiveAlert } from "@/lib/alerts/api";
-import { alertMessages, formatValidity, listFormat, type Locale } from "@/lib/i18n/messages";
+import { alertMessages, formatValidity, listFormat, type Locale } from "@weather-app/core";
 
 const LABELS: Record<Locale, { from: string; expired: string; probability: string }> = {
   pl: { from: "Od", expired: "Zakończone", probability: "Prawdopodobieństwo" },

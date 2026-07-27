@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 
-import { alertMessages, type Locale } from "@/lib/i18n/messages";
+import { alertMessages, type Locale } from "@weather-app/core";
 
 type IncomingAlert = {
   id: number;

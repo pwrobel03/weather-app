@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { WeatherArt } from "@/components/weather-art/weather-art";
-import type { TimeOfDay } from "@/lib/weather/channels";
+import type { TimeOfDay } from "@weather-app/core";
 
 /**
  * Inspection surface for the weather icon set, alongside /preview/alert.

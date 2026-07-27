@@ -1,4 +1,4 @@
-import type { TimeOfDay } from "@/lib/weather/channels";
+import type { TimeOfDay } from "@weather-app/core";
 
 import { Bolt, Cloud, Drops, Flakes, FogLines, Hailstones, Moon, Sun } from "./parts";
 

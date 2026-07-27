@@ -1,10 +1,8 @@
+import { formatHeroDate, weatherMessages, type Locale, timeOfDayFromHour, conditionFromWeatherCode } from "@weather-app/core";
 import { Droplets, Umbrella, Wind } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { WeatherArt } from "@/components/weather-art/weather-art";
-import { formatHeroDate, weatherMessages, type Locale } from "@/lib/i18n/messages";
-import { timeOfDayFromHour } from "@/lib/weather/channels";
-import { conditionFromWeatherCode } from "@/lib/weather/condition";
 import type { CurrentConditions } from "@/lib/weather/current-conditions";
 
 type HeroContentProps = {

@@ -1,6 +1,7 @@
-import { createWeatherApiClient, type components } from "@weather-app/api-client";
+import { createWeatherApiClient } from "@weather-app/api-client";
+import type { CurrentConditions } from "@weather-app/core";
 
-export type CurrentConditions = components["schemas"]["CurrentConditions"];
+export type { CurrentConditions };
 
 /**
  * Reads current conditions, returning null instead of throwing.

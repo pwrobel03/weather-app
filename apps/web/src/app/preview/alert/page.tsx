@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { AlertTakeover, type WarningSeverityLevel } from "@/components/alert-takeover";
 import { WeatherBackground } from "@/components/weather-background";
-import { DEFAULT_LOCALE, LOCALES, type Locale } from "@/lib/i18n/messages";
+import { DEFAULT_LOCALE, LOCALES, type Locale } from "@weather-app/core";
 
 /**
  * Inspection surface for the alert takeover, replacing

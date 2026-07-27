@@ -2,7 +2,7 @@ import Link from "next/link";
 import { MapPin } from "lucide-react";
 
 import { Tile } from "@/components/tiles/tile";
-import type { Locale } from "@/lib/i18n/messages";
+import type { Locale } from "@weather-app/core";
 import type { SavedLocation } from "@/lib/saved-locations/api";
 
 const LABELS: Record<Locale, { title: string; empty: string; manage: string; outside: string }> = {
