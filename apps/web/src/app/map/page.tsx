@@ -1,5 +1,6 @@
 import { alertUiMessages, DEFAULT_LOCALE } from "@weather-app/core";
 
+import { MapLegend } from "@/components/map/map-legend";
 import { WarningMap } from "@/components/map/warning-map";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { fetchAllPowiatBoundaries } from "@/lib/map/boundaries";
@@ -33,15 +34,23 @@ export default async function MapPage() {
     }
   }
 
+  const countsByLevel = { "1": 0, "2": 0, "3": 0 };
+  for (const level of Object.values(severityByTeryt)) {
+    countsByLevel[level] += 1;
+  }
+
   return (
     <main className="flex h-[100dvh] w-full flex-col gap-4 p-4 md:p-6">
       <h1 className="text-2xl font-bold tracking-tight">{labels.warnings}</h1>
-      <WarningMap
-        label={labels.warnings}
-        boundaries={boundaries}
-        severityByTeryt={severityByTeryt}
-        className="min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-border/60 shadow-md"
-      />
+      <div className="relative min-h-0 flex-1">
+        <WarningMap
+          label={labels.warnings}
+          boundaries={boundaries}
+          severityByTeryt={severityByTeryt}
+          className="size-full overflow-hidden rounded-[2rem] border border-border/60 shadow-md"
+        />
+        <MapLegend locale={locale} countsByLevel={countsByLevel} />
+      </div>
     </main>
   );
 }
