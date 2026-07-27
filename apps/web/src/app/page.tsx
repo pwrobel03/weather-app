@@ -78,12 +78,12 @@ export default async function Home() {
   return (
     <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-12 lg:gap-6 lg:px-8 lg:py-8">
       {/* Hero and warnings share the top band. Engineered spatial layout with staggered motion. */}
-      <div className="lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.35)] border border-white/15">
+      <div className="lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] shadow-[0_24px_60px_-10px_rgba(0,0,0,0.6)] border border-white/20">
         <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
-          <div className="absolute top-4 right-4 z-20 micro-press">
+          <div className="absolute top-5 right-5 z-30 micro-press">
             <ThemeToggle />
           </div>
-          <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+          <div className="absolute top-5 left-5 z-30 flex items-center gap-2.5">
             <LocationSwitcher active={active} savedLocations={savedLocations} />
             {authenticated ? (
               <Button
@@ -92,12 +92,12 @@ export default async function Home() {
                 variant="glass"
                 size="icon-sm"
                 aria-label="Ustawienia"
-                className="micro-press shadow-sm hover:rotate-4"
+                className="micro-press shadow-sm hover:rotate-6"
               >
                 <Settings />
               </Button>
             ) : (
-              <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm" className="micro-press shadow-sm">
+              <Button render={<Link href="/login" />} nativeButton={false} variant="glass" size="sm" className="micro-press shadow-sm font-medium">
                 Zaloguj się
               </Button>
             )}
@@ -117,7 +117,15 @@ export default async function Home() {
       </div>
 
       <div className="lg:col-span-8 animate-in-card stagger-3 h-full flex flex-col justify-center">
-        <Tile className="h-full justify-center">
+        <Tile
+          title={weatherMessages[locale].today}
+          aside={
+            <a href="#7-days" className="text-xs sm:text-sm font-bold text-sky-400 hover:text-sky-300 transition-colors drop-shadow-sm">
+              {weatherMessages[locale].sevenDays} &gt;
+            </a>
+          }
+          className="h-full justify-center"
+        >
           <HourlyForecastStrip entries={hourly} />
         </Tile>
       </div>
@@ -128,9 +136,9 @@ export default async function Home() {
         </div>
       )}
 
-      <div className="lg:col-span-8 animate-in-card stagger-5 h-full flex flex-col justify-center">
+      <div id="7-days" className="lg:col-span-8 animate-in-card stagger-5 h-full flex flex-col justify-center scroll-mt-6">
         <Tile title={weatherMessages[locale].sevenDays} className="h-full justify-center">
-          <DailyForecastList entries={daily} />
+          <DailyForecastList entries={daily} locale={locale} />
         </Tile>
       </div>
 

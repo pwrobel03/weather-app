@@ -30,64 +30,72 @@ export function HeroContent({ conditions, locale, localHour, actions }: HeroCont
   const condition = conditionFromWeatherCode(conditions.weatherCode);
 
   return (
-    <div className="relative flex flex-1 flex-col justify-between gap-8 px-6 pt-20 pb-8 md:px-10 md:pt-22 md:pb-10 lg:pt-24 w-full h-full">
-      {actions}
+    <div className="relative flex w-full flex-1 flex-col justify-between overflow-hidden h-full">
+      {/* Top right actions vector (refresh, location, settings) */}
+      <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+        {actions}
+      </div>
 
-      {/* Main Hero Showcase: editorial layout with temperature left, floating art right */}
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-6 sm:flex-row sm:items-end">
-        <div className="flex flex-col items-center sm:items-start text-center sm:text-left z-10">
-          {/* Live Status Chip */}
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/20 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md backdrop-blur-md">
-            <span className="size-2 rounded-full bg-emerald-400 animate-pulse-subtle shadow-[0_0_8px_rgba(52,211,153,0.8)]" aria-hidden="true" />
-            <span>{messages.condition[condition]}</span>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col items-center sm:items-start justify-center px-6 pt-20 pb-10 md:px-12 md:pt-24 md:pb-12 z-10">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-8 sm:flex-row sm:items-end">
+          
+          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+            {/* Live Updating Status Badge (d.png style) */}
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
+              <span className="size-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" aria-hidden="true" />
+              <span className="font-mono tracking-widest text-[0.7rem]">UPDATING</span>
+              <span className="opacity-40">•</span>
+              <span className="text-white font-medium">{messages.condition[condition]}</span>
+            </div>
 
-          <div className="relative flex items-baseline">
-            <p
-              className="tabular-nums text-white font-light tracking-tighter drop-shadow-md select-none"
-              style={{
-                fontSize: "clamp(4.25rem, 14vw, 7.5rem)",
-                letterSpacing: "var(--dt-type-temp-tracking, -0.04em)",
-                lineHeight: "var(--dt-type-temp-leading, 0.9)",
-                fontWeight: "var(--dt-type-temp-weight, 200)",
-              }}
-            >
-              {Math.round(conditions.temperatureCelsius)}
+            {/* Massive geometric temperature readout */}
+            <div className="relative flex items-baseline justify-center sm:justify-start">
+              <p
+                className="tabular-nums text-white font-bold tracking-tight drop-shadow-md select-none font-sans leading-none text-[5.5rem] sm:text-[7rem] md:text-[8rem] lg:text-[9rem]"
+                style={{ letterSpacing: "-0.04em" }}
+              >
+                {Math.round(conditions.temperatureCelsius)}
+              </p>
+              <span className="text-4xl sm:text-6xl md:text-7xl font-light text-white/90 -mt-6 ml-1.5 select-none drop-shadow-sm">°</span>
+            </div>
+
+            <h1 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-white drop-shadow-sm">
+              {messages.condition[condition]}
+            </h1>
+
+            <p className="mt-1 text-sm font-medium tracking-wide text-white/75 md:text-base">
+              {formatHeroDate(new Date(), locale)}
             </p>
-            <span className="text-4xl sm:text-5xl md:text-6xl font-extralight text-white/90 -mt-4 ml-1 select-none">°</span>
           </div>
 
-          <p className="mt-2 text-sm font-medium tracking-wide text-white/80 md:text-base">
-            {formatHeroDate(new Date(), locale)}
-          </p>
-        </div>
-
-        {/* Floating atmospheric icon with deep responsive shadow */}
-        <div className="relative flex items-center justify-center sm:pr-4 transition-transform duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/hero:scale-105">
-          <div className="absolute inset-0 rounded-full bg-white/10 blur-2xl transform scale-75 pointer-events-none" />
-          <WeatherArt
-            code={conditions.weatherCode}
-            timeOfDay={timeOfDayFromHour(localHour)}
-            className="relative size-28 sm:size-36 md:size-44 drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)] transition-transform duration-[500ms] hover:rotate-2 hover:scale-108"
-          />
+          {/* Floating Atmospheric Artwork with volumetric glowing shadows */}
+          <div className="relative flex items-center justify-center pt-2 sm:pt-0 transition-transform duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 group">
+            <div className="absolute inset-0 rounded-full bg-white/15 blur-3xl transform scale-90 pointer-events-none" />
+            <WeatherArt
+              code={conditions.weatherCode}
+              timeOfDay={timeOfDayFromHour(localHour)}
+              className="relative size-36 sm:size-44 md:size-52 drop-shadow-[0_22px_35px_rgba(0,30,90,0.55)] transition-[transform,filter] duration-[500ms] group-hover:rotate-2 group-hover:scale-105"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Glass Telemetry Strip - immersive full-span translucent instrumentation */}
-      <div className="mx-auto w-full max-w-5xl mt-auto">
-        <dl className="glass grid grid-cols-3 divide-x divide-white/15 rounded-2xl p-4 sm:p-5 shadow-[0_16px_36px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-[transform,box-shadow,background-color] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-black/40 hover:shadow-2xl">
+      {/* Telemetry Glass Strip: molded flush into bottom curvature of card as in d.png */}
+      <div className="w-full z-20 mt-auto">
+        <dl className="w-full grid grid-cols-3 divide-x divide-white/15 bg-gradient-to-b from-black/25 via-black/45 to-black/60 backdrop-blur-2xl border-t border-white/20 p-4 sm:p-5 text-white shadow-xl transition-colors duration-[240ms] hover:bg-black/55">
           <Metric
-            icon={<Wind aria-hidden="true" className="size-4 text-sky-300" />}
+            icon={<Wind aria-hidden="true" className="size-5 text-sky-300" />}
             label={messages.wind}
             value={`${Math.round(conditions.windSpeedKmh)} km/h`}
           />
           <Metric
-            icon={<Droplets aria-hidden="true" className="size-4 text-blue-300" />}
+            icon={<Droplets aria-hidden="true" className="size-5 text-sky-300" />}
             label={messages.humidity}
             value={`${conditions.relativeHumidityPercent}%`}
           />
           <Metric
-            icon={<Umbrella aria-hidden="true" className="size-4 text-purple-300" />}
+            icon={<Umbrella aria-hidden="true" className="size-5 text-sky-300" />}
             label={messages.precipitation}
             value={`${conditions.precipitationMm.toFixed(1)} mm`}
           />
@@ -99,13 +107,10 @@ export function HeroContent({ conditions, locale, localHour, actions }: HeroCont
 
 function Metric({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 px-2 text-center text-white sm:px-4">
-      <span className="flex items-center gap-1.5 opacity-90 transition-transform duration-[200ms] hover:scale-110">{icon}</span>
-      <dd className="font-mono text-sm sm:text-base md:text-lg font-semibold tracking-tight tabular-nums drop-shadow-sm">{value}</dd>
-      <dt
-        className="text-[0.65rem] sm:text-xs font-semibold uppercase tracking-wider text-white/70"
-        style={{ letterSpacing: "var(--dt-type-label-tracking, 0.08em)" }}
-      >
+    <div className="group/metric flex flex-col items-center justify-center gap-1.5 px-2 text-center text-white sm:px-4">
+      <span className="flex items-center justify-center transition-transform duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/metric:scale-125 group-hover/metric:-translate-y-0.5">{icon}</span>
+      <dd className="font-mono text-sm sm:text-base md:text-lg font-bold tracking-tight tabular-nums drop-shadow-sm">{value}</dd>
+      <dt className="text-[0.65rem] sm:text-xs font-semibold uppercase tracking-wider text-white/70">
         {label}
       </dt>
     </div>

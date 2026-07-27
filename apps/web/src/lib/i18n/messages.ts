@@ -88,6 +88,7 @@ export type WeatherMessages = {
   precipitation: string;
   feelsLike: string;
   sevenDays: string;
+  today: string;
 };
 
 export const weatherMessages: Record<Locale, WeatherMessages> = {
@@ -112,6 +113,7 @@ export const weatherMessages: Record<Locale, WeatherMessages> = {
     precipitation: "Opad",
     feelsLike: "Odczuwalna",
     sevenDays: "7 dni",
+    today: "Dzisiaj",
   },
   en: {
     condition: {
@@ -134,6 +136,7 @@ export const weatherMessages: Record<Locale, WeatherMessages> = {
     precipitation: "Precipitation",
     feelsLike: "Feels like",
     sevenDays: "7 days",
+    today: "Today",
   },
 };
 

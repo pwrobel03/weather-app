@@ -1,76 +1,73 @@
 import { WeatherArt } from "@/components/weather-art/weather-art";
+import { weatherMessages, type Locale } from "@/lib/i18n/messages";
+import { conditionFromWeatherCode } from "@/lib/weather/condition";
 import type { DailyForecastEntry } from "@/lib/weather/daily-forecast";
 import { weekdayName } from "@/lib/weather/naive-time";
 
 type DailyForecastListProps = {
   entries: DailyForecastEntry[];
+  locale?: Locale;
 };
 
 /**
- * Seven days as a row of cards rather than a table of rows.
- *
- * The table version was seven lines of small type that had to be read one at a
- * time; a row of cards is taken in at a glance, which is how every bento
- * reference in idea/updated presents a week. On narrow screens it scrolls
- * horizontally instead of stacking, so the week stays one gesture.
- *
- * Daily icons always use the "day" bucket - a whole-day summary has no single
- * hour to derive dawn/dusk/night from, and every weather app shows daily icons
- * as their daytime variant regardless.
+ * Seven days presented in the sleek, vertically organized row architecture
+ * of d.png (Screen 2). Each day row features fluid hover translation,
+ * crisp atmospheric iconography paired with condition text, and dual high/low figures.
  */
-export function DailyForecastList({ entries }: DailyForecastListProps) {
+export function DailyForecastList({ entries, locale = "pl" }: DailyForecastListProps) {
   if (entries.length === 0) {
     return null;
   }
 
-  const allMins = entries.map((e) => e.temperatureMinCelsius);
-  const allMaxs = entries.map((e) => e.temperatureMaxCelsius);
-  const globalMin = Math.min(...allMins);
-  const globalMax = Math.max(...allMaxs);
-  const totalSpan = Math.max(globalMax - globalMin, 1);
+  const messages = weatherMessages[locale];
 
   return (
-    <ol className="flex gap-3 overflow-x-auto pb-2 pt-1 select-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex flex-col gap-1.5 pt-1 pb-1 select-none" aria-label="Prognoza na 7 dni">
       {entries.map((entry, index) => {
         const isToday = index === 0;
-        const leftPct = Math.max(0, Math.min(100, ((entry.temperatureMinCelsius - globalMin) / totalSpan) * 100));
-        const widthPct = Math.max(12, Math.min(100 - leftPct, ((entry.temperatureMaxCelsius - entry.temperatureMinCelsius) / totalSpan) * 100));
+        const condition = conditionFromWeatherCode(entry.weatherCode);
+        const condLabel = messages.condition[condition];
+        const maxTemp = Math.round(entry.temperatureMaxCelsius);
+        const minTemp = Math.round(entry.temperatureMinCelsius);
 
         return (
-          <li
+          <div
             key={entry.date}
-            className={`group/day relative flex min-w-[6.5rem] flex-1 shrink-0 flex-col items-center justify-between gap-3 rounded-2xl border px-3 py-3.5 transition-[transform,background-color,border-color,box-shadow] duration-[200ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.03] hover:shadow-md active:scale-[0.97] cursor-default ${
+            className={`group/day grid grid-cols-[3.5rem_1fr_auto] sm:grid-cols-[4.5rem_1fr_auto] items-center gap-3 sm:gap-4 rounded-2xl py-3 px-3.5 sm:px-4 transition-[transform,background-color,border-color,box-shadow] duration-[220ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:translate-x-1.5 hover:bg-muted/50 dark:hover:bg-[#1c2230] cursor-default border ${
               isToday
-                ? "border-primary/40 bg-primary/10 shadow-sm dark:bg-primary/15"
-                : "border-transparent bg-muted/25 hover:border-border/60 hover:bg-muted/60"
+                ? "border-primary/30 bg-primary/10 dark:bg-primary/15 font-semibold shadow-xs"
+                : "border-transparent bg-transparent"
             }`}
           >
-            <span className={`text-xs font-semibold capitalize tracking-wide transition-colors ${
-              isToday ? "text-primary font-bold" : "text-muted-foreground opacity-85 group-hover/day:opacity-100 group-hover/day:text-foreground"
+            {/* Left: Day Name */}
+            <span className={`text-sm sm:text-base font-semibold capitalize tracking-wide transition-colors ${
+              isToday ? "text-primary font-bold" : "text-muted-foreground group-hover/day:text-foreground"
             }`}>
               {weekdayName(entry.date)}
             </span>
 
-            <div className="my-1 transform transition-transform duration-[300ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/day:scale-110 group-hover/day:rotate-2">
-              <WeatherArt code={entry.weatherCode} timeOfDay="day" className="size-11 drop-shadow-sm" />
+            {/* Middle: Atmospheric Icon + Condition Label (d.png Style) */}
+            <div className="flex items-center gap-3 min-w-0 pl-2">
+              <div className="shrink-0 transform transition-transform duration-[300ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover/day:scale-120 group-hover/day:rotate-3">
+                <WeatherArt code={entry.weatherCode} timeOfDay="day" className="size-8 sm:size-9 drop-shadow-sm" />
+              </div>
+              <span className="truncate text-sm sm:text-base font-medium text-foreground/90 group-hover/day:text-foreground">
+                {condLabel}
+              </span>
             </div>
 
-            <div className="w-full flex flex-col items-center gap-1.5 font-mono tabular-nums">
-              <div className="w-full flex justify-between items-baseline px-0.5 text-xs">
-                <span className="text-muted-foreground opacity-80 font-normal text-[0.7rem]">{Math.round(entry.temperatureMinCelsius)}°</span>
-                <span className="font-bold text-foreground text-sm">{Math.round(entry.temperatureMaxCelsius)}°</span>
-              </div>
-              {/* Apple-style temperature range indicator bar */}
-              <div className="w-full h-1.5 bg-border/40 dark:bg-border/30 rounded-full overflow-hidden relative shadow-inner">
-                <div
-                  className="absolute top-0 bottom-0 rounded-full bg-gradient-to-r from-sky-500 via-emerald-500 to-amber-500 opacity-90 shadow-xs"
-                  style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-                />
-              </div>
+            {/* Right: Dual High / Low Temperatures */}
+            <div className="text-right font-mono tabular-nums tracking-tight text-sm sm:text-base pl-2">
+              <span className="font-bold text-foreground mr-2.5 sm:mr-3.5">
+                {maxTemp > 0 ? `+${maxTemp}` : maxTemp}°
+              </span>
+              <span className="font-medium text-muted-foreground/75">
+                {minTemp > 0 ? `+${minTemp}` : minTemp}°
+              </span>
             </div>
-          </li>
+          </div>
         );
       })}
-    </ol>
+    </div>
   );
 }
