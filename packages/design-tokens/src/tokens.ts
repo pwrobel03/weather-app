@@ -6,8 +6,19 @@
  */
 export const tokens = {
   colors: {
-    ziemia: "#0B0E14",
-    powierzchnia: "#141922",
+    /**
+     * Hero base (design.md revision 2026-07-27b). A deep, near-uniform navy
+     * rather than a saturated gradient: three of the four references in
+     * idea/updated sit on a calm dark ground, and the saturated version was
+     * tiring to look at. Weather still drives the colour, but as a tilt of
+     * this base rather than a flood of its own.
+     */
+    ziemia: "#0F1826",
+    powierzchnia: "#16202F",
+    /** Page ground in the light theme. Never pure white - a saturated or very
+     * dark block against #FFF is the harsh edge that made the first version
+     * hurt to look at. */
+    tloJasne: "#EEF2F8",
     /**
      * The alert card's material. Opaque by rule: it is the one surface in the
      * app that must stay legible over a shifting gradient, and now that
@@ -31,11 +42,16 @@ export const tokens = {
     warning2: "#F08A24",
     warning3: "#E0342B",
   },
+  /**
+   * Glow strength is roughly half what it was. The channel still reads - day
+   * is unmistakably brighter than night - but it tints the navy rather than
+   * replacing it.
+   */
   glow: {
-    dawn: "rgba(88, 116, 176, 0.50)",
-    day: "rgba(46, 111, 168, 0.60)",
-    dusk: "rgba(120, 78, 168, 0.55)",
-    night: "rgba(32, 58, 104, 0.62)",
+    dawn: "rgba(96, 124, 184, 0.30)",
+    day: "rgba(64, 132, 194, 0.34)",
+    dusk: "rgba(126, 90, 176, 0.32)",
+    night: "rgba(38, 66, 116, 0.26)",
   },
   /**
    * iOS-flavoured glass (design.md §4).
@@ -45,13 +61,13 @@ export const tokens = {
    * the detail that reads as light catching a real material.
    */
   glass: {
-    darkBackground: "rgba(255, 255, 255, 0.10)",
-    lightBackground: "rgba(255, 255, 255, 0.60)",
-    darkBorder: "rgba(255, 255, 255, 0.14)",
-    lightBorder: "rgba(255, 255, 255, 0.70)",
-    darkEdge: "rgba(255, 255, 255, 0.28)",
-    lightEdge: "rgba(255, 255, 255, 0.95)",
-    blur: "24px",
+    darkBackground: "rgba(255, 255, 255, 0.06)",
+    lightBackground: "rgba(255, 255, 255, 0.72)",
+    darkBorder: "rgba(255, 255, 255, 0.09)",
+    lightBorder: "rgba(255, 255, 255, 0.85)",
+    darkEdge: "rgba(255, 255, 255, 0.16)",
+    lightEdge: "rgba(255, 255, 255, 0.98)",
+    blur: "14px",
     saturate: "180%",
   },
   /**

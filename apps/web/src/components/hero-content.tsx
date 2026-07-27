@@ -30,19 +30,19 @@ export function HeroContent({ conditions, locale, localHour, actions }: HeroCont
   const condition = conditionFromWeatherCode(conditions.weatherCode);
 
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center gap-1 px-6 py-10">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-1 px-6 pt-16 pb-8 lg:py-10">
       {actions}
 
       <WeatherArt
         code={conditions.weatherCode}
         timeOfDay={timeOfDayFromHour(localHour)}
-        className="size-28 drop-shadow-2xl md:size-32"
+        className="size-24 drop-shadow-2xl md:size-28"
       />
 
       <p
         className="mt-2 tabular-nums text-white"
         style={{
-          fontSize: "clamp(4rem, 12vw, 7rem)",
+          fontSize: "clamp(3.5rem, 15vw, 6rem)",
           letterSpacing: "var(--dt-type-temp-tracking)",
           lineHeight: "var(--dt-type-temp-leading)",
           fontWeight: "var(--dt-type-temp-weight)",

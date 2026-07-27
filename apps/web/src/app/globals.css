@@ -60,8 +60,10 @@
 }
 
 :root {
-  /* Jasny motyw: chłodny, nie kremowy — patrz markdown/design.md */
-  --background: #f4f6f9;
+  /* Jasny motyw (design.md revision 2026-07-27b, a.png). Tło strony NIGDY nie
+     jest bielą — ciemny hero na czystej bieli daje dokładnie tę twardą
+     krawędź, przez którą pierwsza wersja kłuła w oczy. */
+  --background: #eef2f8;
   --foreground: #14181f;
   --card: #ffffff;
   --card-foreground: #14181f;
@@ -160,8 +162,8 @@
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
-  --sky-a: #4FA3E3;
-  --sky-b: #2A5F96;
+  --sky-a: #1C3350;
+  --sky-b: #101B2B;
 
   /* Overwritten per phenomenon below. */
   --veil-opacity: 0;
@@ -171,7 +173,11 @@
   isolation: isolate;
   display: flex;
   flex: 1 1 auto;
-  min-height: 100dvh;
+  /* design.md revision (2026-07-27b): NOT the full viewport. At 100dvh the
+     forecast sits entirely below the fold and nothing suggests there is more
+     to see; in c.png and d.png the hourly strip peeks out from under the hero
+     and that is what invites the scroll. */
+  min-height: 62dvh;
   background: var(--earth);
   color: var(--dt-color-tekst);
 }
@@ -235,32 +241,42 @@
   flex-direction: column;
 }
 
+/* Something for the glass to actually work on. On a flat page ground a
+   translucent tile is indistinguishable from a matte one - the blur has
+   nothing to blur. A barely-there wash gives it material to refract. */
+body {
+  background-image:
+    radial-gradient(60% 40% at 12% 0%, color-mix(in srgb, var(--primary) 7%, transparent) 0%, transparent 70%),
+    radial-gradient(50% 35% at 92% 8%, color-mix(in srgb, var(--primary) 5%, transparent) 0%, transparent 70%);
+  background-attachment: fixed;
+}
+
 /* Time-of-day channel: glow colour, intensity and vertical position.
    Values are the poświata tokens from design.md. */
 .weather-background[data-time-of-day="dawn"] {
-  --sky-a: #6E86C4;
-  --sky-b: #2F3F70;
+  --sky-a: #1B2740;
+  --sky-b: #0F1826;
   --glow-a: rgba(88, 116, 176, 0.5);
   --glow-b: rgba(46, 84, 140, 0.4);
   --glow-y: 22%;
 }
 .weather-background[data-time-of-day="day"] {
-  --sky-a: #4FA3E3;
-  --sky-b: #2A5F96;
+  --sky-a: #1C3350;
+  --sky-b: #101B2B;
   --glow-a: var(--dt-glow-day);
   --glow-b: rgba(38, 84, 138, 0.42);
   --glow-y: 8%;
 }
 .weather-background[data-time-of-day="dusk"] {
-  --sky-a: #7B57B0;
-  --sky-b: #33305E;
+  --sky-a: #241F3E;
+  --sky-b: #0F1826;
   --glow-a: var(--dt-glow-dusk);
   --glow-b: rgba(58, 74, 150, 0.45);
   --glow-y: 30%;
 }
 .weather-background[data-time-of-day="night"] {
-  --sky-a: #1B2E52;
-  --sky-b: #0B0E14;
+  --sky-a: #111A2B;
+  --sky-b: #090D14;
   --glow-a: var(--dt-glow-night);
   --glow-b: rgba(18, 32, 64, 0.55);
   --glow-y: 14%;
