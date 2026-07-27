@@ -1,9 +1,11 @@
+import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { TemperatureDisplay } from "@/components/temperature-display";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { WeatherBackground } from "@/components/weather-background";
 import { WeatherIcon } from "@/components/weather-icon";
 import { timeOfDay } from "@/lib/weather/channels";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
+import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
 
 // Warszawa - placeholder default location until location search (Faza 7) lands.
 const DEFAULT_LATITUDE = 52.23;
@@ -14,7 +16,10 @@ const DEFAULT_LONGITUDE = 21.01;
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const conditions = await fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE);
+  const [conditions, hourly] = await Promise.all([
+    fetchCurrentConditions(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
+    fetchHourlyForecast(DEFAULT_LATITUDE, DEFAULT_LONGITUDE),
+  ]);
 
   // With no reading there is no state to encode, so the background falls back
   // to a neutral overcast rather than inventing weather.
@@ -43,10 +48,12 @@ export default async function Home() {
         </WeatherBackground>
       </div>
 
-      {/* design.md: "osobna powierzchnia na prognozę godzinową" - filled in
-          by commit 60 (hourly strip) and 61 (daily list). */}
+      {/* design.md: "osobna powierzchnia na prognozę godzinową" - daily list
+          (commit 61) joins this surface next. */}
       <div className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8 md:px-6">
-        <section className="mt-4 rounded-3xl bg-card p-6 text-card-foreground md:mt-6" />
+        <section className="mt-4 rounded-3xl bg-card p-6 text-card-foreground md:mt-6">
+          <HourlyForecastStrip entries={hourly} />
+        </section>
       </div>
     </div>
   );
