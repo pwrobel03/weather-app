@@ -180,12 +180,16 @@
    Mobile stays near-fullscreen, edge-to-edge (prototype-like); from md up it
    becomes a rounded tile capped at 50vh, sitting in a normal page layout
    with the rest of the content (hourly/daily forecast) below it. */
-@media (min-width: 768px) {
+/* Bento breakpoint moved to lg: at md the hero as a grid cell alongside tiles
+   leaves neither enough room, and the big temperature is the whole point.
+   Below lg it stays the full-bleed screen from major.png. */
+@media (min-width: 1024px) {
   .weather-background {
-    flex: none;
-    min-height: 0;
-    max-height: 50vh;
+    flex: 1 1 auto;
+    min-height: 26rem;
+    height: 100%;
     border-radius: var(--radius-3xl);
+    overflow: hidden;
   }
 }
 
