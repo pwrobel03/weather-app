@@ -51,6 +51,44 @@ class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
             terytCode,
         ).firstOrNull()
 
+    /**
+     * The same simplified geometry as [findSimplifiedGeoJson], for many codes
+     * at once.
+     *
+     * One statement rather than a loop of them: a single IMGW warning can name
+     * over a hundred powiats, and issuing a query per code turns one map render
+     * into a hundred round trips against geometry that is identical every time.
+     *
+     * Codes are bound as parameters, never interpolated - they arrive from a
+     * query string.
+     */
+    fun findSimplifiedGeoJson(terytCodes: Collection<String>): List<PowiatGeoJsonFeature> {
+        if (terytCodes.isEmpty()) return emptyList()
+
+        val placeholders = terytCodes.joinToString(",") { "?" }
+        return jdbcTemplate.query(
+            """
+            SELECT teryt_code, name, voivodeship,
+                   ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(boundary::geometry, ?))) AS geometry
+            FROM powiat_boundary
+            WHERE teryt_code IN ($placeholders)
+            ORDER BY teryt_code
+            """.trimIndent(),
+            { rs, _ ->
+                PowiatGeoJsonFeature(
+                    properties = PowiatGeoJsonFeature.Properties(
+                        terytCode = rs.getString("teryt_code"),
+                        name = rs.getString("name"),
+                        voivodeship = rs.getString("voivodeship"),
+                    ),
+                    geometry = rs.getString("geometry"),
+                )
+            },
+            SIMPLIFY_TOLERANCE_DEGREES,
+            *terytCodes.toTypedArray(),
+        )
+    }
+
     private companion object {
         // ~100m at Polish latitudes - enough to thin out map-display polygons
         // without visibly distorting powiat shapes.

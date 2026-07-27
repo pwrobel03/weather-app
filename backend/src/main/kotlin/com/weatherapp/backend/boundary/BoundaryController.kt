@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -36,6 +37,25 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
             ?: ResponseEntity.notFound().build()
 
     @Operation(
+        summary = "Get several powiats' boundaries as one GeoJSON FeatureCollection",
+        description =
+            "Returns simplified boundaries for the given TERYT codes in a single response. " +
+                "A single IMGW warning can cover more than a hundred powiats, and one request " +
+                "per powiat would mean the map issuing a hundred round trips for geometry that " +
+                "never changes.",
+        responses = [
+            ApiResponse(responseCode = "200", description = "FeatureCollection; unknown codes are simply absent"),
+            ApiResponse(responseCode = "400", description = "Too many codes requested"),
+        ],
+    )
+    @GetMapping("/api/boundaries/geojson")
+    fun geojsonBatch(
+        @Parameter(description = "Powiat TERYT codes", example = "1465,1401,3064")
+        @RequestParam(name = "teryt")
+        terytCodes: List<String>,
+    ): PowiatGeoJsonFeatureCollection = terytResolutionService.getSimplifiedGeoJson(terytCodes)
+
+    @Operation(
         summary = "Get a powiat's boundary as GeoJSON",
         description = "Returns a simplified GeoJSON Feature for the powiat with the given TERYT code, for map rendering.",
         responses = [
@@ -52,4 +72,9 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
         terytResolutionService.getSimplifiedGeoJson(terytCode)
             ?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
+
+    /** An over-long code list is the caller's mistake, not a server fault. */
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleTooManyCodes(ex: IllegalArgumentException): ResponseEntity<Map<String, String?>> =
+        ResponseEntity.badRequest().body(mapOf("error" to ex.message))
 }

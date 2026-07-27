@@ -77,6 +77,55 @@ class BoundaryControllerTest {
         assertEquals(404, exception.statusCode.value())
     }
 
+    @Test
+    fun `returns a feature collection for several teryt codes in one request`() {
+        whenever(terytResolutionService.getSimplifiedGeoJson(listOf("1465", "1401"))).thenReturn(
+            PowiatGeoJsonFeatureCollection(
+                listOf(
+                    feature("1401", "powiat bialski"),
+                    feature("1465", "powiat Warszawa"),
+                ),
+            ),
+        )
+
+        val body = get("/api/boundaries/geojson?teryt=1465,1401")
+
+        assertTrue(body.contains("\"type\":\"FeatureCollection\""))
+        assertTrue(body.contains("\"terytCode\":\"1465\""))
+        assertTrue(body.contains("\"terytCode\":\"1401\""))
+    }
+
+    @Test
+    fun `returns an empty collection rather than 404 when no code is known`() {
+        // A warning naming a powiat we have no boundary for should leave that
+        // one unpainted, not fail the whole map.
+        whenever(terytResolutionService.getSimplifiedGeoJson(listOf("9999")))
+            .thenReturn(PowiatGeoJsonFeatureCollection(emptyList()))
+
+        val body = get("/api/boundaries/geojson?teryt=9999")
+
+        assertTrue(body.contains("\"features\":[]"))
+    }
+
+    @Test
+    fun `rejects an over-long code list as a client error`() {
+        whenever(terytResolutionService.getSimplifiedGeoJson(any<List<String>>()))
+            .thenThrow(IllegalArgumentException("at most 400 teryt codes per request, got 401"))
+
+        val exception = assertThrows<HttpClientErrorException> {
+            get("/api/boundaries/geojson?teryt=" + (1..401).joinToString(",") { "1465" })
+        }
+
+        // 400, not 500: the caller built a bad URL, the server is fine.
+        assertEquals(400, exception.statusCode.value())
+    }
+
+    private fun feature(terytCode: String, name: String) =
+        PowiatGeoJsonFeature(
+            properties = PowiatGeoJsonFeature.Properties(terytCode, name, "mazowieckie"),
+            geometry = """{"type":"MultiPolygon","coordinates":[]}""",
+        )
+
     private fun get(uri: String): String =
         RestClient.create("http://localhost:$port").get().uri(uri).retrieve().body(String::class.java)!!
 }
