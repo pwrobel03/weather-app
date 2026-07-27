@@ -301,6 +301,23 @@
   --texture-size: 4px 44px;
 }
 
+.weather-background[data-texture="snow"] {
+  /* Soft round marks on two offset grids, so the fall does not read as a
+     lattice. Radial rather than linear: snow drifts, it does not streak. */
+  --texture-image:
+    radial-gradient(circle at 30% 30%, rgba(238, 246, 255, 0.85) 0 1.6px, transparent 2px),
+    radial-gradient(circle at 70% 65%, rgba(226, 239, 252, 0.6) 0 1.2px, transparent 1.8px);
+  --texture-size: 46px 46px, 31px 31px;
+}
+
+.weather-background[data-texture="hail"] {
+  /* Fewer, harder, brighter. Hail is violent in a way rain is not, and that
+     difference is contrast and edge, not count. */
+  --texture-image:
+    radial-gradient(circle at 50% 50%, rgba(244, 250, 255, 0.95) 0 2px, transparent 2.4px);
+  --texture-size: 58px 58px;
+}
+
 .weather-background__content {
   position: relative;
   z-index: 2;

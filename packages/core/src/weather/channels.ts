@@ -15,6 +15,14 @@
 
 export type TimeOfDay = "dawn" | "day" | "dusk" | "night";
 
+/**
+ * Note on `hail`: WMO codes only ever name hail *with* a thunderstorm (96 and
+ * 99), so nothing maps to it from a code alone. This used to have a branch
+ * that tried, placed after the 95-99 thunderstorm check and therefore
+ * unreachable - dead code that read as a working feature. Hail now travels as
+ * a property of the texture instead, which is also more truthful: a hailstorm
+ * is a thunderstorm that happens to be throwing ice.
+ */
 export type Phenomenon =
   | "clear"
   | "cloud"
@@ -131,7 +139,6 @@ export function phenomenonFromWeatherCode(code: number): Phenomenon {
   if (code >= 80 && code <= 82) return "rain";
   if (code === 85 || code === 86) return "snow";
   if (code >= 95 && code <= 99) return "thunderstorm";
-  if (code === 96 || code === 99) return "hail";
   return "cloud";
 }
 

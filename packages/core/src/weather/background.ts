@@ -123,9 +123,12 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
       secondary: mixRgba(from.glowB, to.glowB, blend.t),
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
-    texture: resolveTexture(phenomenon),
+    texture: resolveTexture(phenomenon, input.weatherCode),
   };
 }
+
+/** Thunderstorm with slight and with heavy hail. */
+const HAIL_CODES = new Set([96, 99]);
 
 /**
  * How the phenomenon falls.
@@ -135,7 +138,7 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
  * no streaks at all, while drizzle barely darkens the sky and is visibly full
  * of them. One value cannot carry both.
  */
-function resolveTexture(phenomenon: Phenomenon): BackgroundTexture {
+function resolveTexture(phenomenon: Phenomenon, weatherCode: number): BackgroundTexture {
   const still = { angle: 0, speed: 0 };
 
   switch (phenomenon) {
@@ -145,6 +148,20 @@ function resolveTexture(phenomenon: Phenomenon): BackgroundTexture {
       return { kind: "drizzle", density: 0.55, ...still };
     case "rain":
       return { kind: "rain", density: 0.8, ...still };
+    case "snow":
+      // Sparse and slow. Snow is the one phenomenon that makes a scene
+      // brighter rather than darker - its veil is the lightest of the falling
+      // set for that reason - so the texture has to carry it almost alone.
+      return { kind: "snow", density: 0.6, ...still };
+
+    case "thunderstorm":
+      // WMO names hail only alongside a thunderstorm (96, 99), which is why
+      // hail is a texture and not a phenomenon of its own. Fewer marks than
+      // snow and harder ones: the difference is contrast and size, and density
+      // is the wrong dial for it.
+      return HAIL_CODES.has(weatherCode)
+        ? { kind: "hail", density: 0.5, ...still }
+        : { kind: "rain", density: 0.9, ...still };
     case "fog":
       // A veil, not a fall. Density stays at zero on purpose: fog has the
       // heaviest veil in the set and no streaks whatsoever, and giving it
