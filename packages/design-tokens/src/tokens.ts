@@ -20,6 +20,13 @@ export const tokens = {
      * hurt to look at. */
     tloJasne: "#EEF2F8",
     /**
+     * Page ground in the dark theme. Deliberately much darker than the hero
+     * (d.png): when the page and the hero share a value the hero stops reading
+     * as its own element and dissolves into the background - which is exactly
+     * why the light theme looked better, not the colour itself.
+     */
+    tloCiemne: "#070A11",
+    /**
      * The alert card's material. Opaque by rule: it is the one surface in the
      * app that must stay legible over a shifting gradient, and now that
      * everything around it is glass, its opacity is itself the signal
@@ -61,14 +68,20 @@ export const tokens = {
    * the detail that reads as light catching a real material.
    */
   glass: {
-    darkBackground: "rgba(255, 255, 255, 0.06)",
-    lightBackground: "rgba(255, 255, 255, 0.72)",
-    darkBorder: "rgba(255, 255, 255, 0.09)",
-    lightBorder: "rgba(255, 255, 255, 0.85)",
-    darkEdge: "rgba(255, 255, 255, 0.16)",
-    lightEdge: "rgba(255, 255, 255, 0.98)",
-    blur: "14px",
-    saturate: "180%",
+    darkBackground: "rgba(255, 255, 255, 0.07)",
+    lightBackground: "rgba(255, 255, 255, 0.55)",
+    darkBorder: "rgba(255, 255, 255, 0.12)",
+    lightBorder: "rgba(255, 255, 255, 0.65)",
+    darkEdge: "rgba(255, 255, 255, 0.30)",
+    lightEdge: "rgba(255, 255, 255, 1)",
+    /**
+     * Back up, and deliberately so. Glass only reads as glass when the blur
+     * has something behind it to bend; at 14px over a flat ground it was
+     * indistinguishable from a matte panel. Paired with the page backdrop in
+     * globals.css, which gives it something to work on.
+     */
+    blur: "28px",
+    saturate: "190%",
   },
   /**
    * Tracking is size-specific by rule - a single letter-spacing value is wrong

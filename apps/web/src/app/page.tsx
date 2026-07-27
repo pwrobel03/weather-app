@@ -84,7 +84,7 @@ export default async function Home() {
       {/* Mobile: hero edge-to-edge, everything else stacked beneath.
           lg and up: a bento grid with the hero as its largest cell
           (design.md §6). */}
-      <div className="lg:col-span-2 lg:row-span-2">
+      <div className="px-3 pt-3 lg:col-span-2 lg:row-span-2 lg:p-0">
         <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
           <div className="absolute top-4 right-4 z-10">
             <ThemeToggle />
