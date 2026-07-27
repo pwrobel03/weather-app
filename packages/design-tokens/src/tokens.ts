@@ -61,6 +61,46 @@ export const tokens = {
     night: "rgba(52, 88, 148, 0.34)",
   },
   /**
+   * The hero gradient, per time of day: `a` is the top stop, `b` the bottom,
+   * `glowB` the secondary radial tint and `glowY` where the primary glow sits
+   * vertically.
+   *
+   * These lived only in apps/web's globals.css until the mobile hero needed
+   * them. A gradient copied by hand into a second app is a gradient that will
+   * differ by one hex digit within a month, and nobody will be able to say
+   * which one is right - so the values move here and both apps read them.
+   *
+   * Note dusk leans violet rather than the literal orange of a sunset:
+   * orange is IMGW severity level 2, and the background must never speak in
+   * the warning scale (design.md §3).
+   */
+  sky: {
+    dawn: { a: "#5B7FC7", b: "#2E3F73", glowB: "rgba(46, 84, 140, 0.4)", glowY: "22%" },
+    day: { a: "#4C9EDE", b: "#245A93", glowB: "rgba(38, 84, 138, 0.42)", glowY: "8%" },
+    dusk: { a: "#7B5AB8", b: "#332F62", glowB: "rgba(58, 74, 150, 0.45)", glowY: "30%" },
+    night: { a: "#1E3358", b: "#0C1220", glowB: "rgba(18, 32, 64, 0.55)", glowY: "14%" },
+  },
+  /**
+   * The phenomenon channel: how much dark veil sits over the sky, and how much
+   * the veil pushes contrast. Rain is heavier than drizzle, a thunderstorm
+   * heavier still - the ordering is the whole point, the exact values are
+   * tuned by eye.
+   *
+   * `contrast` is a CSS backdrop-filter value on web. React Native has no
+   * equivalent, so the mobile background uses only `opacity` - the ordering
+   * survives, the last few percent of the effect does not.
+   */
+  veil: {
+    clear: { opacity: "0", contrast: "1" },
+    cloud: { opacity: "0.3", contrast: "0.97" },
+    fog: { opacity: "0.55", contrast: "0.88" },
+    drizzle: { opacity: "0.42", contrast: "0.95" },
+    rain: { opacity: "0.58", contrast: "0.92" },
+    snow: { opacity: "0.34", contrast: "1.04" },
+    hail: { opacity: "0.62", contrast: "1.06" },
+    thunderstorm: { opacity: "0.72", contrast: "1.1" },
+  },
+  /**
    * iOS-flavoured glass (design.md §4).
    *
    * Saturation matters as much as blur: blur alone desaturates whatever shows

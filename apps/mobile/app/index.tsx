@@ -1,0 +1,96 @@
+import { useQuery } from "@tanstack/react-query";
+import { appMessages, DEFAULT_LOCALE, hourOf } from "@weather-app/core";
+import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { Hero } from "../src/components/hero";
+import { WeatherBackground } from "../src/components/weather-background";
+import { fetchCurrentConditions, fetchHourlyForecast } from "../src/lib/weather";
+
+/** Warszawa - until a location is chosen or picked up from a saved one. */
+const DEFAULT_LOCATION = { name: "Warszawa", latitude: 52.2297, longitude: 21.0122 };
+
+/**
+ * The home screen, matching apps/web's: a weather-driven gradient hero filling
+ * most of the first view, with everything else scrolling beneath it.
+ *
+ * The hourly forecast is fetched here even though nothing displays it yet - the
+ * hero needs the hour *at the displayed location* to decide whether it is night
+ * there, and the first forecast entry carries it. Reading the device clock
+ * instead would show someone in London Warszawa's daytime sky at 1am local.
+ */
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const { latitude, longitude } = DEFAULT_LOCATION;
+  const locale = DEFAULT_LOCALE;
+  const messages = appMessages[locale];
+
+  const conditions = useQuery({
+    queryKey: ["current", latitude, longitude],
+    queryFn: () => fetchCurrentConditions(latitude, longitude),
+  });
+
+  const hourly = useQuery({
+    queryKey: ["hourly", latitude, longitude],
+    queryFn: () => fetchHourlyForecast(latitude, longitude),
+  });
+
+  const localHour = hourOf(hourly.data?.[0]?.time ?? new Date().toISOString());
+
+  // 62% of the viewport, the same proportion as the web hero. Measured rather
+  // than expressed as a viewport unit: NativeWind has no vh, and a fixed pixel
+  // height would crop the metrics strip on a small phone.
+  const heroHeight = Math.max(Math.round(height * 0.62), 440);
+
+  return (
+    <ScrollView
+      className="flex-1 bg-tlo-ciemne"
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={{ height: heroHeight }} className="overflow-hidden rounded-b-[2.5rem]">
+        <WeatherBackground
+          weatherCode={conditions.data?.weatherCode ?? 0}
+          temperatureCelsius={conditions.data?.temperatureCelsius ?? 0}
+        >
+          {conditions.data ? (
+            <Hero
+              conditions={conditions.data}
+              locale={locale}
+              localHour={localHour}
+              header={
+                <View style={{ paddingTop: insets.top + 8 }} className="px-6">
+                  <Text className="text-center text-base font-semibold text-white">
+                    {DEFAULT_LOCATION.name}
+                  </Text>
+                </View>
+              }
+            />
+          ) : (
+            <View
+              className="flex-1 items-center justify-center gap-4 px-8"
+              style={{ paddingTop: insets.top }}
+            >
+              {conditions.isPending ? (
+                <ActivityIndicator color="#fff" accessibilityLabel={messages.loading} />
+              ) : (
+                <>
+                  <Text className="text-center text-sm text-white/80">
+                    {messages.forecastUnavailable}
+                  </Text>
+                  <Pressable
+                    onPress={() => conditions.refetch()}
+                    className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 active:opacity-70"
+                  >
+                    <Text className="text-sm font-semibold text-white">{messages.retry}</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+          )}
+        </WeatherBackground>
+      </View>
+    </ScrollView>
+  );
+}
