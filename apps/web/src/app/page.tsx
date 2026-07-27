@@ -1,3 +1,4 @@
+import { TemperatureDisplay } from "@/components/temperature-display";
 import { WeatherBackground } from "@/components/weather-background";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 
@@ -21,10 +22,7 @@ export default async function Home() {
     <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
       <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
         {conditions ? (
-          <p className="text-[4.5rem] font-extralight leading-[0.92] tracking-[-0.045em] tabular-nums">
-            {Math.round(conditions.temperatureCelsius)}
-            <sup className="align-super text-[0.35em] font-light tracking-normal">°C</sup>
-          </p>
+          <TemperatureDisplay temperatureCelsius={conditions.temperatureCelsius} />
         ) : (
           <p className="text-sm text-[#8a94a6]">—</p>
         )}
