@@ -28,17 +28,17 @@ export function Tile({ title, aside, className, variant = "matte", children }: T
   return (
     <section
       className={cn(
-        "group/tile relative flex flex-col gap-4 rounded-[2.25rem] p-5.5 md:p-6 transition-[transform,box-shadow,border-color,background-color] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
+        "group/tile relative flex flex-col gap-3 py-4 sm:py-5 lg:gap-4 lg:p-6 lg:rounded-[2.25rem] transition-[transform,box-shadow,border-color,background-color] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)]",
         variant === "glass"
-          ? "glass hover:shadow-xl hover:-translate-y-0.5"
-          : "interactive-tile border border-border/70 bg-gradient-to-br from-card via-card/95 to-card/90 text-card-foreground shadow-md backdrop-blur-xl dark:border-white/10 dark:from-[#171c28] dark:via-[#131822] dark:to-[#0e121a] hover:border-white/20 hover:shadow-xl",
+          ? "glass rounded-3xl p-5 lg:rounded-[2.25rem] lg:p-6 lg:hover:shadow-xl lg:hover:-translate-y-0.5"
+          : "bg-transparent border-0 shadow-none lg:interactive-tile lg:border lg:border-border/70 lg:bg-gradient-to-br lg:from-card lg:via-card/95 lg:to-card/90 lg:text-card-foreground lg:shadow-md lg:backdrop-blur-xl lg:dark:border-white/10 lg:dark:from-[#171c28] lg:dark:via-[#131822] lg:dark:to-[#0e121a] lg:hover:border-white/20 lg:hover:shadow-xl",
         className,
       )}
     >
       {(title || aside) && (
-        <header className="flex items-center justify-between gap-3 border-b border-border/20 pb-3 px-1">
+        <header className="flex items-center justify-between gap-3 pb-1 px-1 lg:border-b lg:border-border/20 lg:pb-3">
           {title && (
-            <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight opacity-95 group-hover/tile:opacity-100 transition-opacity">
+            <h2 className="text-lg sm:text-xl lg:text-base xl:text-lg font-bold text-foreground tracking-tight opacity-95 group-hover/tile:opacity-100 transition-opacity">
               {title}
             </h2>
           )}

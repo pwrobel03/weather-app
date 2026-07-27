@@ -76,9 +76,9 @@ export default async function Home() {
   const renderedAt = new Date();
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-12 lg:gap-6 lg:px-8 lg:py-8">
-      {/* Hero and warnings share the top band. Engineered spatial layout with staggered motion. */}
-      <div className="lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] shadow-[0_24px_60px_-10px_rgba(0,0,0,0.6)] border border-white/20">
+    <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-3 py-3 sm:px-6 sm:py-6 lg:grid-cols-12 lg:gap-6 lg:px-8 lg:py-8">
+      {/* Hero card: order-1 everywhere */}
+      <div className="order-1 lg:order-1 lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden rounded-[2.5rem] sm:rounded-[3rem] shadow-[0_24px_60px_-10px_rgba(0,0,0,0.6)] border border-white/20">
         <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
           <div className="absolute top-5 right-5 z-30 micro-press">
             <ThemeToggle />
@@ -112,11 +112,8 @@ export default async function Home() {
         </WeatherBackground>
       </div>
 
-      <div className="lg:col-span-4 animate-in-card stagger-2 h-full">
-        <AlertsTile alerts={alerts} authenticated={authenticated} locale={locale} now={renderedAt} />
-      </div>
-
-      <div className="lg:col-span-8 animate-in-card stagger-3 h-full flex flex-col justify-center">
+      {/* Hourly Forecast (Today): order-2 on mobile so it immediately follows Hero without interruption */}
+      <div className="order-2 lg:order-3 lg:col-span-8 animate-in-card stagger-3 w-full flex flex-col justify-center">
         <Tile
           title={weatherMessages[locale].today}
           aside={
@@ -130,24 +127,30 @@ export default async function Home() {
         </Tile>
       </div>
 
-      {outline && (
-        <div className="lg:col-span-4 animate-in-card stagger-4 h-full">
-          <PowiatTile outline={outline} severity={powiatSeverity} locale={locale} />
-        </div>
-      )}
-
-      <div id="7-days" className="lg:col-span-8 animate-in-card stagger-5 h-full flex flex-col justify-center scroll-mt-6">
+      {/* Daily Forecast (7 Days): order-3 on mobile as direct continuation from Today */}
+      <div id="7-days" className="order-3 lg:order-5 lg:col-span-8 animate-in-card stagger-5 w-full flex flex-col justify-center scroll-mt-6">
         <Tile title={weatherMessages[locale].sevenDays} className="h-full justify-center">
           <DailyForecastList entries={daily} locale={locale} />
         </Tile>
       </div>
 
-      <div className="lg:col-span-4 animate-in-card stagger-6 h-full">
+      {/* Alerts / Warnings: order-4 on mobile so it does not block forecasts when empty/inactive, order-2 on desktop bento */}
+      <div className="order-4 lg:order-2 lg:col-span-4 animate-in-card stagger-2 w-full">
+        <AlertsTile alerts={alerts} authenticated={authenticated} locale={locale} now={renderedAt} />
+      </div>
+
+      {outline && (
+        <div className="order-5 lg:order-4 lg:col-span-4 animate-in-card stagger-4 w-full">
+          <PowiatTile outline={outline} severity={powiatSeverity} locale={locale} />
+        </div>
+      )}
+
+      <div className="order-6 lg:order-6 lg:col-span-4 animate-in-card stagger-6 w-full">
         {conditions && <MetricsTile conditions={conditions} locale={locale} />}
       </div>
 
       {/* A chart earns its width - full span analytical precipitation curve. */}
-      <div className="lg:col-span-12 animate-in-card stagger-6">
+      <div className="order-7 lg:order-7 lg:col-span-12 animate-in-card stagger-6 w-full">
         <PrecipitationTile entries={hourly} locale={locale} />
       </div>
 

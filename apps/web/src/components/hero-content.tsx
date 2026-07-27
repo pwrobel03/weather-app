@@ -37,18 +37,31 @@ export function HeroContent({ conditions, locale, localHour, actions }: HeroCont
       </div>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col items-center sm:items-start justify-center px-6 pt-20 pb-10 md:px-12 md:pt-24 md:pb-12 z-10">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-8 sm:flex-row sm:items-end">
-          
-          <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            {/* Live Updating Status Badge (d.png style) */}
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
-              <span className="size-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" aria-hidden="true" />
-              <span className="font-mono tracking-widest text-[0.7rem]">UPDATING</span>
-              <span className="opacity-40">•</span>
-              <span className="text-white font-medium">{messages.condition[condition]}</span>
-            </div>
+      <div className="flex flex-1 flex-col items-center sm:items-start justify-center px-6 pt-22 pb-8 md:px-12 md:pt-24 md:pb-12 z-10 w-full max-w-5xl mx-auto">
+        {/* Live Updating Status Badge (Screen 1 style) */}
+        <div className="w-full flex justify-center sm:justify-start mb-4 sm:mb-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/30 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/95 shadow-lg backdrop-blur-md">
+            <span className="size-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" aria-hidden="true" />
+            <span className="font-mono tracking-widest text-[0.7rem]">UPDATING</span>
+            <span className="opacity-40">•</span>
+            <span className="text-white font-medium">{messages.condition[condition]}</span>
+          </div>
+        </div>
 
+        <div className="flex w-full flex-col items-center justify-between gap-4 sm:flex-row sm:items-end sm:gap-8">
+          
+          {/* Floating Atmospheric Artwork: order-1 on mobile so icon is ABOVE temperature exactly like Screen 1 */}
+          <div className="order-1 sm:order-2 relative flex items-center justify-center transition-transform duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 group my-2 sm:my-0">
+            <div className="absolute inset-0 rounded-full bg-white/15 blur-3xl transform scale-90 pointer-events-none" />
+            <WeatherArt
+              code={conditions.weatherCode}
+              timeOfDay={timeOfDayFromHour(localHour)}
+              className="relative size-40 sm:size-44 md:size-52 drop-shadow-[0_22px_35px_rgba(0,30,90,0.55)] transition-[transform,filter] duration-[500ms] group-hover:rotate-2 group-hover:scale-105"
+            />
+          </div>
+
+          {/* Temperature, condition title, and date: order-2 on mobile so it sits right under the artwork */}
+          <div className="order-2 sm:order-1 flex flex-col items-center sm:items-start text-center sm:text-left">
             {/* Massive geometric temperature readout */}
             <div className="relative flex items-baseline justify-center sm:justify-start">
               <p
@@ -67,16 +80,6 @@ export function HeroContent({ conditions, locale, localHour, actions }: HeroCont
             <p className="mt-1 text-sm font-medium tracking-wide text-white/75 md:text-base">
               {formatHeroDate(new Date(), locale)}
             </p>
-          </div>
-
-          {/* Floating Atmospheric Artwork with volumetric glowing shadows */}
-          <div className="relative flex items-center justify-center pt-2 sm:pt-0 transition-transform duration-[400ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-105 group">
-            <div className="absolute inset-0 rounded-full bg-white/15 blur-3xl transform scale-90 pointer-events-none" />
-            <WeatherArt
-              code={conditions.weatherCode}
-              timeOfDay={timeOfDayFromHour(localHour)}
-              className="relative size-36 sm:size-44 md:size-52 drop-shadow-[0_22px_35px_rgba(0,30,90,0.55)] transition-[transform,filter] duration-[500ms] group-hover:rotate-2 group-hover:scale-105"
-            />
           </div>
         </div>
       </div>
