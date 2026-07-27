@@ -63,8 +63,16 @@ export default async function Home() {
   // looking at Warszawa should see Warszawa's night.
   const localHour = conditions ? hourOf(conditions.observedAt) : 12;
 
-  // Severity of the warning covering this powiat, if any - fills the map tile.
-  const powiatSeverity = (alerts[0]?.severity ?? null) as "1" | "2" | "3" | null;
+  // Severity of the warning covering *this* powiat, if any.
+  //
+  // Matched on the warning's own teryt codes, not simply taken from the first
+  // active alert: the user may watch several places, and colouring the county
+  // tile because some other town of theirs is under a storm is a false alarm -
+  // in an app whose whole job is warnings, worse than showing nothing.
+  const powiatSeverity =
+    (outline
+      ? alerts.find((alert) => alert.terytCodes.includes(outline.terytCode))?.severity
+      : undefined) ?? null;
 
   // Passed down rather than read inside a component: the React Compiler
   // rejects impure calls during render, and one clock for the whole page keeps

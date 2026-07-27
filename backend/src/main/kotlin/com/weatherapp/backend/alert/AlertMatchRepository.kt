@@ -2,6 +2,8 @@ package com.weatherapp.backend.alert
 
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.sql.Timestamp
+import java.time.Instant
 
 @Repository
 class AlertMatchRepository(private val jdbcTemplate: JdbcTemplate) {
@@ -34,6 +36,34 @@ class AlertMatchRepository(private val jdbcTemplate: JdbcTemplate) {
             ON CONFLICT DO NOTHING
             """.trimIndent(),
             alertId,
+        )
+
+    /**
+     * Matches one freshly-saved location against the warnings already in force.
+     *
+     * Without this, matching only ever happens during ingest, so someone who
+     * saves a location while a warning is already running sees nothing until
+     * the next poll - up to the full ingest interval. For a person who just
+     * added their home town during a storm, that wait is the whole product
+     * failing quietly.
+     *
+     * Restricted to warnings still valid: an expired one is history, and
+     * recording a match for it now would put it on the location's timeline as
+     * though it had been relevant to that place all along.
+     */
+    fun recordMatchesForLocation(savedLocationId: Long, now: Instant = Instant.now()): Int =
+        jdbcTemplate.update(
+            """
+            INSERT INTO alert_location_match (alert_id, saved_location_id)
+            SELECT at.alert_id, sl.id
+            FROM saved_location sl
+            JOIN alert_teryt at ON at.teryt_code = sl.teryt_code
+            JOIN alert a ON a.id = at.alert_id
+            WHERE sl.id = ? AND a.valid_to > ?
+            ON CONFLICT DO NOTHING
+            """.trimIndent(),
+            savedLocationId,
+            Timestamp.from(now),
         )
 
     /** Distinct users with at least one location covered by this alert. */

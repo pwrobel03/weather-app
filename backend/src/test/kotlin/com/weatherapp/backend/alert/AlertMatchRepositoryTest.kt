@@ -140,6 +140,48 @@ class AlertMatchRepositoryTest {
         assertEquals(listOf(inside), matchRepository.findMatchedUserIds(alertId))
     }
 
+    /**
+     * The gap the Faza 7 checkpoint exposed: someone saving a location while a
+     * warning is already running saw nothing until the next ingest.
+     */
+    @Test
+    fun `a location saved during a warning matches it immediately`() {
+        val userId = createUser("alice@example.com")
+        val alertId = storeAlert(teryt = listOf("3029"))
+        matchRepository.recordMatches(alertId)
+
+        createLocation(userId, "Dom", "3029")
+        val locationId = jdbcTemplate.queryForObject(
+            "SELECT id FROM saved_location WHERE user_id = ?",
+            Long::class.java,
+            userId,
+        )!!
+
+        assertEquals(1, matchRepository.recordMatchesForLocation(locationId))
+        assertEquals(listOf(userId), matchRepository.findMatchedUserIds(alertId))
+    }
+
+    /** An expired warning is history; recording it now would put it on the
+     * location's timeline as though it had always been relevant there. */
+    @Test
+    fun `an expired warning is not matched to a newly saved location`() {
+        val userId = createUser("alice@example.com")
+        storeAlert(
+            teryt = listOf("3029"),
+            validFrom = Instant.now().minus(Duration.ofDays(2)),
+            validTo = Instant.now().minus(Duration.ofHours(3)),
+        )
+
+        createLocation(userId, "Dom", "3029")
+        val locationId = jdbcTemplate.queryForObject(
+            "SELECT id FROM saved_location WHERE user_id = ?",
+            Long::class.java,
+            userId,
+        )!!
+
+        assertEquals(0, matchRepository.recordMatchesForLocation(locationId))
+    }
+
     private fun createUser(email: String): Long =
         jdbcTemplate.queryForObject(
             "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id",
@@ -161,15 +203,19 @@ class AlertMatchRepositoryTest {
         )
     }
 
-    private fun storeAlert(teryt: List<String>): Long =
+    private fun storeAlert(
+        teryt: List<String>,
+        validFrom: Instant = Instant.parse("2026-07-26T20:00:00Z"),
+        validTo: Instant = Instant.now().plus(Duration.ofHours(8)),
+    ): Long =
         alertRepository.upsert(
             AlertDraft(
                 imgwId = "Gd2026072600001",
                 event = "Burze",
                 severity = WarningSeverity.LEVEL_1,
                 probabilityPercent = 80,
-                validFrom = Instant.parse("2026-07-26T20:00:00Z"),
-                validTo = Instant.parse("2026-07-27T08:00:00Z"),
+                validFrom = validFrom,
+                validTo = validTo,
                 publishedAt = Instant.parse("2026-07-26T10:02:00Z"),
                 content = "Prognozowane są burze.",
                 comment = null,

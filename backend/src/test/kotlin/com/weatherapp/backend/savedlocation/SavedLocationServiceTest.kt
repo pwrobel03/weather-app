@@ -1,5 +1,6 @@
 package com.weatherapp.backend.savedlocation
 
+import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.boundary.TerytResolutionService
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -21,7 +22,11 @@ class SavedLocationServiceTest {
 
     private val repository = mock<SavedLocationRepository>()
     private val terytResolutionService = mock<TerytResolutionService>()
-    private val service = SavedLocationService(repository, terytResolutionService)
+
+    /** Matching against warnings already in force is covered against a real
+     * database in AlertMatchRepositoryTest; here it only has to not blow up. */
+    private val alertMatchRepository = mock<AlertMatchRepository>()
+    private val service = SavedLocationService(repository, terytResolutionService, alertMatchRepository)
 
     @Test
     fun `maps the named unique constraint violation to a duplicate error`() {
