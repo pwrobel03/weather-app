@@ -74,6 +74,14 @@ export type BackgroundComposition = {
    * battery spent making text harder to read.
    */
   texture: BackgroundTexture;
+  /**
+   * Lightning.
+   *
+   * Two values rather than a boolean: a renderer needs to know whether to run
+   * the layer at all, and separately how hard - and a storm with hail is not
+   * the same weather as a storm without it.
+   */
+  storm: { active: boolean; intensity: number };
 };
 
 export type TextureKind = "none" | "fog" | "drizzle" | "rain" | "snow" | "hail" | "storm";
@@ -111,6 +119,12 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
   // needs no case of its own.
   const chromaScale = saturation * tilt.chromaScale;
 
+  const storm = resolveStorm(phenomenon, input.weatherCode);
+  // A storm sky is darker before anything flashes, and that is most of the
+  // channel: the flash is the event, the darkness is the state. Lightness is
+  // the one dimension no other channel writes to, so this composes cleanly.
+  const lightnessShift = storm.active ? -0.06 * storm.intensity : 0;
+
   return {
     channels: {
       timeOfDay: resolvedTimeOfDay,
@@ -120,8 +134,8 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
       season: season(now, input.timeZone),
     },
     sky: {
-      from: adjust(mix(from.a, to.a, blend.t), { chromaScale, hueShift: tilt.hueShift }),
-      to: adjust(mix(from.b, to.b, blend.t), { chromaScale, hueShift: tilt.hueShift }),
+      from: adjust(mix(from.a, to.a, blend.t), { chromaScale, hueShift: tilt.hueShift, lightnessShift }),
+      to: adjust(mix(from.b, to.b, blend.t), { chromaScale, hueShift: tilt.hueShift, lightnessShift }),
     },
     glow: {
       color: mixRgba(tokens.glow[blend.from], tokens.glow[blend.to], blend.t),
@@ -132,6 +146,7 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
     texture: applyWind(resolveTexture(phenomenon, input.weatherCode), input.windSpeedKmh),
+    storm,
   };
 }
 
@@ -176,6 +191,20 @@ const WIND_SCALE_KMH = 22;
  * pattern, which is worse than showing less wind than there is.
  */
 const MAX_LEAN_DEGREES = 24;
+
+/**
+ * The thunderstorm channel.
+ *
+ * A storm with hail is not the same weather as a storm without it, so the two
+ * carry different intensities rather than a shared flag. Everything else is
+ * calm as far as this channel is concerned - it has exactly one thing to say
+ * and says it about two codes.
+ */
+function resolveStorm(phenomenon: Phenomenon, weatherCode: number): { active: boolean; intensity: number } {
+  if (phenomenon !== "thunderstorm") return { active: false, intensity: 0 };
+
+  return { active: true, intensity: HAIL_CODES.has(weatherCode) ? 1 : 0.7 };
+}
 
 /** Thunderstorm with slight and with heavy hail. */
 const HAIL_CODES = new Set([96, 99]);

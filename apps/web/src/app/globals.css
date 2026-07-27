@@ -318,6 +318,49 @@
   --texture-size: 58px 58px;
 }
 
+/* Thunderstorm — the flash.
+
+   Built inside three constraints, all of them deliberate:
+
+   1. Photosensitivity. WCAG 2.3.1 allows at most three flashes per second;
+      this runs roughly one every nine, and lifts luminance by a few percent
+      rather than going white. A full-screen white flash behind a warning
+      about a storm would be a hazard aimed precisely at the people the
+      warning is for.
+   2. It never touches the alert surfaces. The flash sits below the content
+      layer, so warning text keeps its contrast while it happens.
+   3. Reduced motion removes it entirely. The darkened sky and the falling
+      texture already say "thunderstorm" without it — the flash is the event,
+      the darkness is the state, and only the event is motion. */
+.weather-background__storm {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    120% 70% at 50% 18%,
+    rgba(226, 240, 255, calc(0.5 * var(--storm-intensity, 0))) 0%,
+    transparent 60%
+  );
+  animation: weather-storm-flash 9s var(--ease-out) infinite;
+}
+
+@keyframes weather-storm-flash {
+  0%, 92% { opacity: 0; }
+  /* Two beats, as real lightning almost always is. */
+  93% { opacity: 1; }
+  94.5% { opacity: 0.15; }
+  95.5% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-background__storm {
+    animation: none;
+  }
+}
+
 .weather-background__content {
   position: relative;
   z-index: 2;

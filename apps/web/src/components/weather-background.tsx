@@ -79,12 +79,16 @@ export function WeatherBackground({
           "--veil-contrast": composition.veil.contrast,
           "--texture-density": composition.texture.density,
           "--texture-angle": `${composition.texture.angle}deg`,
+          "--storm-intensity": composition.storm.intensity,
         } as CSSProperties
       }
     >
       <div className="weather-background__glow" aria-hidden="true" />
       <div className="weather-background__phenomenon" aria-hidden="true" />
       <div className="weather-background__texture" aria-hidden="true" />
+      {composition.storm.active && (
+        <div className="weather-background__storm" aria-hidden="true" />
+      )}
       {alertSeverity && <div className="weather-background__alert" aria-hidden="true" />}
       <div className="weather-background__content">{children}</div>
     </div>
