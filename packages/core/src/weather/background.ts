@@ -1,6 +1,7 @@
 import { tokens } from "@weather-app/design-tokens";
 
 import { adjust, mix } from "./color";
+import { season, seasonBlend, SEASON_TILT, type Season, type SeasonBlend } from "./season";
 import {
   phenomenonFromWeatherCode,
   temperatureSaturation,
@@ -45,6 +46,7 @@ export type BackgroundComposition = {
     phenomenon: Phenomenon;
     saturation: number;
     blend: TimeOfDayBlend;
+    season: Season;
   };
   /** Vertical gradient, top to bottom. */
   sky: { from: string; to: string };
@@ -67,16 +69,27 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
   const to = tokens.sky[blend.to];
   const veil = tokens.veil[phenomenon];
 
-  // Temperature is a chroma scale rather than a CSS `saturate` filter. The
-  // filter applied to the whole layer, so it dragged the glow and the veil
-  // with it; as a channel it belongs to the sky alone.
-  const chromaScale = saturation;
+  // Season contributes a hue tilt and a small chroma nudge, blended between
+  // its own anchors exactly as the time of day is.
+  const seasons = seasonBlend(now, input.timeZone);
+  const tilt = blendTilt(seasons);
+
+  // Two channels multiply into one chroma value here, which is the whole point
+  // of the architecture: neither knows the other exists, and the combination
+  // needs no case of its own.
+  const chromaScale = saturation * tilt.chromaScale;
 
   return {
-    channels: { timeOfDay: resolvedTimeOfDay, phenomenon, saturation, blend },
+    channels: {
+      timeOfDay: resolvedTimeOfDay,
+      phenomenon,
+      saturation,
+      blend,
+      season: season(now, input.timeZone),
+    },
     sky: {
-      from: adjust(mix(from.a, to.a, blend.t), { chromaScale }),
-      to: adjust(mix(from.b, to.b, blend.t), { chromaScale }),
+      from: adjust(mix(from.a, to.a, blend.t), { chromaScale, hueShift: tilt.hueShift }),
+      to: adjust(mix(from.b, to.b, blend.t), { chromaScale, hueShift: tilt.hueShift }),
     },
     glow: {
       color: mixRgba(tokens.glow[blend.from], tokens.glow[blend.to], blend.t),
@@ -86,6 +99,17 @@ export function composeBackground(input: BackgroundInput): BackgroundComposition
       secondary: mixRgba(from.glowB, to.glowB, blend.t),
     },
     veil: { opacity: Number(veil.opacity), contrast: Number(veil.contrast) },
+  };
+}
+
+/** The season tilt at a point between two season anchors. */
+function blendTilt(blend: SeasonBlend): { hueShift: number; chromaScale: number } {
+  const from = SEASON_TILT[blend.from];
+  const to = SEASON_TILT[blend.to];
+
+  return {
+    hueShift: mixNumber(from.hueShift, to.hueShift, blend.t),
+    chromaScale: mixNumber(from.chromaScale, to.chromaScale, blend.t),
   };
 }
 
