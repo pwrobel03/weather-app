@@ -39,7 +39,7 @@ export function DailyForecastList({ entries, locale = "pl" }: DailyForecastListP
             {/* Left: Day Name */}
             <span className={`text-sm sm:text-base font-semibold capitalize tracking-wide transition-colors ${isToday ? "text-primary font-bold" : "text-muted-foreground group-hover/day:text-foreground"
               }`}>
-              {weekdayName(entry.date)}
+              {weekdayName(entry.date, locale === "pl" ? "pl-PL" : "en-GB")}
             </span>
 
             {/* Middle: Atmospheric Icon + Condition Label (d.png Style) */}

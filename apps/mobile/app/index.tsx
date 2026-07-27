@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { appMessages, DEFAULT_LOCALE, hourOf } from "@weather-app/core";
+import { appMessages, DEFAULT_LOCALE, hourOf, weatherMessages } from "@weather-app/core";
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
+import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
+import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
-import { fetchCurrentConditions, fetchHourlyForecast } from "../src/lib/weather";
+import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
 /** Warszawa - until a location is chosen or picked up from a saved one. */
 const DEFAULT_LOCATION = { name: "Warszawa", latitude: 52.2297, longitude: 21.0122 };
@@ -14,10 +17,10 @@ const DEFAULT_LOCATION = { name: "Warszawa", latitude: 52.2297, longitude: 21.01
  * The home screen, matching apps/web's: a weather-driven gradient hero filling
  * most of the first view, with everything else scrolling beneath it.
  *
- * The hourly forecast is fetched here even though nothing displays it yet - the
- * hero needs the hour *at the displayed location* to decide whether it is night
- * there, and the first forecast entry carries it. Reading the device clock
- * instead would show someone in London Warszawa's daytime sky at 1am local.
+ * The hourly forecast does double duty: it fills the strip, and its first entry
+ * gives the hour *at the displayed location*, which is what decides whether the
+ * hero paints a night sky. Reading the device clock instead would show someone
+ * in London Warszawa's daytime sky at 1am local.
  */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -25,6 +28,7 @@ export default function HomeScreen() {
   const { latitude, longitude } = DEFAULT_LOCATION;
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
+  const weather = weatherMessages[locale];
 
   const conditions = useQuery({
     queryKey: ["current", latitude, longitude],
@@ -34,6 +38,11 @@ export default function HomeScreen() {
   const hourly = useQuery({
     queryKey: ["hourly", latitude, longitude],
     queryFn: () => fetchHourlyForecast(latitude, longitude),
+  });
+
+  const daily = useQuery({
+    queryKey: ["daily", latitude, longitude],
+    queryFn: () => fetchDailyForecast(latitude, longitude),
   });
 
   const localHour = hourOf(hourly.data?.[0]?.time ?? new Date().toISOString());
@@ -91,6 +100,14 @@ export default function HomeScreen() {
           )}
         </WeatherBackground>
       </View>
+
+      <Tile title={weather.today}>
+        <HourlyForecastStrip entries={hourly.data ?? []} />
+      </Tile>
+
+      <Tile title={weather.sevenDays}>
+        <DailyForecastList entries={daily.data ?? []} locale={locale} />
+      </Tile>
     </ScrollView>
   );
 }
