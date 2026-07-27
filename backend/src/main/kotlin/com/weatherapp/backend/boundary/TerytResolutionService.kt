@@ -32,6 +32,13 @@ class TerytResolutionService(private val repository: PowiatBoundaryRepository) {
         return PowiatGeoJsonFeatureCollection(repository.findSimplifiedGeoJson(distinct))
     }
 
+    /**
+     * An opaque tag identifying the current boundary dataset, for HTTP
+     * validation. Null when nothing has been imported yet - there is no
+     * version of an empty dataset worth caching.
+     */
+    fun datasetVersion(): String? = repository.datasetVersion()?.toEpochMilli()?.toString(16)
+
     private companion object {
         /**
          * Poland has 380 powiats, so this allows every one of them at once and

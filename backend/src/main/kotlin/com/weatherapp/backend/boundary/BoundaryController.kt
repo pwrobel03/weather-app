@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.context.request.WebRequest
 
 @RestController
 @Tag(name = "Boundary", description = "Coordinate-to-TERYT resolution (powiat lookup)")
@@ -53,7 +54,19 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
         @Parameter(description = "Powiat TERYT codes", example = "1465,1401,3064")
         @RequestParam(name = "teryt")
         terytCodes: List<String>,
-    ): PowiatGeoJsonFeatureCollection = terytResolutionService.getSimplifiedGeoJson(terytCodes)
+        request: WebRequest,
+    ): ResponseEntity<PowiatGeoJsonFeatureCollection> {
+        val version = terytResolutionService.datasetVersion()
+        // Validate before querying: the whole point is not to build hundreds of
+        // kilobytes of geometry the client already has.
+        BoundaryHttpCaching.notModified<PowiatGeoJsonFeatureCollection>(
+            request,
+            version,
+            terytCodes.sorted().joinToString(","),
+        )?.let { return it }
+
+        return BoundaryHttpCaching.cacheable(terytResolutionService.getSimplifiedGeoJson(terytCodes), version)
+    }
 
     @Operation(
         summary = "Get a powiat's boundary as GeoJSON",
@@ -68,10 +81,17 @@ class BoundaryController(private val terytResolutionService: TerytResolutionServ
         @Parameter(description = "Powiat TERYT code", example = "1465")
         @PathVariable
         terytCode: String,
-    ): ResponseEntity<PowiatGeoJsonFeature> =
-        terytResolutionService.getSimplifiedGeoJson(terytCode)
-            ?.let { ResponseEntity.ok(it) }
-            ?: ResponseEntity.notFound().build()
+        request: WebRequest,
+    ): ResponseEntity<PowiatGeoJsonFeature> {
+        val version = terytResolutionService.datasetVersion()
+        BoundaryHttpCaching.notModified<PowiatGeoJsonFeature>(request, version, terytCode)
+            ?.let { return it }
+
+        val feature = terytResolutionService.getSimplifiedGeoJson(terytCode)
+            ?: return ResponseEntity.notFound().build()
+
+        return BoundaryHttpCaching.cacheable(feature, version)
+    }
 
     /** An over-long code list is the caller's mistake, not a server fault. */
     @ExceptionHandler(IllegalArgumentException::class)

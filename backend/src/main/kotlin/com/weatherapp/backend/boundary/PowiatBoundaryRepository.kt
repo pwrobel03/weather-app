@@ -2,6 +2,7 @@ package com.weatherapp.backend.boundary
 
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
 class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
@@ -88,6 +89,21 @@ class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
             *terytCodes.toTypedArray(),
         )
     }
+
+    /**
+     * When the boundary dataset was last written, used as its version.
+     *
+     * Derived from the data rather than from a clock or a deploy marker: the
+     * import truncates and reinserts (commit 24), so this changes exactly when
+     * the geometry changes and at no other time. A clock-based version would
+     * expire correct caches nightly; a deploy-based one would serve stale
+     * geometry after an import with no deploy.
+     */
+    fun datasetVersion(): Instant? =
+        jdbcTemplate.queryForObject(
+            "SELECT max(created_at) FROM powiat_boundary",
+            Instant::class.java,
+        )
 
     private companion object {
         // ~100m at Polish latitudes - enough to thin out map-display polygons
