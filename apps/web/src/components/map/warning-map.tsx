@@ -2,12 +2,14 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import type { Map as MapLibreMap } from "maplibre-gl";
+import type { LngLat, Map as MapLibreMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
 
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
+import { PowiatPopover, type PowiatAlertSummary } from "@/components/map/powiat-popover";
 import type { PowiatFeatureCollection } from "@/lib/map/boundaries";
 import { POLAND_BOUNDS, warningMapStyle } from "@/lib/map/style";
+import type { Locale } from "@weather-app/core";
 
 type WarningMapProps = {
   className?: string;
@@ -17,6 +19,16 @@ type WarningMapProps = {
   boundaries: PowiatFeatureCollection;
   /** TERYT code -> the highest IMGW level in force there, if any. */
   severityByTeryt: Record<string, WarningSeverityLevel>;
+  /** TERYT code -> the warnings covering it, for the popover. */
+  alertsByTeryt: Record<string, PowiatAlertSummary[]>;
+  locale: Locale;
+};
+
+type Selection = {
+  terytCode: string;
+  name: string;
+  voivodeship: string;
+  lngLat: LngLat;
 };
 
 /**
@@ -32,9 +44,21 @@ type WarningMapProps = {
  * paints into a canvas and cannot read `var()`, so it has to be read out once
  * and handed over.
  */
-export function WarningMap({ className, label, boundaries, severityByTeryt }: WarningMapProps) {
+export function WarningMap({
+  className,
+  label,
+  boundaries,
+  severityByTeryt,
+  alertsByTeryt,
+  locale,
+}: WarningMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // Where the selected point currently sits on screen. Recomputed as the map
+  // moves, so the card stays glued to its powiat while panning rather than
+  // hovering over a fixed pixel.
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!container.current) return;
@@ -75,6 +99,37 @@ export function WarningMap({ className, label, boundaries, severityByTeryt }: Wa
         addBoundaryLayers(created, boundaries, styles);
         setMap(created);
       });
+
+      created.on("click", "powiat-fill", (event) => {
+        const feature = event.features?.[0];
+        if (!feature) return;
+
+        const properties = feature.properties as Selection;
+        setSelection({
+          terytCode: properties.terytCode,
+          name: properties.name,
+          voivodeship: properties.voivodeship,
+          lngLat: event.lngLat,
+        });
+        setPoint({ x: event.point.x, y: event.point.y });
+      });
+
+      // Clicking bare background dismisses. Registered on the map rather than
+      // the layer, and fires after the layer handler above, so a click that
+      // landed on a powiat has already set its selection.
+      created.on("click", (event) => {
+        if (created?.queryRenderedFeatures(event.point, { layers: ["powiat-fill"] }).length === 0) {
+          setSelection(null);
+          setPoint(null);
+        }
+      });
+
+      created.on("mouseenter", "powiat-fill", () => {
+        if (created) created.getCanvas().style.cursor = "pointer";
+      });
+      created.on("mouseleave", "powiat-fill", () => {
+        if (created) created.getCanvas().style.cursor = "";
+      });
     })();
 
     return () => {
@@ -96,7 +151,26 @@ export function WarningMap({ className, label, boundaries, severityByTeryt }: Wa
     applySeverity(map, boundaries, severityByTeryt);
   }, [map, boundaries, severityByTeryt]);
 
+  // Kept in sync while the map moves, so the card stays glued to its powiat
+  // while panning rather than hovering over a fixed pixel. The first position
+  // comes from the click itself, which is why this effect only subscribes and
+  // never sets state on its own.
+  useEffect(() => {
+    if (!map || !selection) return;
+
+    const reposition = () => {
+      const projected = map.project(selection.lngLat);
+      setPoint({ x: projected.x, y: projected.y });
+    };
+
+    map.on("move", reposition);
+    return () => {
+      map.off("move", reposition);
+    };
+  }, [map, selection]);
+
   return (
+    <div className="relative size-full">
     <div
       ref={container}
       role="img"
@@ -104,6 +178,21 @@ export function WarningMap({ className, label, boundaries, severityByTeryt }: Wa
       data-loaded={map ? "true" : undefined}
       className={className}
     />
+      {selection && point && (
+        <PowiatPopover
+          name={selection.name}
+          voivodeship={selection.voivodeship}
+          alerts={alertsByTeryt[selection.terytCode] ?? []}
+          locale={locale}
+          x={point.x}
+          y={point.y}
+          onClose={() => {
+            setSelection(null);
+            setPoint(null);
+          }}
+        />
+      )}
+    </div>
   );
 }
 

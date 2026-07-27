@@ -1,6 +1,7 @@
 import { alertUiMessages, DEFAULT_LOCALE } from "@weather-app/core";
 
 import { MapLegend } from "@/components/map/map-legend";
+import type { PowiatAlertSummary } from "@/components/map/powiat-popover";
 import { WarningMap } from "@/components/map/warning-map";
 import { fetchActiveAlerts } from "@/lib/alerts/api";
 import { fetchAllPowiatBoundaries } from "@/lib/map/boundaries";
@@ -25,12 +26,20 @@ export default async function MapPage() {
   // A powiat can sit under several warnings at once; the map shows the worst
   // one. Averaging or last-wins would let a level 1 hide a level 3.
   const severityByTeryt: Record<string, "1" | "2" | "3"> = {};
+  const alertsByTeryt: Record<string, PowiatAlertSummary[]> = {};
+
   for (const alert of alerts) {
     for (const terytCode of alert.terytCodes) {
       const current = severityByTeryt[terytCode];
       if (!current || Number(alert.severity) > Number(current)) {
         severityByTeryt[terytCode] = alert.severity;
       }
+
+      (alertsByTeryt[terytCode] ??= []).push({
+        id: alert.id,
+        event: alert.event,
+        severity: alert.severity,
+      });
     }
   }
 
@@ -47,6 +56,8 @@ export default async function MapPage() {
           label={labels.warnings}
           boundaries={boundaries}
           severityByTeryt={severityByTeryt}
+          alertsByTeryt={alertsByTeryt}
+          locale={locale}
           className="size-full overflow-hidden rounded-[2rem] border border-border/60 shadow-md"
         />
         <MapLegend locale={locale} countsByLevel={countsByLevel} />
