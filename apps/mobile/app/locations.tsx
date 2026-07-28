@@ -11,7 +11,7 @@ import {
 } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Link, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -23,11 +23,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import ReorderableList, {
-  reorderItems,
-  useReorderableDrag,
-  type ReorderableListReorderEvent,
-} from "react-native-reorderable-list";
+import DraggableFlatList, {
+  ScaleDecorator,
+  type RenderItemParams,
+} from "react-native-draggable-flatlist";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { WeatherArt } from "../src/components/weather-art/weather-art";
@@ -109,11 +109,13 @@ export default function LocationsScreen() {
 
   const reorder = useMutation({
     mutationFn: reorderSavedLocations,
-    onError: () => setError(messages.saveFailed),
-    // Refetched either way. The optimistic write already holds the right
-    // order, but settling on server data is what leaves the list and the
-    // database provably agreeing rather than merely expected to.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["saved-locations"] }),
+    // Only on failure. A refetch on success would swap `data` a second time
+    // for an identical list, and every swap costs the list a remount of its
+    // cells - the thing this screen has been fighting.
+    onError: () => {
+      setError(messages.saveFailed);
+      void queryClient.invalidateQueries({ queryKey: ["saved-locations"] });
+    },
   });
 
   const remove = useMutation({
@@ -134,23 +136,15 @@ export default function LocationsScreen() {
    * The cache is also read here rather than closed over, so the reorder always
    * applies to exactly what the list was showing.
    */
-  const onReorder = ({ from, to }: ReorderableListReorderEvent) => {
-    const current = queryClient.getQueryData<SavedLocation[]>(["saved-locations"]) ?? [];
-
-    // Every drop reports twice: once with the real indices, then again with
-    // `from = -1` once the list has cleared its active index. Traced on a
-    // device - "from=0 to=2" followed by "from=-1 to=2" for one gesture.
-    //
-    // The second one is what scrambled the list. A negative index is not
-    // out of range to `splice`, it counts from the end: reordering from -1
-    // lifts the *last* place and drops it at the target, undoing the move
-    // that just happened and putting an unrelated row in its place. Guarding
-    // only the upper bound, as this did, lets it straight through.
-    if (from < 0 || to < 0 || from >= current.length || to >= current.length || from === to) {
-      return;
-    }
-
-    const next = reorderItems(current, from, to);
+  /**
+   * Persists a drop.
+   *
+   * The list hands over the whole reordered array rather than a pair of
+   * indices, which is why this is three lines and not a minefield: there is no
+   * arithmetic to get wrong, no index to arrive stale, and nothing to guard
+   * against a second, contradictory report of the same gesture.
+   */
+  const onDragEnd = (next: SavedLocation[]) => {
     queryClient.setQueryData(["saved-locations"], next);
     reorder.mutate(next.map((place) => place.id));
   };
@@ -183,7 +177,7 @@ export default function LocationsScreen() {
 
   // `router.back()` alone would strand anyone who arrived here first - a push
   // notification deep link opens its own screen, not the home screen beneath it.
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/"));
+  const goHome = () => (router.canGoBack() ? router.back() : router.replace("/"));
 
   const closeSearch = () => {
     setSearchOpen(false);
@@ -197,7 +191,7 @@ export default function LocationsScreen() {
       <View className="px-5 pb-3">
         {/* The only way out that does not depend on the platform's edge swipe -
             which is invisible, and on Android is a different gesture entirely. */}
-        <Pressable onPress={goBack} hitSlop={8} className="mb-3 self-start active:opacity-60">
+        <Pressable onPress={goHome} hitSlop={8} className="mb-3 self-start active:opacity-60">
           <Text className="text-sm text-tekst-muted">← {messages.back}</Text>
         </Pressable>
 
@@ -205,17 +199,13 @@ export default function LocationsScreen() {
       </View>
 
       <View className="flex-1">
-        <ReorderableList
+        <GestureHandlerRootView style={{ flex: 1 }}>
+        <DraggableFlatList
           data={saved.data ?? []}
-          // Tolerates a missing item on purpose. While settling a drop the
-          // list walks the indices between the old and new slot and calls this
-          // with `data[i]`, which can be undefined for a frame - it guards the
-          // call with `?.` and falls back to the index, so throwing here is our
-          // bug, not its. That was the "cannot read property id of undefined"
-          // on release.
-          keyExtractor={(item, index) => (item ? String(item.id) : String(index))}
+          keyExtractor={(item) => String(item.id)}
+          containerStyle={{ flex: 1 }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}
-          onReorder={onReorder}
+          onDragEnd={({ data }) => onDragEnd(data)}
           ListEmptyComponent={
             saved.isPending ? (
               <ActivityIndicator className="mt-6" color="#8A94A6" />
@@ -225,29 +215,37 @@ export default function LocationsScreen() {
               </Text>
             )
           }
-          renderItem={({ item }) => (
-            <SavedRow
-              location={item}
-              isActive={item.id === active.savedLocationId}
-              alert={alerts.data?.find((alert) =>
-                alert.affectedLocations.some((affected) => affected.id === item.id),
-              )}
-              locale={locale}
-              removeLabel={messages.remove}
-              historyLabel={alertUiMessages[locale].warningHistory}
-              onSelect={async () => {
-                await choose({
-                  savedLocationId: item.id,
-                  name: item.name,
-                  latitude: item.latitude,
-                  longitude: item.longitude,
-                });
-                router.back();
-              }}
-              onRemove={() => remove.mutate(item.id)}
-            />
+          renderItem={({ item, drag, isActive: isDragging }: RenderItemParams<SavedLocation>) => (
+            <ScaleDecorator>
+              <SavedRow
+                location={item}
+                isActive={item.id === active.savedLocationId}
+                isDragging={isDragging}
+                drag={drag}
+                alert={alerts.data?.find((alert) =>
+                  alert.affectedLocations.some((affected) => affected.id === item.id),
+                )}
+                locale={locale}
+                removeLabel={messages.remove}
+                historyLabel={alertUiMessages[locale].warningHistory}
+                onSelect={async () => {
+                  await choose({
+                    savedLocationId: item.id,
+                    name: item.name,
+                    latitude: item.latitude,
+                    longitude: item.longitude,
+                  });
+                  // Chosen, so go and look at it. `back()` alone would depend
+                  // on how this screen was reached - from a push notification
+                  // there is no home screen underneath to go back to.
+                  goHome();
+                }}
+                onRemove={() => remove.mutate(item.id)}
+              />
+            </ScaleDecorator>
           )}
         />
+        </GestureHandlerRootView>
 
         {/* Opaque, covering the saved list rather than tinting it. A
             translucent sheet sounds like useful context and is not: at any
@@ -333,9 +331,11 @@ export default function LocationsScreen() {
  * The cache key matches the home screen's, so opening a place that is already
  * the active one costs nothing.
  */
-function SavedRow({
+const SavedRow = memo(function SavedRow({
   location,
   isActive,
+  isDragging,
+  drag,
   alert,
   locale,
   removeLabel,
@@ -345,6 +345,10 @@ function SavedRow({
 }: {
   location: SavedLocation;
   isActive: boolean;
+  /** True while this row is the one being carried. */
+  isDragging: boolean;
+  /** Starts the drag; the list owns the gesture from there. */
+  drag: () => void;
   /** The warning covering this place, if any - matched on the saved id. */
   alert: ActiveAlert | undefined;
   locale: Locale;
@@ -353,9 +357,6 @@ function SavedRow({
   onSelect: () => void;
   onRemove: () => void;
 }) {
-  // The library drives the gesture; the row only says when to pick it up.
-  const drag = useReorderableDrag();
-
   const conditions = useQuery({
     queryKey: ["current", location.latitude, location.longitude],
     queryFn: () => fetchCurrentConditions(location.latitude, location.longitude),
@@ -365,15 +366,23 @@ function SavedRow({
   const severityColor = alert ? tokens.colors[`warning${alert.severity}`] : undefined;
 
   return (
+    // Spacing as padding on an outer box rather than a margin on the card. A
+    // margin sits outside the view, so it is absent from what `onLayout`
+    // reports: the list would measure every cell 8pt shorter than the space it
+    // really occupies, and that error accumulates down the list until a drop
+    // lands a whole row away from where it was aimed.
+    <View style={{ paddingBottom: 8 }}>
     <View
-      className={`mb-2 gap-2 rounded-2xl px-4 py-3.5 ${
-        isActive ? "border border-primary bg-powierzchnia" : "bg-powierzchnia"
-      }`}
+      className={`gap-2 rounded-2xl px-4 py-3.5 ${isActive ? "border border-primary bg-powierzchnia" : "bg-powierzchnia"
+        }`}
     >
       <View className="flex-row items-center gap-3">
         <Pressable
           onPress={onSelect}
           onLongPress={drag}
+          // Taps must not fight the carry: while this row is being dragged it
+          // stops being a button.
+          disabled={isDragging}
           // Matches the delay the list itself uses to tell a drag from a tap.
           delayLongPress={220}
           className="min-w-0 flex-1 flex-row items-center gap-3 active:opacity-70"
@@ -423,5 +432,6 @@ function SavedRow({
         {historyLabel}
       </Link>
     </View>
+    </View>
   );
-}
+});

@@ -8,7 +8,7 @@ import {
   weatherMessages,
 } from "@weather-app/core";
 import { Link } from "expo-router";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -92,8 +92,29 @@ export default function HomeScreen() {
     0,
   );
 
+  /**
+   * Follows the active place when it is chosen elsewhere.
+   *
+   * This screen stays mounted while the saved-places screen sits on top of it,
+   * so picking a place there and coming back would otherwise land on whatever
+   * page the pager was left on - the choice apparently ignored. The page index
+   * is tracked in a ref rather than state because swiping writes it on every
+   * settle and nothing renders from it.
+   */
+  const pagerRef = useRef<FlatList<ActiveLocation>>(null);
+  const shownIndex = useRef(initialIndex);
+
+  useEffect(() => {
+    const index = pages.findIndex((page) => page.savedLocationId === active.savedLocationId);
+    if (index < 0 || index === shownIndex.current) return;
+
+    shownIndex.current = index;
+    pagerRef.current?.scrollToIndex({ index, animated: false });
+  }, [active.savedLocationId, pages]);
+
   return (
     <FlatList
+      ref={pagerRef}
       data={pages}
       horizontal
       pagingEnabled
@@ -111,7 +132,12 @@ export default function HomeScreen() {
       onMomentumScrollEnd={(event) => {
         const index = Math.round(event.nativeEvent.contentOffset.x / width);
         const page = pages[index];
-        if (page && page.savedLocationId !== active.savedLocationId) void choose(page);
+        if (!page) return;
+
+        // Recorded before `choose`, so the effect above sees the page the
+        // finger already put us on and does not scroll it a second time.
+        shownIndex.current = index;
+        if (page.savedLocationId !== active.savedLocationId) void choose(page);
       }}
       renderItem={({ item, index }) => (
         <View style={{ width }}>
