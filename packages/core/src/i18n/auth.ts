@@ -22,6 +22,13 @@ export type AuthMessages = {
    * one. Deliberately not phrased as a restriction: nothing here is locked.
    */
   accountBenefit: string;
+  /**
+   * Shown on the sign-up and sign-in forms while the device still has places
+   * of its own. Both say what happens to them, because "will I lose what I
+   * already saved?" is the question standing between someone and the form.
+   */
+  placesKeptOnSignUp: string;
+  placesKeptOnSignIn: string;
   noAccount: string;
   haveAccount: string;
   invalidCredentials: string;
@@ -41,6 +48,8 @@ export const authMessages: Record<Locale, AuthMessages> = {
     displayNameOptional: "Nazwa (opcjonalnie)",
     accountBenefit:
       "Twoje miejsca i ostrzeżenia działają bez konta. Załóż je, żeby mieć te same miejsca także na komputerze.",
+    placesKeptOnSignUp: "Miejsca zapisane na tym telefonie zostaną na Twoim koncie.",
+    placesKeptOnSignIn: "Miejsca zapisane na tym telefonie zostaną dodane do konta.",
     noAccount: "Nie masz konta? Załóż je",
     haveAccount: "Masz już konto? Zaloguj się",
     invalidCredentials: "Nieprawidłowy e-mail lub hasło.",
@@ -58,6 +67,8 @@ export const authMessages: Record<Locale, AuthMessages> = {
     displayNameOptional: "Name (optional)",
     accountBenefit:
       "Your places and warnings work without an account. Create one to have the same places on your computer too.",
+    placesKeptOnSignUp: "The places saved on this phone will stay on your account.",
+    placesKeptOnSignIn: "The places saved on this phone will be added to your account.",
     noAccount: "No account? Create one",
     haveAccount: "Already have an account? Sign in",
     invalidCredentials: "Incorrect email or password.",
