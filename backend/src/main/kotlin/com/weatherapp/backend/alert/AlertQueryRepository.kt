@@ -51,6 +51,34 @@ class AlertQueryRepository(private val jdbcTemplate: JdbcTemplate) {
             limit = limit,
         )
 
+    /**
+     * Warnings in force over one powiat, for a position nobody saved.
+     *
+     * Deliberately not routed through `alert_location_match`: that table
+     * records which *saved* location a warning covers, and the point here is a
+     * place the user is standing in rather than one they keep. Joining
+     * `alert_teryt` directly answers the question without writing anything
+     * down, which is what keeps a position out of the database.
+     *
+     * `affectedLocations` comes back empty for the same reason - there is no
+     * saved location to name. The response shape is shared with the per-user
+     * queries, and an empty list renders as nothing rather than as a stray
+     * separator.
+     */
+    fun findActiveAtTeryt(terytCode: String, now: Instant = Instant.now()): List<AlertForUser> =
+        jdbcTemplate.query(
+            """
+            SELECT $ALERT_COLUMNS
+            FROM alert a
+            JOIN alert_teryt at ON at.alert_id = a.id
+            WHERE at.teryt_code = ? AND a.valid_to > ?
+            ORDER BY a.severity DESC, a.valid_from
+            """.trimIndent(),
+            { rs, _ -> rs.toAlert() },
+            terytCode,
+            java.sql.Timestamp.from(now),
+        ).map { AlertForUser(it, emptyList()) }
+
     private fun findForUser(
         userId: Long,
         extraCondition: String,

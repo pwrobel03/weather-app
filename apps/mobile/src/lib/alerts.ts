@@ -28,6 +28,25 @@ export async function fetchActiveAlerts(): Promise<ActiveAlert[]> {
  * The backend scopes this by user as well as by location, so a guessed id
  * returns 404 rather than someone else's timeline.
  */
+/**
+ * Warnings in force where the device is, for a position nobody saved.
+ *
+ * Separate from `fetchActiveAlerts` because the questions differ: that one
+ * asks what covers the places this account keeps, this one asks what covers
+ * the ground under the phone. Nothing about the position is stored, so no push
+ * follows from it - the warning is seen by looking.
+ */
+export async function fetchAlertsAt(latitude: number, longitude: number): Promise<ActiveAlert[]> {
+  try {
+    const { data } = await authorizedClient().GET("/api/alerts/at", {
+      params: { query: { latitude, longitude } },
+    });
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchAlertHistory(locationId: number): Promise<ActiveAlert[]> {
   try {
     const { data } = await authorizedClient().GET(

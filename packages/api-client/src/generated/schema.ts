@@ -383,6 +383,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts/at": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alerts currently in force at a position
+         * @description For the place the device is in, which is not a saved location. The position is resolved to a powiat and used for this request only - nothing about it is stored, so no push notification can follow from it.
+         */
+        get: operations["at"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alerts/active": {
         parameters: {
             query?: never;
@@ -1464,6 +1484,40 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PowiatGeoJsonFeatureCollection"];
+                };
+            };
+        };
+    };
+    at: {
+        parameters: {
+            query: {
+                latitude: number;
+                longitude: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AlertResponse"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
                 };
             };
         };

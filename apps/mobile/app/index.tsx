@@ -27,8 +27,9 @@ import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
+import { useDeviceLocation } from "../src/lib/device-location";
 import { useAuth } from "../src/lib/auth/context";
-import { fetchActiveAlerts } from "../src/lib/alerts";
+import { fetchActiveAlerts, fetchAlertsAt } from "../src/lib/alerts";
 import { fetchSavedLocations } from "../src/lib/saved-locations";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
@@ -74,6 +75,12 @@ export default function HomeScreen() {
   // paging through an empty list.
   const initial = useRef(active).current;
 
+  // Waited for before the pager renders, deliberately. Prepending a page after
+  // the fact would shift every index under a finger that may already be
+  // swiping - the same class of bug as deriving the page list from the active
+  // place. One extra frame on a cold start buys a list that never renumbers.
+  const device = useDeviceLocation(appMessages[DEFAULT_LOCALE].myLocation);
+
   const pages = useMemo<ActiveLocation[]>(() => {
     const fromSaved: ActiveLocation[] = (saved.data ?? []).map((location) => ({
       savedLocationId: location.id,
@@ -82,9 +89,20 @@ export default function HomeScreen() {
       longitude: location.longitude,
     }));
 
+    const here = device.status === "ready" ? device.location : null;
+    if (here) {
+      // Where you are comes first, ahead of anywhere you chose to keep an eye
+      // on. The unsaved fallback is dropped in that case - it is the Warszawa
+      // default or a previous position, and neither is worth a page once the
+      // real one exists.
+      return [here, ...fromSaved];
+    }
+
     const alreadyThere = fromSaved.some((page) => page.savedLocationId === initial.savedLocationId);
     return alreadyThere ? fromSaved : [initial, ...fromSaved];
-  }, [saved.data, initial]);
+  }, [saved.data, initial, device]);
+
+  const settled = device.status === "ready";
 
   const initialIndex = Math.max(
     pages.findIndex((page) => page.savedLocationId === initial.savedLocationId),
@@ -110,6 +128,11 @@ export default function HomeScreen() {
     shownIndex.current = index;
     pagerRef.current?.scrollToIndex({ index, animated: false });
   }, [active.savedLocationId, pages]);
+
+  // Nothing to page through until it is known whether there is a first page.
+  if (!settled) {
+    return <View className="flex-1 bg-tlo-ciemne" />;
+  }
 
   return (
     <FlatList
@@ -140,7 +163,12 @@ export default function HomeScreen() {
       }}
       renderItem={({ item, index }) => (
         <View style={{ width }}>
-          <LocationPage location={item} pageIndex={index} pageCount={pages.length} />
+          <LocationPage
+            location={item}
+            pageIndex={index}
+            pageCount={pages.length}
+            isDeviceLocation={index === 0 && device.status === "ready" && device.location !== null}
+          />
         </View>
       )}
     />
@@ -151,10 +179,13 @@ function LocationPage({
   location,
   pageIndex,
   pageCount,
+  isDeviceLocation,
 }: {
   location: ActiveLocation;
   pageIndex: number;
   pageCount: number;
+  /** True for the page showing where the phone is, rather than a saved place. */
+  isDeviceLocation: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -179,10 +210,22 @@ function LocationPage({
     queryFn: () => fetchDailyForecast(latitude, longitude),
   });
 
+  // Two different questions, so two queries. A saved place asks what covers
+  // the places this account keeps - matched server-side and able to arrive by
+  // push. The device's own page asks what covers the ground it is standing on,
+  // which nothing recorded and nothing can notify about.
+  const atPosition = location.savedLocationId === null && isDeviceLocation;
+
   const alerts = useQuery({
     queryKey: ["active-alerts"],
     queryFn: fetchActiveAlerts,
-    enabled: Boolean(session),
+    enabled: Boolean(session) && !atPosition,
+  });
+
+  const alertsHere = useQuery({
+    queryKey: ["alerts-at", latitude, longitude],
+    queryFn: () => fetchAlertsAt(latitude, longitude),
+    enabled: atPosition,
   });
 
   const localHour = localHourFromForecast(hourly.data ?? [], new Date());

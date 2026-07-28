@@ -26,7 +26,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Pogoda używa Twojego położenia, żeby pokazać prognozę dla miejsca, w którym jesteś."
+        }
+      ]
     ],
     "scheme": "weatherapp"
   }

@@ -1,10 +1,13 @@
 package com.weatherapp.backend.alert
 
+import com.weatherapp.backend.boundary.TerytResolutionService
 import com.weatherapp.backend.savedlocation.SavedLocationNotFoundException
 import com.weatherapp.backend.savedlocation.SavedLocationRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.DecimalMax
+import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -64,6 +67,7 @@ data class AlertResponse(
 class AlertController(
     private val alertQueryRepository: AlertQueryRepository,
     private val savedLocationRepository: SavedLocationRepository,
+    private val terytResolutionService: TerytResolutionService,
 ) {
 
     @Operation(
@@ -73,6 +77,23 @@ class AlertController(
     @GetMapping("/api/alerts/active")
     fun active(principal: Principal): List<AlertResponse> =
         alertQueryRepository.findActiveForUser(principal.userId).map(AlertResponse::from)
+
+    @Operation(
+        summary = "Alerts currently in force at a position",
+        description = "For the place the device is in, which is not a saved location. The position is resolved to " +
+            "a powiat and used for this request only - nothing about it is stored, so no push notification can " +
+            "follow from it.",
+    )
+    @GetMapping("/api/alerts/at")
+    fun at(
+        @RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") latitude: Double,
+        @RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") longitude: Double,
+    ): List<AlertResponse> {
+        // Outside every known boundary - at sea, or abroad - is an ordinary
+        // answer, not an error: there are no Polish warnings for it.
+        val teryt = terytResolutionService.resolve(latitude, longitude)?.terytCode ?: return emptyList()
+        return alertQueryRepository.findActiveAtTeryt(teryt).map(AlertResponse::from)
+    }
 
     @Operation(
         summary = "Warning timeline for one saved location",

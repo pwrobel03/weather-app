@@ -14,6 +14,8 @@ export type AppMessages = {
   retry: string;
   loading: string;
   savedPlaces: string;
+  /** Header for the page showing where the phone is. */
+  myLocation: string;
   searchPlaceholder: string;
   noSavedPlaces: string;
   noSearchResults: string;
@@ -50,6 +52,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     retry: "Spróbuj ponownie",
     loading: "Ładowanie",
     savedPlaces: "Twoje miejsca",
+    myLocation: "Moja lokalizacja",
     searchPlaceholder: "Szukaj miejscowości",
     noSearchResults: "Brak wyników",
     cancel: "Anuluj",
@@ -72,6 +75,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     retry: "Try again",
     loading: "Loading",
     savedPlaces: "Your places",
+    myLocation: "My location",
     searchPlaceholder: "Search for a town",
     noSearchResults: "No results",
     cancel: "Cancel",
