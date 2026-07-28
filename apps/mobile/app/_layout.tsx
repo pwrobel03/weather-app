@@ -14,12 +14,17 @@ import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
+import { holdSplash } from "../src/lib/splash";
 import { AuthProvider } from "../src/lib/auth/context";
 
 // One deprecation warning, raised from inside react-native-draggable-flatlist
 // and not actionable from here. Silenced by its exact text rather than
 // wholesale, so anything of ours still shows up.
 LogBox.ignoreLogs(["InteractionManager has been deprecated"]);
+
+// At module scope, before any screen mounts: the native splash has to be
+// claimed before React gets a chance to draw over it.
+holdSplash();
 
 /**
  * The app shell.
@@ -53,7 +58,11 @@ export default function RootLayout() {
   return (
     // Gesture handling needs a root of its own; without it a pan gesture never
     // reaches the component that declared it.
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    // Background on the root view, not only on the stack's screens: between the
+    // splash going and the first screen painting there is a frame of the root
+    // view alone, and React Native paints that white by default - the exact
+    // flash the splash exists to prevent.
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.colors.tloCiemne }}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider locale={DEFAULT_LOCALE}>
         <ActiveLocationProvider>

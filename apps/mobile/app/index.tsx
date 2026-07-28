@@ -28,6 +28,7 @@ import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
 import { useDeviceLocation } from "../src/lib/device-location";
+import { releaseSplash } from "../src/lib/splash";
 import { useAuth } from "../src/lib/auth/context";
 import { fetchActiveAlerts, fetchAlertsAt } from "../src/lib/alerts";
 import { fetchSavedLocations } from "../src/lib/saved-locations";
@@ -227,6 +228,13 @@ function LocationPage({
     queryFn: () => fetchAlertsAt(latitude, longitude),
     enabled: atPosition,
   });
+
+  // Released on the first page only, and on settled rather than on success: a
+  // forecast that failed still has a screen to show, and holding the splash for
+  // it would turn one dead request into an app that never starts.
+  useEffect(() => {
+    if (pageIndex === 0 && !conditions.isPending) releaseSplash();
+  }, [pageIndex, conditions.isPending]);
 
   const localHour = localHourFromForecast(hourly.data ?? [], new Date());
 
