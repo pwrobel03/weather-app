@@ -51,7 +51,7 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
             className={`w-[84px] items-center justify-between gap-2 rounded-[28px] border py-4 ${
               isCurrent
                 ? "border-white/35 bg-primary"
-                : "border-white/5 bg-powierzchnia"
+                : "border-linia/5 bg-powierzchnia"
             }`}
           >
             <View className="items-center">

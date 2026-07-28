@@ -4,6 +4,7 @@ import { Link, router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useLocale } from "../src/lib/locale";
+import { useTheme } from "../src/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
@@ -26,6 +27,7 @@ type UnitField = keyof typeof unitLabels;
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { locale, choose: chooseLocale } = useLocale();
+  const { theme, choose: chooseTheme } = useTheme();
   const messages = appMessages[locale];
   const { session, registered, signOut } = useAuth();
   const { active } = useActiveLocation();
@@ -57,7 +59,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-tlo-ciemne"
+      className="flex-1 bg-tlo"
       contentContainerStyle={{
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 24,
@@ -90,7 +92,7 @@ export default function SettingsScreen() {
                       key={value}
                       onPress={() => save.mutate({ [field]: value } as UnitPreferences)}
                       className={`rounded-xl border px-4 py-2 active:opacity-70 ${
-                        selected ? "border-primary bg-primary" : "border-white/10 bg-powierzchnia"
+                        selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
                       }`}
                     >
                       <Text
@@ -117,6 +119,32 @@ export default function SettingsScreen() {
 
       <View className="mt-8 gap-3">
         <Text className="text-xs font-semibold uppercase tracking-wider text-tekst-muted">
+          {messages.theme}
+        </Text>
+        <View className="flex-row gap-2">
+          {(["system", "light", "dark"] as const).map((option) => {
+            const selected = theme === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => void chooseTheme(option)}
+                className={`rounded-xl border px-4 py-2 active:opacity-70 ${
+                  selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${selected ? "text-white" : "text-tekst-muted"}`}
+                >
+                  {messages.themeNames[option]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-tekst-muted">
           {messages.language}
         </Text>
         <View className="flex-row gap-2">
@@ -127,7 +155,7 @@ export default function SettingsScreen() {
                 key={option}
                 onPress={() => void chooseLocale(option)}
                 className={`rounded-xl border px-4 py-2 active:opacity-70 ${
-                  selected ? "border-primary bg-primary" : "border-white/10 bg-powierzchnia"
+                  selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
                 }`}
               >
                 <Text
@@ -206,7 +234,7 @@ export default function SettingsScreen() {
             await queryClient.invalidateQueries({ queryKey: ["saved-locations"] });
             router.replace("/");
           }}
-          className="mt-4 h-12 items-center justify-center rounded-2xl border border-white/10 bg-powierzchnia active:opacity-70"
+          className="mt-4 h-12 items-center justify-center rounded-2xl border border-linia/10 bg-powierzchnia active:opacity-70"
         >
           <Text className="text-base font-semibold text-tekst">{authMessages[locale].signOut}</Text>
         </Pressable>
@@ -226,7 +254,7 @@ export default function SettingsScreen() {
 
           <Link
             href="/login"
-            className="h-12 rounded-2xl border border-white/10 bg-powierzchnia text-center text-base font-semibold leading-[48px] text-tekst"
+            className="h-12 rounded-2xl border border-linia/10 bg-powierzchnia text-center text-base font-semibold leading-[48px] text-tekst"
           >
             {authMessages[locale].signIn}
           </Link>

@@ -69,7 +69,7 @@ export default function MapScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-tlo-ciemne"
+      className="flex-1 bg-tlo"
       contentContainerStyle={{
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 24,

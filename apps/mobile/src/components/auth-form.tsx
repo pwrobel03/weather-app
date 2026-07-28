@@ -63,7 +63,7 @@ export function AuthForm({ mode, locale, onSubmit, alternate, note }: AuthFormPr
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      className="flex-1 bg-tlo-ciemne"
+      className="flex-1 bg-tlo"
     >
       <ScrollView
         contentContainerStyle={{
@@ -152,7 +152,7 @@ function Field({
       <TextInput
         {...props}
         placeholderTextColor="#8A94A6"
-        className="h-12 rounded-2xl border border-white/10 bg-powierzchnia px-4 text-base text-tekst"
+        className="h-12 rounded-2xl border border-linia/10 bg-powierzchnia px-4 text-base text-tekst"
       />
     </View>
   );

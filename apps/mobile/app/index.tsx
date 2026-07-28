@@ -27,6 +27,8 @@ import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
+import { StatusBar } from "expo-status-bar";
+
 import { useDeviceLocation } from "../src/lib/device-location";
 import { useLocale } from "../src/lib/locale";
 import { releaseSplash } from "../src/lib/splash";
@@ -134,10 +136,14 @@ export default function HomeScreen() {
 
   // Nothing to page through until it is known whether there is a first page.
   if (!settled) {
-    return <View className="flex-1 bg-tlo-ciemne" />;
+    return <View className="flex-1 bg-tlo" />;
   }
 
   return (
+    <>
+    {/* The hero is dark in both themes, so the clock above it has to be light
+        in both - this overrides the themed one set in the layout. */}
+    <StatusBar style="light" />
     <FlatList
       ref={pagerRef}
       data={pages}
@@ -175,6 +181,7 @@ export default function HomeScreen() {
         </View>
       )}
     />
+    </>
   );
 }
 
@@ -267,7 +274,7 @@ function LocationPage({
   return (
     <ScrollView
       ref={scrollRef}
-      className="flex-1 bg-tlo-ciemne"
+      className="flex-1 bg-tlo"
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
     >

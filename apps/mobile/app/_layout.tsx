@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LogBox } from "react-native";
@@ -14,6 +15,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
 import { LocaleProvider } from "../src/lib/locale";
+import { ThemeProvider } from "../src/lib/theme";
 import { holdSplash } from "../src/lib/splash";
 import { AuthProvider } from "../src/lib/auth/context";
 
@@ -38,6 +40,11 @@ holdSplash();
  * Headers are off across the stack: every screen paints its own gradient to the
  * top edge, and a stack header would sit as an opaque strip on top of it.
  */
+function ThemedStatusBar() {
+  const { colorScheme } = useColorScheme();
+  return <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />;
+}
+
 export default function RootLayout() {
   // Created once per mount, not at module scope: a module-level client is
   // shared across Fast Refresh reloads and keeps serving a stale cache.
@@ -64,11 +71,15 @@ export default function RootLayout() {
     // flash the splash exists to prevent.
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.colors.tloCiemne }}>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
       <LocaleProvider>
       <AuthProvider>
         <ActiveLocationProvider>
           <SafeAreaProvider>
-            <StatusBar style="light" />
+            {/* Follows the theme, because most screens are now a themed
+                surface. The home screen overrides it back to light: its top is
+                the hero, which is dark whatever the theme says. */}
+            <ThemedStatusBar />
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -79,6 +90,7 @@ export default function RootLayout() {
         </ActiveLocationProvider>
       </AuthProvider>
       </LocaleProvider>
+      </ThemeProvider>
     </QueryClientProvider>
     </GestureHandlerRootView>
   );
