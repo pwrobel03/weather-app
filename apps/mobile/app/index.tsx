@@ -8,6 +8,7 @@ import {
   weatherMessages,
 } from "@weather-app/core";
 import { Link } from "expo-router";
+import { useRef } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,6 +32,13 @@ import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from 
  * still ahead of the clock gives the hour *at the displayed location*, which is
  * what decides whether the hero paints a night sky. Reading the device clock
  * instead would show someone in London Warszawa's daytime sky at 1am local.
+ *
+ * Order below is the forecasts first and warnings last, which is what apps/web
+ * lays out on a narrow screen for a reason it states there: on most days the
+ * warnings tile says "no active warnings", and a hero taking 62% of the
+ * viewport plus an empty tile pushed the seven-day forecast past the second
+ * screenful. Warnings still get the loud channels - a push notification and the
+ * live socket - so they do not need to hold the position above the fold.
  */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -70,8 +78,28 @@ export default function HomeScreen() {
   // height would crop the metrics strip on a small phone.
   const heroHeight = Math.max(Math.round(height * 0.62), 440);
 
+  // apps/web reaches the seven-day tile with an anchor; there is no such thing
+  // here, so the shortcut scrolls to where that tile starts.
+  //
+  // Read off the *hourly* tile, whose bottom edge is by construction the
+  // seven-day tile's top. That tile is also the one that changes size when the
+  // forecast arrives, so its own `onLayout` is guaranteed to re-report - where
+  // a view that merely gets pushed down is not.
+  //
+  // On a short forecast the scroll clamps at the end of the content and stops
+  // above the requested offset. That is the right outcome, not a miss: the
+  // point is to bring the tile into view, and at the end of the list it is.
+  const scrollRef = useRef<ScrollView>(null);
+  const sevenDaysY = useRef(0);
+
+  const scrollToSevenDays = () => {
+    // A little above the tile, so its heading is not flush against the edge.
+    scrollRef.current?.scrollTo({ y: Math.max(sevenDaysY.current - 12, 0), animated: true });
+  };
+
   return (
     <ScrollView
+      ref={scrollRef}
       className="flex-1 bg-tlo-ciemne"
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
@@ -142,6 +170,32 @@ export default function HomeScreen() {
         </WeatherBackground>
       </View>
 
+      <View
+        onLayout={(event) => {
+          const { y, height: tileHeight } = event.nativeEvent.layout;
+          sevenDaysY.current = y + tileHeight;
+        }}
+      >
+      <Tile
+        title={weather.today}
+        aside={
+          <Pressable onPress={scrollToSevenDays} className="active:opacity-70">
+            <Text className="text-sm font-semibold text-primary">
+              {weather.sevenDays} ›
+            </Text>
+          </Pressable>
+        }
+      >
+        <HourlyForecastStrip entries={hourly.data ?? []} />
+      </Tile>
+      </View>
+
+      <View>
+        <Tile title={weather.sevenDays}>
+          <DailyForecastList entries={daily.data ?? []} locale={locale} />
+        </Tile>
+      </View>
+
       <Tile
         title={alertUiMessages[locale].warnings}
         aside={
@@ -157,14 +211,6 @@ export default function HomeScreen() {
           authenticated={Boolean(session)}
           locale={locale}
         />
-      </Tile>
-
-      <Tile title={weather.today}>
-        <HourlyForecastStrip entries={hourly.data ?? []} />
-      </Tile>
-
-      <Tile title={weather.sevenDays}>
-        <DailyForecastList entries={daily.data ?? []} locale={locale} />
       </Tile>
       {/* Live delivery over the WebSocket, plus push registration. Renders
           nothing until a warning arrives. */}

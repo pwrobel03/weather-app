@@ -119,11 +119,19 @@ export function authorizedClient(): ApiClient {
       pristine.set(request, request.clone());
       return request;
     },
+    // Returning nothing means "untouched, use what you already have".
+    //
+    // Handing the response back instead looks equivalent and is not: openapi-
+    // fetch treats any returned value as a replacement and rejects one that
+    // fails `instanceof Response` - and React Native's fetch resolves to a
+    // Response-*like* object that does exactly that. The request succeeds, the
+    // guard throws, and every call through this client fails with
+    // "onResponse: must return new Response() when modifying the response".
     async onResponse({ request, response }) {
-      if (response.status !== 401) return response;
+      if (response.status !== 401) return;
 
       const token = await refreshAccessToken();
-      if (!token) return response;
+      if (!token) return;
 
       const original = pristine.get(request) ?? request;
       const retried = new Request(original, { headers: new Headers(original.headers) });
@@ -131,7 +139,19 @@ export function authorizedClient(): ApiClient {
 
       // Plain fetch, not the client: the retry must not re-enter this
       // middleware, or a genuinely dead session would loop.
-      return fetch(retried);
+      const fresh = await fetch(retried);
+
+      // Rebuilt through the global constructor for the same reason as above -
+      // this one *is* a replacement, so it has to be a Response the guard
+      // recognises. Statuses that forbid a body get none, or the constructor
+      // throws on its own.
+      const bodyless = fresh.status === 204 || fresh.status === 205 || fresh.status === 304;
+
+      return new Response(bodyless ? null : await fresh.text(), {
+        status: fresh.status,
+        statusText: fresh.statusText,
+        headers: fresh.headers,
+      });
     },
   });
 

@@ -24,6 +24,15 @@ class UserRepository(private val jdbcTemplate: JdbcTemplate) {
             id,
         ).firstOrNull()
 
+    /** A user with no credentials yet - the row a device gets on first launch. */
+    fun createAnonymous(): User {
+        val id = jdbcTemplate.queryForObject(
+            "INSERT INTO users DEFAULT VALUES RETURNING id",
+            Long::class.java,
+        )!!
+        return findById(id)!!
+    }
+
     fun create(email: String, passwordHash: String, displayName: String?): User {
         val id = jdbcTemplate.queryForObject(
             "INSERT INTO users (email, password_hash, display_name) VALUES (?, ?, ?) RETURNING id",
@@ -33,6 +42,17 @@ class UserRepository(private val jdbcTemplate: JdbcTemplate) {
             displayName,
         )!!
         return findById(id)!!
+    }
+
+    /** Turns an anonymous row into a registered one, keeping its id. */
+    fun attachCredentials(userId: Long, email: String, passwordHash: String, displayName: String?) {
+        jdbcTemplate.update(
+            "UPDATE users SET email = ?, password_hash = ?, display_name = COALESCE(?, display_name) WHERE id = ?",
+            email,
+            passwordHash,
+            displayName,
+            userId,
+        )
     }
 
     fun updatePreferences(

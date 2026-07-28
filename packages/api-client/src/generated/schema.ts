@@ -56,8 +56,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Register a new account
-         * @description Creates a user and returns an access/refresh token pair.
+         * Register an account
+         * @description Creates a user and returns an access/refresh token pair. Sent with an anonymous session's access token, it registers that user instead of creating a second one, so places saved and push tokens registered beforehand carry over untouched. Sent with an already-registered session, it is a conflict.
          */
         post: operations["register"];
         delete?: never;
@@ -100,6 +100,26 @@ export interface paths {
          * @description Exchanges email/password for an access/refresh token pair.
          */
         post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/anonymous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an anonymous session
+         * @description Creates a credential-less user for a device and returns an access/refresh token pair. Registering later attaches an email and password to this same user, so anything saved beforehand stays where it is.
+         */
+        post: operations["anonymous"];
         delete?: never;
         options?: never;
         head?: never;
@@ -439,7 +459,7 @@ export interface components {
         UserResponse: {
             /** Format: int64 */
             id: number;
-            email: string;
+            email?: string;
             displayName?: string;
             /** @enum {string} */
             temperatureUnit: "CELSIUS" | "FAHRENHEIT";
@@ -852,6 +872,48 @@ export interface operations {
                 "application/json": components["schemas"]["LoginRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AuthResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    anonymous: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
