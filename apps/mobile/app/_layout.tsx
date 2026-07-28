@@ -1,4 +1,7 @@
 import "../global.css";
+// Side-effect import, next to the stylesheet it belongs with: it has to run
+// before any screen renders a Link.
+import "../src/lib/link-styling";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DEFAULT_LOCALE } from "@weather-app/core";

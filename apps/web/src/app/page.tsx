@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, weatherMessages, hourOf } from "@weather-app/core";
+import { DEFAULT_LOCALE, weatherMessages, localHourFromForecast } from "@weather-app/core";
 import { AlertLiveConnection } from "@/components/alert-live-connection";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
@@ -74,7 +74,7 @@ export default async function Page() {
 
   const weatherCode = conditions?.weatherCode ?? 0;
   const temperatureCelsius = conditions?.temperatureCelsius ?? 0;
-  const localHour = hourOf(hourly[0]?.time ?? new Date().toISOString());
+  const localHour = localHourFromForecast(hourly, new Date());
 
   // Severity of the warning covering *this* powiat, matched on the warning's
   // own teryt codes rather than taken from the first active alert - a user may

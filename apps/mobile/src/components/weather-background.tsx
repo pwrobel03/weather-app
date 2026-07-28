@@ -1,8 +1,8 @@
 import {
+  BackdropFilter,
   Canvas,
   ColorMatrix,
   Group,
-  Paint,
   Circle as SkCircle,
   LinearGradient as SkLinearGradient,
   RadialGradient as SkRadialGradient,
@@ -15,6 +15,7 @@ import { useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 
 import { StormFlash } from "./storm-flash";
+import { contrastMatrix, veilContrastAmount } from "./veil-contrast";
 
 type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */
@@ -33,11 +34,16 @@ type WeatherBackgroundProps = {
  * The web hero's background, painted with Skia.
  *
  * Skia rather than expo-linear-gradient (follow-up.md point 11), for a reason
- * visible in one line below: `ColorMatrix`. The phenomenon channel carries a
+ * visible in one line below: `BackdropFilter`. The phenomenon channel carries a
  * contrast value, and React Native has no equivalent of a CSS filter - the
- * previous version simply dropped it and approximated the difference with
- * opacity. With a colour matrix this computes the same thing the web does
- * instead of imitating it.
+ * pre-Skia version simply dropped it and approximated the difference with
+ * opacity. Filtering the backdrop computes the same thing the web does instead
+ * of imitating it.
+ *
+ * Worth knowing that the dependency alone did not buy this: the first Skia
+ * version put the colour matrix on the veil group's own `layer`, which filtered
+ * the overlay rather than the sky and left the channel inert until a device
+ * review measured it.
  *
  * The rest follows from the same choice: the glow is a real radial gradient
  * rather than an SVG stand-in, and the storm flash runs on the UI thread
@@ -105,25 +111,28 @@ export function WeatherBackground({
           </SkRect>
 
           {veil.opacity > 0 && (
-            <Group
-              opacity={veil.opacity}
-              // The contrast the previous version had to drop. This is the
-              // line that justifies the whole dependency.
-              layer={
-                <Paint>
-                  <ColorMatrix matrix={contrastMatrix(veil.contrast)} />
-                </Paint>
-              }
+            // A backdrop filter, not a layer on the group. `layer` renders the
+            // group's own children offscreen and filters those - here that is
+            // the veil gradient alone, so the contrast channel spent its whole
+            // effect on a semi-transparent overlay and left the sky untouched.
+            // Measured on a storm: raising the amount from 1.1 to 3.0 moved the
+            // average channel by 0.3/255. The web's `backdrop-filter` filters
+            // what is *behind* the element, which is the sky, and this is its
+            // equivalent.
+            <BackdropFilter
+              filter={<ColorMatrix matrix={contrastMatrix(veilContrastAmount(veil))} />}
             >
-              <SkRect x={0} y={0} width={width} height={height}>
-                <SkLinearGradient
-                  start={vec(width / 2, 0)}
-                  end={vec(width / 2, height)}
-                  colors={["rgba(10, 14, 20, 0.55)", "rgba(0,0,0,0)", "rgba(8, 11, 16, 0.7)"]}
-                  positions={[0, 0.45, 1]}
-                />
-              </SkRect>
-            </Group>
+              <Group opacity={veil.opacity}>
+                <SkRect x={0} y={0} width={width} height={height}>
+                  <SkLinearGradient
+                    start={vec(width / 2, 0)}
+                    end={vec(width / 2, height)}
+                    colors={["rgba(10, 14, 20, 0.55)", "rgba(0,0,0,0)", "rgba(8, 11, 16, 0.7)"]}
+                    positions={[0, 0.45, 1]}
+                  />
+                </SkRect>
+              </Group>
+            </BackdropFilter>
           )}
 
           <Texture texture={texture} width={width} height={height} />
@@ -197,22 +206,4 @@ function Texture({
       )}
     </Group>
   );
-}
-
-/**
- * The 5x4 colour matrix for a contrast adjustment, matching CSS `contrast()`.
- *
- * Contrast pivots around mid-grey: each channel is scaled and then shifted
- * back by half of what it moved, or the image simply gets brighter instead of
- * more contrasted.
- */
-export function contrastMatrix(amount: number): number[] {
-  const shift = (1 - amount) / 2;
-
-  return [
-    amount, 0, 0, 0, shift,
-    0, amount, 0, 0, shift,
-    0, 0, amount, 0, shift,
-    0, 0, 0, 1, 0,
-  ];
 }

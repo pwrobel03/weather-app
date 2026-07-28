@@ -4,7 +4,7 @@ import {
   appMessages,
   authMessages,
   DEFAULT_LOCALE,
-  hourOf,
+  localHourFromForecast,
   weatherMessages,
 } from "@weather-app/core";
 import { Link } from "expo-router";
@@ -28,9 +28,9 @@ import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from 
  * most of the first view, with everything else scrolling beneath it.
  *
  * The hourly forecast does double duty: it fills the strip, and its first entry
- * gives the hour *at the displayed location*, which is what decides whether the
- * hero paints a night sky. Reading the device clock instead would show someone
- * in London Warszawa's daytime sky at 1am local.
+ * still ahead of the clock gives the hour *at the displayed location*, which is
+ * what decides whether the hero paints a night sky. Reading the device clock
+ * instead would show someone in London Warszawa's daytime sky at 1am local.
  */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -63,7 +63,7 @@ export default function HomeScreen() {
     enabled: Boolean(session),
   });
 
-  const localHour = hourOf(hourly.data?.[0]?.time ?? new Date().toISOString());
+  const localHour = localHourFromForecast(hourly.data ?? [], new Date());
 
   // 62% of the viewport, the same proportion as the web hero. Measured rather
   // than expressed as a viewport unit: NativeWind has no vh, and a fixed pixel
