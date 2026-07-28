@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
 import { releasePushToken } from "../src/lib/realtime/push";
+import { publishTestAlert } from "../src/lib/alerts";
+import { useActiveLocation } from "../src/lib/active-location";
 import { createSavedLocation, type SavedLocation } from "../src/lib/saved-locations";
 import { fetchProfile, updatePreferences, type UnitPreferences } from "../src/lib/user";
 
@@ -25,8 +27,10 @@ export default function SettingsScreen() {
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
   const { session, registered, signOut } = useAuth();
+  const { active } = useActiveLocation();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const profile = useQuery({
     queryKey: ["profile"],
@@ -107,6 +111,39 @@ export default function SettingsScreen() {
               {error}
             </Text>
           )}
+        </View>
+      )}
+
+      {/* Development builds only. Not a feature flag and not a hidden setting -
+          it simply does not exist in a shipped app, because a warning that is
+          not real must never be one tap away from somebody who would read it
+          as real. Requires an ADMIN account; anything else comes back 403. */}
+      {__DEV__ && (
+        <View className="mt-8 gap-2 rounded-2xl border border-warning-2/40 bg-powierzchnia p-4">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-warning-2">
+            Tylko build deweloperski
+          </Text>
+          <Text className="text-xs text-tekst-muted">
+            Publikuje ostrzeżenie oznaczone jako testowe dla powiatu, w którym leży aktywne miejsce.
+            Przechodzi tą samą ścieżką co ostrzeżenie z IMGW: dopasowanie, socket, push.
+          </Text>
+          <Pressable
+            onPress={async () => {
+              const outcome = await publishTestAlert(active.latitude, active.longitude);
+              setTestResult(
+                outcome.ok
+                  ? `Opublikowane. Dopasowanych miejsc: ${outcome.matched}.`
+                  : outcome.status === 403
+                    ? "403 — to konto nie ma roli ADMIN."
+                    : `Nie udało się (${outcome.status}).`,
+              );
+              if (outcome.ok) void queryClient.invalidateQueries({ queryKey: ["active-alerts"] });
+            }}
+            className="h-11 items-center justify-center rounded-xl bg-warning-2/20 active:opacity-70"
+          >
+            <Text className="text-sm font-semibold text-warning-2">Opublikuj ostrzeżenie testowe</Text>
+          </Pressable>
+          {testResult && <Text className="text-xs text-tekst-muted">{testResult}</Text>}
         </View>
       )}
 

@@ -47,6 +47,27 @@ export async function fetchAlertsAt(latitude: number, longitude: number): Promis
   }
 }
 
+/**
+ * Publishes a test warning over the powiat containing a point.
+ *
+ * Admin-only on the backend and reachable only from a development build, for
+ * the same reason twice over: a warning that is not real must never be one tap
+ * away from somebody who would read it as real.
+ *
+ * Returns how many saved locations it matched, which is the number worth
+ * seeing - zero means the warning landed in a powiat nobody is watching, and
+ * no notification will follow.
+ */
+export async function publishTestAlert(
+  latitude: number,
+  longitude: number,
+): Promise<{ ok: true; matched: number } | { ok: false; status: number }> {
+  const { data, response } = await authorizedClient().POST("/api/admin/alerts/test", {
+    body: { latitude, longitude },
+  });
+  return data ? { ok: true, matched: data.matchedLocations } : { ok: false, status: response.status };
+}
+
 export async function fetchAlertHistory(locationId: number): Promise<ActiveAlert[]> {
   try {
     const { data } = await authorizedClient().GET(

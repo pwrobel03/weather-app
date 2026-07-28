@@ -166,6 +166,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/alerts/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish a test warning over a point's powiat
+         * @description Creates a synthetic warning, matches it against saved locations and dispatches it over the realtime socket and push, exactly as an ingested one. The event name marks it as a test.
+         */
+        post: operations["publishTestAlert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/me/preferences": {
         parameters: {
             query?: never;
@@ -492,6 +512,21 @@ export interface components {
         TerytRefreshResult: {
             /** Format: int32 */
             updatedLocations: number;
+        };
+        TestAlertRequest: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /** @enum {string} */
+            severity?: "1" | "2" | "3";
+        };
+        TestAlertResult: {
+            /** Format: int64 */
+            alertId: number;
+            terytCode: string;
+            /** Format: int32 */
+            matchedLocations: number;
         };
         UpdatePreferencesRequest: {
             /** @enum {string} */
@@ -1086,6 +1121,41 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TerytRefreshResult"];
+                };
+            };
+        };
+    };
+    publishTestAlert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestAlertRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TestAlertResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
                 };
             };
         };
