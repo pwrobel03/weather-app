@@ -3,10 +3,11 @@ import { router } from "expo-router";
 
 import { AuthForm } from "../src/components/auth-form";
 import { useAuth } from "../src/lib/auth/context";
+import { useLocale } from "../src/lib/locale";
 
 export default function RegisterScreen() {
   const { signUp, registered } = useAuth();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
 
   return (
     <AuthForm

@@ -4,7 +4,6 @@ import "../global.css";
 import "../src/lib/link-styling";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DEFAULT_LOCALE } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -14,6 +13,7 @@ import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
+import { LocaleProvider } from "../src/lib/locale";
 import { holdSplash } from "../src/lib/splash";
 import { AuthProvider } from "../src/lib/auth/context";
 
@@ -64,7 +64,8 @@ export default function RootLayout() {
     // flash the splash exists to prevent.
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.colors.tloCiemne }}>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider locale={DEFAULT_LOCALE}>
+      <LocaleProvider>
+      <AuthProvider>
         <ActiveLocationProvider>
           <SafeAreaProvider>
             <StatusBar style="light" />
@@ -77,6 +78,7 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </ActiveLocationProvider>
       </AuthProvider>
+      </LocaleProvider>
     </QueryClientProvider>
     </GestureHandlerRootView>
   );

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { alertUiMessages, appMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { useLocale } from "../../../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertEntry } from "../../../src/components/alert-entry";
@@ -16,7 +17,7 @@ import { fetchAlertHistory } from "../../../src/lib/alerts";
  */
 export default function LocationAlertsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const labels = alertUiMessages[locale];
   const { id } = useLocalSearchParams<{ id: string }>();
   const locationId = Number(id);

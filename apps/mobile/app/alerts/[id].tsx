@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { alertUiMessages, appMessages, authMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { Link, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { useLocale } from "../../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertEntry } from "../../src/components/alert-entry";
@@ -18,7 +19,7 @@ import { useAuth } from "../../src/lib/auth/context";
  */
 export default function AlertDetailScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const labels = alertUiMessages[locale];
   const { session, ready } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();

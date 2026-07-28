@@ -3,6 +3,7 @@ import { appMessages, authMessages, DEFAULT_LOCALE, unitLabels } from "@weather-
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useLocale } from "../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
@@ -24,7 +25,7 @@ type UnitField = keyof typeof unitLabels;
  */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale, choose: chooseLocale } = useLocale();
   const messages = appMessages[locale];
   const { session, registered, signOut } = useAuth();
   const { active } = useActiveLocation();
@@ -113,6 +114,34 @@ export default function SettingsScreen() {
           )}
         </View>
       )}
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-tekst-muted">
+          {messages.language}
+        </Text>
+        <View className="flex-row gap-2">
+          {(["pl", "en"] as const).map((option) => {
+            const selected = locale === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => void chooseLocale(option)}
+                className={`rounded-xl border px-4 py-2 active:opacity-70 ${
+                  selected ? "border-primary bg-primary" : "border-white/10 bg-powierzchnia"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${selected ? "text-white" : "text-tekst-muted"}`}
+                >
+                  {/* Each language named in itself - "Polski", not "Polish" -
+                      or the label is unreadable to the person who needs it. */}
+                  {appMessages[option].languageNames[option]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* Development builds only. Not a feature flag and not a hidden setting -
           it simply does not exist in a shipped app, because a warning that is

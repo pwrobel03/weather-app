@@ -28,6 +28,7 @@ import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
 import { useDeviceLocation } from "../src/lib/device-location";
+import { useLocale } from "../src/lib/locale";
 import { releaseSplash } from "../src/lib/splash";
 import { useAuth } from "../src/lib/auth/context";
 import { fetchActiveAlerts, fetchAlertsAt } from "../src/lib/alerts";
@@ -80,7 +81,8 @@ export default function HomeScreen() {
   // the fact would shift every index under a finger that may already be
   // swiping - the same class of bug as deriving the page list from the active
   // place. One extra frame on a cold start buys a list that never renumbers.
-  const device = useDeviceLocation(appMessages[DEFAULT_LOCALE].myLocation);
+  const { locale } = useLocale();
+  const device = useDeviceLocation(appMessages[locale].myLocation);
 
   const pages = useMemo<ActiveLocation[]>(() => {
     const fromSaved: ActiveLocation[] = (saved.data ?? []).map((location) => ({
@@ -191,7 +193,7 @@ function LocationPage({
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { latitude, longitude } = location;
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const messages = appMessages[locale];
   const weather = weatherMessages[locale];
   const { session } = useAuth();

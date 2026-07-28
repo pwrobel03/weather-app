@@ -27,6 +27,7 @@ import DraggableFlatList, {
   type RenderItemParams,
 } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useLocale } from "../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { WeatherArt } from "../src/components/weather-art/weather-art";
@@ -55,7 +56,7 @@ import {
  */
 export default function LocationsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const messages = appMessages[locale];
   const { session } = useAuth();
   const { active, choose } = useActiveLocation();

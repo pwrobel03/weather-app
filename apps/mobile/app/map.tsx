@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { alertUiMessages, appMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { Link } from "expo-router";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { useLocale } from "../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PowiatMap } from "../src/components/powiat-map";
@@ -20,7 +21,7 @@ import { fetchSavedLocations } from "../src/lib/saved-locations";
  */
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const labels = alertUiMessages[locale];
   const messages = appMessages[locale];
   const { session } = useAuth();
