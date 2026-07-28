@@ -8,8 +8,16 @@ import {
   weatherMessages,
 } from "@weather-app/core";
 import { Link } from "expo-router";
-import { useRef } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useMemo, useRef } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertLiveConnection } from "../src/components/alert-live-connection";
@@ -19,9 +27,10 @@ import { Hero } from "../src/components/hero";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
-import { useActiveLocation } from "../src/lib/active-location";
+import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
 import { useAuth } from "../src/lib/auth/context";
 import { fetchActiveAlerts } from "../src/lib/alerts";
+import { fetchSavedLocations } from "../src/lib/saved-locations";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
 /**
@@ -40,11 +49,91 @@ import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from 
  * screenful. Warnings still get the loud channels - a push notification and the
  * live socket - so they do not need to hold the position above the fold.
  */
+/**
+ * The pager over saved places - swipe left/right to move between them, as in
+ * the platform's own weather app.
+ *
+ * The page list is captured once rather than derived from the active place on
+ * every render, and that is load-bearing. Swiping calls `choose`, which changes
+ * `active`; if the list depended on it, the page the user just swiped away from
+ * could vanish (the unsaved default) and every index after it would shift under
+ * the finger mid-gesture.
+ */
 export default function HomeScreen() {
+  const { width } = useWindowDimensions();
+  const { active, choose } = useActiveLocation();
+  const { session } = useAuth();
+
+  const saved = useQuery({
+    queryKey: ["saved-locations"],
+    queryFn: fetchSavedLocations,
+    enabled: Boolean(session),
+  });
+
+  // The place showing when the screen mounted. Kept even if it is not saved -
+  // otherwise someone with no account, or on the Warszawa default, would be
+  // paging through an empty list.
+  const initial = useRef(active).current;
+
+  const pages = useMemo<ActiveLocation[]>(() => {
+    const fromSaved: ActiveLocation[] = (saved.data ?? []).map((location) => ({
+      savedLocationId: location.id,
+      name: location.name,
+      latitude: location.latitude,
+      longitude: location.longitude,
+    }));
+
+    const alreadyThere = fromSaved.some((page) => page.savedLocationId === initial.savedLocationId);
+    return alreadyThere ? fromSaved : [initial, ...fromSaved];
+  }, [saved.data, initial]);
+
+  const initialIndex = Math.max(
+    pages.findIndex((page) => page.savedLocationId === initial.savedLocationId),
+    0,
+  );
+
+  return (
+    <FlatList
+      data={pages}
+      horizontal
+      pagingEnabled
+      showsHorizontalScrollIndicator={false}
+      keyExtractor={(page) => String(page.savedLocationId ?? `${page.latitude},${page.longitude}`)}
+      initialScrollIndex={initialIndex}
+      // Required for initialScrollIndex, and free to state: every page is
+      // exactly one screen wide.
+      getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+      // Only the visible page and its neighbours stay mounted. Each page runs
+      // three forecast queries, so rendering all of them at once would fire a
+      // burst of requests for places the user may never swipe to.
+      windowSize={3}
+      initialNumToRender={1}
+      onMomentumScrollEnd={(event) => {
+        const index = Math.round(event.nativeEvent.contentOffset.x / width);
+        const page = pages[index];
+        if (page && page.savedLocationId !== active.savedLocationId) void choose(page);
+      }}
+      renderItem={({ item, index }) => (
+        <View style={{ width }}>
+          <LocationPage location={item} pageIndex={index} pageCount={pages.length} />
+        </View>
+      )}
+    />
+  );
+}
+
+function LocationPage({
+  location,
+  pageIndex,
+  pageCount,
+}: {
+  location: ActiveLocation;
+  pageIndex: number;
+  pageCount: number;
+}) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { active } = useActiveLocation();
-  const { latitude, longitude } = active;
+  const { latitude, longitude } = location;
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
   const weather = weatherMessages[locale];
@@ -127,9 +216,10 @@ export default function HomeScreen() {
                       </Link>
                     )}
                   </View>
-                  <Text className="text-base font-semibold text-white">
-                    {active.name}
-                  </Text>
+                  <View className="items-center">
+                    <Text className="text-base font-semibold text-white">{location.name}</Text>
+                    {pageCount > 1 && <PageDots count={pageCount} current={pageIndex} />}
+                  </View>
                   <View className="w-24 items-end">
                     {ready &&
                       (session ? (
@@ -216,5 +306,25 @@ export default function HomeScreen() {
           nothing until a warning arrives. */}
       {session && <AlertLiveConnection locale={locale} />}
     </ScrollView>
+  );
+}
+
+/**
+ * Which page of how many, under the place name.
+ *
+ * A swipe with no affordance is a swipe nobody discovers - the name alone
+ * gives no hint that there is anything either side of it.
+ */
+function PageDots({ count, current }: { count: number; current: number }) {
+  return (
+    <View className="mt-1 flex-row gap-1" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: count }, (_, index) => (
+        <View
+          key={index}
+          className="h-1 w-1 rounded-full bg-white"
+          style={{ opacity: index === current ? 0.95 : 0.35 }}
+        />
+      ))}
+    </View>
   );
 }

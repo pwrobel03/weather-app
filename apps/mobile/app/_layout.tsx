@@ -9,6 +9,7 @@ import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
@@ -44,6 +45,9 @@ export default function RootLayout() {
   );
 
   return (
+    // Gesture handling needs a root of its own; without it a pan gesture never
+    // reaches the component that declared it.
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider locale={DEFAULT_LOCALE}>
         <ActiveLocationProvider>
@@ -59,5 +63,6 @@ export default function RootLayout() {
         </ActiveLocationProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

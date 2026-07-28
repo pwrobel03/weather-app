@@ -56,12 +56,19 @@ class AuthControllerTest {
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
+    @Autowired
+    lateinit var rateLimiter: RateLimiter
+
     private lateinit var client: RestClient
     private val objectMapper = jacksonObjectMapper()
 
     @BeforeEach
     fun setUp() {
         jdbcTemplate.update("TRUNCATE users CASCADE")
+        // These tests spend more of the anonymous budget than a real device
+        // ever would - nine sessions where an install asks for one. Cleared per
+        // test so the limiter under test elsewhere does not fail them here.
+        rateLimiter.reset()
         client = RestClient.create("http://localhost:$port")
     }
 
@@ -242,6 +249,97 @@ class AuthControllerTest {
     }
 
     @Test
+    fun `logging in from a device carries its places onto the account`() {
+        val account = register("jan@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'jan@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Gdańsk", 54.35, 18.65)
+
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        savePlace(deviceId, "Kraków", 50.06, 19.94)
+
+        loginAs(device.accessToken, "jan@example.com", "correct-horse-battery")
+
+        // The union, both directions at once: what the device saved is now on
+        // the account, and what the account had is what the device will fetch.
+        assertEquals(listOf("Gdańsk", "Kraków"), placesOf("jan@example.com"))
+        assertNotEquals("", account.accessToken)
+    }
+
+    @Test
+    fun `the same place saved on both sides does not become two`() {
+        register("ola@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'ola@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Kraków", 50.06, 19.94)
+
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        // Same coordinates, different spelling - the name cannot be the
+        // deduplication key, the position can.
+        savePlace(deviceId, "Krakow", 50.06, 19.94)
+
+        loginAs(device.accessToken, "ola@example.com", "correct-horse-battery")
+
+        assertEquals(listOf("Kraków"), placesOf("ola@example.com"))
+    }
+
+    @Test
+    fun `the absorbed anonymous user is gone afterwards`() {
+        register("piotr@example.com", "correct-horse-battery")
+        val device = anonymous()
+
+        loginAs(device.accessToken, "piotr@example.com", "correct-horse-battery")
+
+        assertEquals(
+            0,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE email IS NULL", Int::class.java),
+        )
+    }
+
+    @Test
+    fun `logging in without a device session leaves the account untouched`() {
+        register("ewa@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'ewa@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Gdańsk", 54.35, 18.65)
+
+        login("ewa@example.com", "correct-horse-battery")
+
+        assertEquals(listOf("Gdańsk"), placesOf("ewa@example.com"))
+    }
+
+    @Test
+    fun `a wrong password merges nothing`() {
+        register("adam@example.com", "correct-horse-battery")
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        savePlace(deviceId, "Kraków", 50.06, 19.94)
+
+        assertThrows<HttpClientErrorException> {
+            loginAs(device.accessToken, "adam@example.com", "wrong-password")
+        }
+
+        // Authentication comes first: a failed attempt must not be a way to
+        // push places onto somebody else's account.
+        assertEquals(emptyList(), placesOf("adam@example.com"))
+        assertEquals(
+            1,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE email IS NULL", Int::class.java),
+        )
+    }
+
+    @Test
     fun `rejects login for an unknown email`() {
         val exception = assertThrows<HttpClientErrorException> {
             login("nobody@example.com", "whatever-password")
@@ -291,6 +389,35 @@ class AuthControllerTest {
             .body(String::class.java)!!
         return objectMapper.readValue<AuthResponse>(json)
     }
+
+    /** Logging in while holding an anonymous session, which is what a device does. */
+    private fun loginAs(accessToken: String, email: String, password: String): AuthResponse {
+        val json = client.post()
+            .uri("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $accessToken")
+            .body(mapOf("email" to email, "password" to password))
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readValue<AuthResponse>(json)
+    }
+
+    private fun savePlace(userId: Long, name: String, latitude: Double, longitude: Double) {
+        jdbcTemplate.update(
+            "INSERT INTO saved_location (user_id, name, latitude, longitude) VALUES (?, ?, ?, ?)",
+            userId,
+            name,
+            latitude,
+            longitude,
+        )
+    }
+
+    private fun placesOf(email: String): List<String> =
+        jdbcTemplate.queryForList(
+            "SELECT name FROM saved_location WHERE user_id = (SELECT id FROM users WHERE email = ?) ORDER BY name",
+            String::class.java,
+            email,
+        ).filterNotNull()
 
     private fun login(email: String, password: String): AuthResponse =
         post("/api/auth/login", mapOf("email" to email, "password" to password))

@@ -76,10 +76,15 @@ class AuthController(private val authService: AuthService) {
         return AuthResponse(tokens.accessToken, tokens.refreshToken)
     }
 
-    @Operation(summary = "Log in", description = "Exchanges email/password for an access/refresh token pair.")
+    @Operation(
+        summary = "Log in",
+        description = "Exchanges email/password for an access/refresh token pair. Sent with an anonymous " +
+            "session's access token, the places saved on that device are moved onto the account (the union, " +
+            "duplicates dropped) and the anonymous user is deleted.",
+    )
     @PostMapping("/api/auth/login")
-    fun login(@Valid @RequestBody request: LoginRequest): AuthResponse {
-        val tokens = authService.login(request.email, request.password)
+    fun login(@Valid @RequestBody request: LoginRequest, principal: Principal?): AuthResponse {
+        val tokens = authService.login(request.email, request.password, principal?.name?.toLong())
         return AuthResponse(tokens.accessToken, tokens.refreshToken)
     }
 

@@ -220,6 +220,82 @@ class SavedLocationControllerTest {
         assertEquals(404, exception.statusCode.value())
     }
 
+    @Test
+    fun `saves a new place at the end of the list`() {
+        val token = registerAndGetAccessToken("kolejnosc@example.com")
+
+        save(token, "Pierwsze", 52.23, 21.01)
+        save(token, "Drugie", 50.06, 19.94)
+        save(token, "Trzecie", 54.35, 18.65)
+
+        // Save order is the default order; a list that reshuffles on every
+        // save is one nobody bothers arranging.
+        assertEquals(listOf("Pierwsze", "Drugie", "Trzecie"), list(token).map { it.name })
+    }
+
+    @Test
+    fun `reorders the list to exactly what was asked for`() {
+        val token = registerAndGetAccessToken("przestaw@example.com")
+        val first = save(token, "Pierwsze", 52.23, 21.01)
+        val second = save(token, "Drugie", 50.06, 19.94)
+        val third = save(token, "Trzecie", 54.35, 18.65)
+
+        reorder(token, listOf(third.id, first.id, second.id))
+
+        assertEquals(listOf("Trzecie", "Pierwsze", "Drugie"), list(token).map { it.name })
+    }
+
+    @Test
+    fun `the chosen order survives adding another place`() {
+        val token = registerAndGetAccessToken("dopisz@example.com")
+        val first = save(token, "Pierwsze", 52.23, 21.01)
+        val second = save(token, "Drugie", 50.06, 19.94)
+        reorder(token, listOf(second.id, first.id))
+
+        save(token, "Nowe", 54.35, 18.65)
+
+        assertEquals(listOf("Drugie", "Pierwsze", "Nowe"), list(token).map { it.name })
+    }
+
+    @Test
+    fun `rejects an order that leaves a place out`() {
+        val token = registerAndGetAccessToken("niepelne@example.com")
+        val first = save(token, "Pierwsze", 52.23, 21.01)
+        save(token, "Drugie", 50.06, 19.94)
+
+        val exception = assertThrows<HttpClientErrorException> { reorder(token, listOf(first.id)) }
+
+        // Half-applying would leave the omitted place at a stale position,
+        // silently interleaved among the new ones.
+        assertEquals(400, exception.statusCode.value())
+        assertEquals(listOf("Pierwsze", "Drugie"), list(token).map { it.name })
+    }
+
+    @Test
+    fun `refuses to reorder using somebody else's place`() {
+        val mine = registerAndGetAccessToken("moje@example.com")
+        val theirs = registerAndGetAccessToken("cudze@example.com")
+        val myPlace = save(mine, "Moje", 52.23, 21.01)
+        val theirPlace = save(theirs, "Cudze", 50.06, 19.94)
+
+        val exception = assertThrows<HttpClientErrorException> {
+            reorder(mine, listOf(myPlace.id, theirPlace.id))
+        }
+
+        assertEquals(400, exception.statusCode.value())
+        assertEquals(listOf("Cudze"), list(theirs).map { it.name })
+    }
+
+    private fun reorder(token: String, orderedIds: List<Long>) {
+        client.put()
+            .uri("/api/users/me/locations/order")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(mapOf("orderedIds" to orderedIds))
+            .retrieve()
+            .toBodilessEntity()
+    }
+
     private fun registerAndGetAccessToken(email: String): String {
         val json = client.post()
             .uri("/api/auth/register")
@@ -260,6 +336,6 @@ class SavedLocationControllerTest {
         val longitude: Double,
         val terytCode: String?,
     ) {
-        fun toDomain() = SavedLocation(id, userId, name, latitude, longitude, terytCode, java.time.Instant.EPOCH)
+        fun toDomain() = SavedLocation(id, userId, name, latitude, longitude, terytCode, 0, java.time.Instant.EPOCH)
     }
 }

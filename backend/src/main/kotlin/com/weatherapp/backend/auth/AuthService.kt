@@ -1,5 +1,6 @@
 package com.weatherapp.backend.auth
 
+import com.weatherapp.backend.user.AnonymousMergeService
 import com.weatherapp.backend.user.User
 import com.weatherapp.backend.user.UserService
 import io.jsonwebtoken.JwtException
@@ -14,6 +15,7 @@ class AuthService(
     private val userService: UserService,
     private val jwtService: JwtService,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val anonymousMergeService: AnonymousMergeService,
     private val properties: JwtProperties,
 ) {
 
@@ -39,8 +41,17 @@ class AuthService(
      */
     fun registerAnonymous(): TokenPair = issueTokens(userService.createAnonymous())
 
-    fun login(email: String, password: String): TokenPair {
+    /**
+     * Logs in, folding the caller's anonymous user into the account first when
+     * the request carries one. Everything saved on the device before signing in
+     * ends up on the account, and the account's own places come back with the
+     * next fetch.
+     */
+    fun login(email: String, password: String, currentUserId: Long?): TokenPair {
         val user = userService.authenticate(email, password)
+        if (currentUserId != null) {
+            anonymousMergeService.absorb(currentUserId, user.id)
+        }
         return issueTokens(user)
     }
 

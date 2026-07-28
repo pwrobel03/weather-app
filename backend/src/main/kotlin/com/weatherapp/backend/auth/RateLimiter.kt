@@ -22,6 +22,7 @@ class RateLimiter(properties: RateLimitProperties) {
     private val login = Window(properties.login)
     private val register = Window(properties.register)
     private val refresh = Window(properties.refresh)
+    private val anonymous = Window(properties.anonymous)
 
     /** Returns the window guarding this request, or null when the path is unlimited. */
     fun windowFor(method: String, path: String): Window? {
@@ -30,6 +31,7 @@ class RateLimiter(properties: RateLimitProperties) {
             "/api/auth/login" -> login
             "/api/auth/register" -> register
             "/api/auth/refresh" -> refresh
+            "/api/auth/anonymous" -> anonymous
             else -> null
         }
     }
@@ -39,6 +41,7 @@ class RateLimiter(properties: RateLimitProperties) {
         login.reset()
         register.reset()
         refresh.reset()
+        anonymous.reset()
     }
 
     class Window(private val rule: RateLimitProperties.Rule) {

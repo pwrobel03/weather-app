@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/users/me/locations/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the current user's saved locations
+         * @description Takes every saved location's id exactly once, in the wanted order. A list that omits or repeats any of them is rejected rather than partially applied.
+         */
+        put: operations["reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/me/push-tokens": {
         parameters: {
             query?: never;
@@ -97,7 +117,7 @@ export interface paths {
         put?: never;
         /**
          * Log in
-         * @description Exchanges email/password for an access/refresh token pair.
+         * @description Exchanges email/password for an access/refresh token pair. Sent with an anonymous session's access token, the places saved on that device are moved onto the account (the union, duplicates dropped) and the anonymous user is deleted.
          */
         post: operations["login"];
         delete?: never;
@@ -404,6 +424,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ReorderRequest: {
+            orderedIds: number[];
+        };
         RegisterPushTokenRequest: {
             token: string;
         };
@@ -425,6 +448,8 @@ export interface components {
             /** Format: double */
             longitude: number;
             terytCode?: string;
+            /** Format: int32 */
+            position: number;
             /** Format: date-time */
             createdAt: string;
         };
@@ -616,6 +641,61 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     registerPushToken: {
         parameters: {
             query?: never;
@@ -698,6 +778,17 @@ export interface operations {
                     "*/*": components["schemas"]["SavedLocation"][];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
             /** @description Not Found */
             404: {
                 headers: {
@@ -742,6 +833,17 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SavedLocation"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Not Found */
@@ -1414,6 +1516,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
             };
             /** @description Not Found */
             404: {

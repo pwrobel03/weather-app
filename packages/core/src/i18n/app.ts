@@ -16,6 +16,8 @@ export type AppMessages = {
   savedPlaces: string;
   searchPlaceholder: string;
   noSavedPlaces: string;
+  noSearchResults: string;
+  cancel: string;
   signInToSave: string;
   remove: string;
   alreadySaved: string;
@@ -49,6 +51,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     loading: "Ładowanie",
     savedPlaces: "Twoje miejsca",
     searchPlaceholder: "Szukaj miejscowości",
+    noSearchResults: "Brak wyników",
+    cancel: "Anuluj",
     noSavedPlaces: "Nie masz jeszcze zapisanych miejsc. Wyszukaj miejscowość powyżej.",
     signInToSave: "Zaloguj się, aby zapisywać miejsca i dostawać ostrzeżenia.",
     remove: "Usuń",
@@ -69,6 +73,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     loading: "Loading",
     savedPlaces: "Your places",
     searchPlaceholder: "Search for a town",
+    noSearchResults: "No results",
+    cancel: "Cancel",
     noSavedPlaces: "No saved places yet. Search for a town above.",
     signInToSave: "Sign in to save places and receive warnings.",
     remove: "Remove",

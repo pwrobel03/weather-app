@@ -17,6 +17,13 @@ data class RateLimitProperties(
     val login: Rule = Rule(limit = 5, window = Duration.ofMinutes(15)),
     val register: Rule = Rule(limit = 5, window = Duration.ofHours(1)),
     val refresh: Rule = Rule(limit = 60, window = Duration.ofMinutes(15)),
+    /**
+     * Anonymous sessions write a `users` row with no credentials attached, so
+     * an unlimited endpoint is a table-growth primitive for anyone with a
+     * script. A device asks for one of these once per install, so the budget
+     * only has to cover a reinstall or two.
+     */
+    val anonymous: Rule = Rule(limit = 5, window = Duration.ofHours(1)),
 ) {
     data class Rule(val limit: Int, val window: Duration)
 }

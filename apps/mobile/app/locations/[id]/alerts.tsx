@@ -35,7 +35,7 @@ export default function LocationAlertsScreen() {
         <Link href="/locations" className="text-sm text-tekst-muted">
           ← {appMessages[locale].back}
         </Link>
-        <Text className="text-3xl font-bold text-tekst">{labels.warnings}</Text>
+        <Text className="text-3xl font-bold text-tekst">{labels.warningHistory}</Text>
       </View>
 
       <FlatList

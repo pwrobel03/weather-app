@@ -44,6 +44,22 @@ class SavedLocationService(
         return saved
     }
 
+    /**
+     * Rewrites the whole order in one go.
+     *
+     * The request has to name every saved place exactly once. A partial list
+     * would leave the places left out with stale positions, silently
+     * interleaved among the new ones - so a mismatch is the caller's bug and is
+     * rejected rather than half-applied.
+     */
+    fun reorder(userId: Long, orderedIds: List<Long>) {
+        val current = repository.idsInOrder(userId)
+        if (orderedIds.size != current.size || orderedIds.toSet() != current.toSet()) {
+            throw InvalidSavedLocationOrderException()
+        }
+        repository.applyOrder(userId, orderedIds)
+    }
+
     fun delete(userId: Long, id: Long) {
         if (!repository.deleteByIdAndUserId(id, userId)) {
             throw SavedLocationNotFoundException(id)
