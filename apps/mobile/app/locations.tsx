@@ -3,7 +3,6 @@ import {
   alertMessages,
   alertUiMessages,
   appMessages,
-  authMessages,
   conditionFromWeatherCode,
   DEFAULT_LOCALE,
   weatherMessages,
@@ -58,7 +57,7 @@ export default function LocationsScreen() {
   const insets = useSafeAreaInsets();
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
-  const { session, ready } = useAuth();
+  const { session } = useAuth();
   const { active, choose } = useActiveLocation();
   const queryClient = useQueryClient();
 
@@ -159,19 +158,6 @@ export default function LocationsScreen() {
     }
   }, [saved.data, active, choose]);
 
-  if (ready && !session) {
-    return (
-      <View
-        className="flex-1 items-center justify-center gap-4 bg-tlo-ciemne px-8"
-        style={{ paddingTop: insets.top }}
-      >
-        <Text className="text-center text-base text-tekst-muted">{messages.signInToSave}</Text>
-        <Link href="/login" className="text-base font-semibold text-primary">
-          {authMessages[locale].signIn}
-        </Link>
-      </View>
-    );
-  }
 
   const searching = debouncedQuery.trim().length >= 2;
 

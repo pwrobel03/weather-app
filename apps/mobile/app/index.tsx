@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   alertUiMessages,
   appMessages,
-  authMessages,
   DEFAULT_LOCALE,
   localHourFromForecast,
   weatherMessages,
@@ -163,7 +162,7 @@ function LocationPage({
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
   const weather = weatherMessages[locale];
-  const { session, ready } = useAuth();
+  const { session } = useAuth();
 
   const conditions = useQuery({
     queryKey: ["current", latitude, longitude],
@@ -236,27 +235,21 @@ function LocationPage({
                   className="flex-row items-center justify-between px-5"
                 >
                   <View className="w-24">
-                    {ready && session && (
-                      <Link href="/settings" className="text-sm font-semibold text-white/90">
-                        {messages.settings}
-                      </Link>
-                    )}
+                    <Link href="/settings" className="text-sm font-semibold text-white/90">
+                      {messages.settings}
+                    </Link>
                   </View>
                   <View className="items-center">
                     <Text className="text-base font-semibold text-white">{location.name}</Text>
                     {pageCount > 1 && <PageDots count={pageCount} current={pageIndex} />}
                   </View>
+                  {/* Saved places no longer wait for an account - the device
+                      has a user of its own from first launch - so this is the
+                      same link whether or not anyone has signed up. */}
                   <View className="w-24 items-end">
-                    {ready &&
-                      (session ? (
-                        <Link href="/locations" className="text-sm font-semibold text-white/90">
-                          {messages.savedPlaces}
-                        </Link>
-                      ) : (
-                        <Link href="/login" className="text-sm font-semibold text-white/90">
-                          {authMessages[locale].signIn}
-                        </Link>
-                      ))}
+                    <Link href="/locations" className="text-sm font-semibold text-white/90">
+                      {messages.savedPlaces}
+                    </Link>
                   </View>
                 </View>
               }

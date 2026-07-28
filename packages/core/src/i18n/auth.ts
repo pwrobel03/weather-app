@@ -17,6 +17,11 @@ export type AuthMessages = {
   password: string;
   displayName: string;
   displayNameOptional: string;
+  /**
+   * Why an account is worth having, on a device that already works without
+   * one. Deliberately not phrased as a restriction: nothing here is locked.
+   */
+  accountBenefit: string;
   noAccount: string;
   haveAccount: string;
   invalidCredentials: string;
@@ -34,6 +39,8 @@ export const authMessages: Record<Locale, AuthMessages> = {
     password: "Hasło",
     displayName: "Nazwa",
     displayNameOptional: "Nazwa (opcjonalnie)",
+    accountBenefit:
+      "Twoje miejsca i ostrzeżenia działają bez konta. Załóż je, żeby mieć te same miejsca także na komputerze.",
     noAccount: "Nie masz konta? Załóż je",
     haveAccount: "Masz już konto? Zaloguj się",
     invalidCredentials: "Nieprawidłowy e-mail lub hasło.",
@@ -49,6 +56,8 @@ export const authMessages: Record<Locale, AuthMessages> = {
     password: "Password",
     displayName: "Name",
     displayNameOptional: "Name (optional)",
+    accountBenefit:
+      "Your places and warnings work without an account. Create one to have the same places on your computer too.",
     noAccount: "No account? Create one",
     haveAccount: "Already have an account? Sign in",
     invalidCredentials: "Incorrect email or password.",

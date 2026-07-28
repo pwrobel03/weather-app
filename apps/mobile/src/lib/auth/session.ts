@@ -42,6 +42,39 @@ export async function hydrate(): Promise<StoredSession | null> {
   return current;
 }
 
+/**
+ * Gives the device a user of its own, before anyone signs up.
+ *
+ * This is what lets a fresh install save places and receive warnings straight
+ * away: the backend issues a credential-less user and an ordinary token pair,
+ * so every authorised call downstream works exactly as it does for a
+ * registered account. Registering later attaches an email to this same user,
+ * so nothing saved beforehand has to move.
+ *
+ * A failure here is not fatal and must not be: the forecast is public, so the
+ * app still shows weather. Only the parts that need a user - saving a place,
+ * warnings - stay unavailable until a later launch succeeds.
+ */
+export async function startAnonymousSession(): Promise<StoredSession | null> {
+  try {
+    const { data } = await createWeatherApiClient({ baseUrl: API_BASE_URL }).POST(
+      "/api/auth/anonymous",
+      {},
+    );
+    if (!data) return null;
+
+    const session: StoredSession = {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      anonymous: true,
+    };
+    await setSession(session);
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 export async function setSession(session: StoredSession): Promise<void> {
   current = session;
   await saveSession(session);
@@ -88,7 +121,13 @@ async function doRefresh(): Promise<string | null> {
       return null;
     }
 
-    await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+    // Refreshing renews tokens, it does not change who the device is - an
+    // anonymous session stays anonymous until someone registers or signs in.
+    await setSession({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      anonymous: current?.anonymous ?? false,
+    });
     return data.accessToken;
   } catch {
     // A transport failure is not proof the session is dead - the phone may
