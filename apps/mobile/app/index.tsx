@@ -17,6 +17,11 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertLiveConnection } from "../src/components/alert-live-connection";
@@ -133,12 +138,28 @@ export default function HomeScreen() {
   const shownIndex = useRef(initialIndex);
   const [dotIndex, setDotIndex] = useState(initialIndex);
 
+  // The pager's position in pixels, written on every scroll frame on the UI
+  // thread. The dots read it from there, so following the finger costs no
+  // React renders at all - which is what lets them follow it at 120Hz while
+  // three forecast queries are settling on the page underneath.
+  const scrollX = useSharedValue(initialIndex * width);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollX.value = event.contentOffset.x;
+  });
+
+  // In pages rather than pixels, so the dots never need to know how wide the
+  // screen is.
+  const pageProgress = useDerivedValue(() => scrollX.value / width);
+
   useEffect(() => {
     const index = pages.findIndex((page) => page.savedLocationId === active.savedLocationId);
     if (index < 0 || index === shownIndex.current) return;
 
     shownIndex.current = index;
     setDotIndex(index);
+    // Moved with the list rather than left to the scroll event: this jump is
+    // unanimated, and an unanimated scroll is not guaranteed to emit one.
+    scrollX.value = index * width;
     pagerRef.current?.scrollToIndex({ index, animated: false });
   }, [active.savedLocationId, pages]);
 
@@ -154,12 +175,16 @@ export default function HomeScreen() {
     {/* The hero is dark in both themes, so the clock above it has to be light
         in both - this overrides the themed one set in the layout. */}
     <StatusBar style="light" />
-    <FlatList
+    <Animated.FlatList
       ref={pagerRef}
       data={pages}
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
+      onScroll={scrollHandler}
+      // Every frame, not every sixteenth: the dots are driven from this, and a
+      // throttled offset is exactly the stutter this replaces.
+      scrollEventThrottle={16}
       keyExtractor={(page) => String(page.savedLocationId ?? `${page.latitude},${page.longitude}`)}
       initialScrollIndex={initialIndex}
       // Required for initialScrollIndex, and free to state: every page is
@@ -205,7 +230,11 @@ export default function HomeScreen() {
         icon: "places",
         onPress: () => router.push("/locations"),
       }}
-      dots={pages.length > 1 ? { count: pages.length, current: dotIndex } : undefined}
+      dots={
+        pages.length > 1
+          ? { count: pages.length, current: dotIndex, progress: pageProgress }
+          : undefined
+      }
     />
     </View>
   );
