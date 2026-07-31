@@ -6,7 +6,11 @@ import type { ActiveAlert } from "../lib/alerts";
 import { AlertEntry } from "./alert-entry";
 
 /**
- * Warnings in force for the user's saved places.
+ * Warnings in force, for whichever place the caller narrowed them to.
+ *
+ * Takes a list rather than fetching one: the home screen pages between places
+ * off a single account-wide query, so what counts as "in force here" is the
+ * page's question to answer, not this component's.
  *
  * Collapses to a single line when there is nothing to report. That is the rule
  * apps/web settled on after measuring the home screen: a quiet warnings panel

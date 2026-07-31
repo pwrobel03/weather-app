@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { DEFAULT_LOCALE, type Locale } from "@weather-app/core";
+import { type Locale } from "@weather-app/core";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+
+import { deviceLocale, resolveLocale } from "./preferences";
 
 const KEY = "wx_locale";
 
@@ -44,7 +46,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
     void AsyncStorage.getItem(KEY)
       .then((stored) => {
-        if (!cancelled && isLocale(stored)) setLocale(stored);
+        if (!cancelled) setLocale((current) => resolveLocale(stored, current));
       })
       .catch(() => {})
       .finally(() => {
@@ -64,26 +66,4 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   return (
     <LocaleContext.Provider value={{ locale, ready, choose }}>{children}</LocaleContext.Provider>
   );
-}
-
-/**
- * The device's language, read from Intl rather than from expo-localization.
- *
- * A native module would be the textbook answer, but all that is needed here is
- * a coarse language tag, and `Intl.DateTimeFormat` is already load-bearing in
- * this app (dates and the naive-time helpers), so it is known to work on this
- * runtime. Not adding a native module also means not adding a rebuild to every
- * checkout of this branch.
- */
-function deviceLocale(): Locale {
-  try {
-    const tag = new Intl.DateTimeFormat().resolvedOptions().locale;
-    return tag.toLowerCase().startsWith("pl") ? "pl" : "en";
-  } catch {
-    return DEFAULT_LOCALE;
-  }
-}
-
-function isLocale(value: string | null): value is Locale {
-  return value === "pl" || value === "en";
 }

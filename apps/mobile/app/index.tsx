@@ -6,8 +6,8 @@ import {
   localHourFromForecast,
   weatherMessages,
 } from "@weather-app/core";
-import { Link } from "expo-router";
-import { useEffect, useMemo, useRef } from "react";
+import { Link, router } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -29,11 +29,13 @@ import { WeatherBackground } from "../src/components/weather-background";
 import { useActiveLocation, type ActiveLocation } from "../src/lib/active-location";
 import { StatusBar } from "expo-status-bar";
 
+import { GlassBar } from "../src/components/glass-bar";
+
 import { useDeviceLocation } from "../src/lib/device-location";
 import { useLocale } from "../src/lib/locale";
 import { releaseSplash } from "../src/lib/splash";
 import { useAuth } from "../src/lib/auth/context";
-import { fetchActiveAlerts, fetchAlertsAt } from "../src/lib/alerts";
+import { alertsForLocation, fetchActiveAlerts, fetchAlertsAt } from "../src/lib/alerts";
 import { fetchSavedLocations } from "../src/lib/saved-locations";
 import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from "../src/lib/weather";
 
@@ -119,18 +121,24 @@ export default function HomeScreen() {
    *
    * This screen stays mounted while the saved-places screen sits on top of it,
    * so picking a place there and coming back would otherwise land on whatever
-   * page the pager was left on - the choice apparently ignored. The page index
-   * is tracked in a ref rather than state because swiping writes it on every
-   * settle and nothing renders from it.
+   * page the pager was left on - the choice apparently ignored.
+   *
+   * The index is held twice on purpose: the ref is what the effect below
+   * compares against, and reading a ref written during a scroll is the only
+   * way to avoid scrolling back over a swipe that already happened. The state
+   * exists because the dots render from it, and a ref would leave them on the
+   * page the screen opened at.
    */
   const pagerRef = useRef<FlatList<ActiveLocation>>(null);
   const shownIndex = useRef(initialIndex);
+  const [dotIndex, setDotIndex] = useState(initialIndex);
 
   useEffect(() => {
     const index = pages.findIndex((page) => page.savedLocationId === active.savedLocationId);
     if (index < 0 || index === shownIndex.current) return;
 
     shownIndex.current = index;
+    setDotIndex(index);
     pagerRef.current?.scrollToIndex({ index, animated: false });
   }, [active.savedLocationId, pages]);
 
@@ -140,7 +148,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <>
+    // An explicit box, not a fragment: an absolutely positioned child needs a
+    // laid-out ancestor to sit against, and a fragment gives it none.
+    <View className="flex-1">
     {/* The hero is dark in both themes, so the clock above it has to be light
         in both - this overrides the themed one set in the layout. */}
     <StatusBar style="light" />
@@ -168,6 +178,7 @@ export default function HomeScreen() {
         // Recorded before `choose`, so the effect above sees the page the
         // finger already put us on and does not scroll it a second time.
         shownIndex.current = index;
+        setDotIndex(index);
         if (page.savedLocationId !== active.savedLocationId) void choose(page);
       }}
       renderItem={({ item, index }) => (
@@ -175,25 +186,38 @@ export default function HomeScreen() {
           <LocationPage
             location={item}
             pageIndex={index}
-            pageCount={pages.length}
             isDeviceLocation={index === 0 && device.status === "ready" && device.location !== null}
           />
         </View>
       )}
     />
-    </>
+
+    {/* Outside the pager, so it belongs to the screen rather than to a page:
+        one bar, not one per place, and it does not slide with the swipe. */}
+    <GlassBar
+      left={{
+        label: appMessages[locale].settings,
+        icon: "settings",
+        onPress: () => router.push("/settings"),
+      }}
+      right={{
+        label: appMessages[locale].savedPlaces,
+        icon: "places",
+        onPress: () => router.push("/locations"),
+      }}
+      dots={pages.length > 1 ? { count: pages.length, current: dotIndex } : undefined}
+    />
+    </View>
   );
 }
 
 function LocationPage({
   location,
   pageIndex,
-  pageCount,
   isDeviceLocation,
 }: {
   location: ActiveLocation;
   pageIndex: number;
-  pageCount: number;
   /** True for the page showing where the phone is, rather than a saved place. */
   isDeviceLocation: boolean;
 }) {
@@ -238,6 +262,15 @@ function LocationPage({
     enabled: atPosition,
   });
 
+  // Narrowed to this page's place. The account-wide query is shared by every
+  // page - one request, not one per swipe - so the page is what has to ask the
+  // narrower question of the answer.
+  const alertsShown = useMemo(() => {
+    if (atPosition) return alertsHere.data ?? [];
+    if (location.savedLocationId === null) return [];
+    return alertsForLocation(alerts.data ?? [], location.savedLocationId);
+  }, [atPosition, alertsHere.data, alerts.data, location.savedLocationId]);
+
   // Released on the first page only, and on settled rather than on success: a
   // forecast that failed still has a screen to show, and holding the splash for
   // it would turn one dead request into an app that never starts.
@@ -275,7 +308,9 @@ function LocationPage({
     <ScrollView
       ref={scrollRef}
       className="flex-1 bg-tlo"
-      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      // Room for the floating bar, not just for the home indicator: a control
+      // that hovers over the content has to leave the content somewhere to end.
+      contentContainerStyle={{ paddingBottom: insets.bottom + 84 }}
       showsVerticalScrollIndicator={false}
     >
       <View style={{ height: heroHeight }} className="overflow-hidden rounded-b-[2.5rem]">
@@ -292,25 +327,11 @@ function LocationPage({
               header={
                 <View
                   style={{ paddingTop: insets.top + 8 }}
-                  className="flex-row items-center justify-between px-5"
+                  className="flex-row items-center justify-center px-5"
                 >
-                  <View className="w-24">
-                    <Link href="/settings" className="text-sm font-semibold text-white/90">
-                      {messages.settings}
-                    </Link>
-                  </View>
-                  <View className="items-center">
-                    <Text className="text-base font-semibold text-white">{location.name}</Text>
-                    {pageCount > 1 && <PageDots count={pageCount} current={pageIndex} />}
-                  </View>
-                  {/* Saved places no longer wait for an account - the device
-                      has a user of its own from first launch - so this is the
-                      same link whether or not anyone has signed up. */}
-                  <View className="w-24 items-end">
-                    <Link href="/locations" className="text-sm font-semibold text-white/90">
-                      {messages.savedPlaces}
-                    </Link>
-                  </View>
+                  {/* The dots moved to the bottom row, where the thumb is.
+                      What stays here is the name, with the room that freed. */}
+                  <Text className="text-2xl font-semibold text-white">{location.name}</Text>
                 </View>
               }
             />
@@ -376,7 +397,7 @@ function LocationPage({
         }
       >
         <AlertsTile
-          alerts={alerts.data ?? []}
+          alerts={alertsShown}
           authenticated={Boolean(session)}
           locale={locale}
         />
@@ -385,25 +406,5 @@ function LocationPage({
           nothing until a warning arrives. */}
       {session && <AlertLiveConnection locale={locale} />}
     </ScrollView>
-  );
-}
-
-/**
- * Which page of how many, under the place name.
- *
- * A swipe with no affordance is a swipe nobody discovers - the name alone
- * gives no hint that there is anything either side of it.
- */
-function PageDots({ count, current }: { count: number; current: number }) {
-  return (
-    <View className="mt-1 flex-row gap-1" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: count }, (_, index) => (
-        <View
-          key={index}
-          className="h-1 w-1 rounded-full bg-white"
-          style={{ opacity: index === current ? 0.95 : 0.35 }}
-        />
-      ))}
-    </View>
   );
 }

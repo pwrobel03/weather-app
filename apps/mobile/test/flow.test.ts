@@ -4,7 +4,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { API_BASE_URL } from "../src/lib/api";
 import { endSession, getSession, setSession } from "../src/lib/auth/session";
-import { findAlertById, fetchActiveAlerts } from "../src/lib/alerts";
+import {
+  alertsForLocation,
+  findAlertById,
+  fetchActiveAlerts,
+  type ActiveAlert,
+} from "../src/lib/alerts";
 import { createSavedLocation, fetchSavedLocations, searchLocations } from "../src/lib/saved-locations";
 import { __reset } from "./stubs/expo-secure-store";
 
@@ -181,5 +186,45 @@ describe("findAlertById", () => {
     await createSavedLocation("Warszawa", 52.2297, 21.0122);
 
     expect(await findAlertById(12345)).toBeNull();
+  });
+});
+
+/**
+ * The narrowing the pager needs. `/api/alerts/active` answers for the account,
+ * and each page of the pager shows one place - so a warning issued over one
+ * powiat must not appear on the page for a town in another.
+ */
+describe("alertsForLocation", () => {
+  const zgierz: ActiveAlert = {
+    ...ALERT,
+    severity: "2",
+    id: 900,
+    affectedLocations: [{ id: 7, name: "Zgierz" }],
+  };
+  const both: ActiveAlert = {
+    ...zgierz,
+    id: 901,
+    affectedLocations: [
+      { id: 7, name: "Zgierz" },
+      { id: 8, name: "Biskupice" },
+    ],
+  };
+
+  it("drops a warning issued for another of the account's places", () => {
+    expect(alertsForLocation([zgierz], 8)).toEqual([]);
+  });
+
+  it("keeps one that covers this place among others", () => {
+    // A single IMGW warning routinely spans several powiats, so covering more
+    // than the page's place is the normal case rather than the edge.
+    expect(alertsForLocation([zgierz, both], 8)).toEqual([both]);
+  });
+
+  it("keeps every warning that names the place", () => {
+    expect(alertsForLocation([zgierz, both], 7)).toEqual([zgierz, both]);
+  });
+
+  it("returns nothing for a place no warning names", () => {
+    expect(alertsForLocation([zgierz, both], 99)).toEqual([]);
   });
 });

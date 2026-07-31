@@ -2,10 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colorScheme } from "nativewind";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
+import { isThemeChoice, type ThemeChoice } from "./preferences";
+
 const KEY = "wx_theme";
 
-/** "system" is a real choice, not the absence of one - it tracks the phone. */
-export type ThemeChoice = "system" | "light" | "dark";
+// Re-exported so the settings screen keeps importing its theme type from the
+// provider it uses, rather than reaching past it.
+export type { ThemeChoice };
 
 type ThemeValue = {
   theme: ThemeChoice;
@@ -59,8 +62,4 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return <ThemeContext.Provider value={{ theme, choose }}>{children}</ThemeContext.Provider>;
-}
-
-function isThemeChoice(value: string | null): value is ThemeChoice {
-  return value === "system" || value === "light" || value === "dark";
 }

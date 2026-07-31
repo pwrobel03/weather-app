@@ -23,6 +23,24 @@ export async function fetchActiveAlerts(): Promise<ActiveAlert[]> {
 }
 
 /**
+ * The warnings from that list which cover one saved place.
+ *
+ * `/api/alerts/active` answers for the account, not for a place: one call
+ * carries everything in force across every location the user keeps, each
+ * warning naming the ones it covers. That is the right shape for one request
+ * instead of one per page - but a screen showing a single place has to narrow
+ * it, or Biskupice reports a warning issued for Zgierz.
+ *
+ * Matched on id rather than on name: two saved places can share a name, and
+ * the id is what the server matched against a powiat in the first place.
+ */
+export function alertsForLocation(alerts: ActiveAlert[], savedLocationId: number): ActiveAlert[] {
+  return alerts.filter((alert) =>
+    alert.affectedLocations.some((location) => location.id === savedLocationId),
+  );
+}
+
+/**
  * Every warning ever recorded for one saved location, newest first.
  *
  * The backend scopes this by user as well as by location, so a guessed id
