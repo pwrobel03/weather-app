@@ -37,6 +37,10 @@ export type AppMessages = {
   windSpeed: string;
   precipitationUnit: string;
   saveFailedGeneric: string;
+  /** Settings group holding theme and language. */
+  appearance: string;
+  /** Settings group holding sign-in state. */
+  account: string;
 };
 
 /**
@@ -78,6 +82,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     windSpeed: "Prędkość wiatru",
     precipitationUnit: "Opad",
     saveFailedGeneric: "Nie udało się zapisać zmiany.",
+    appearance: "Wygląd",
+    account: "Konto",
   },
   en: {
     forecastUnavailable: "Could not load the forecast",
@@ -105,5 +111,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     windSpeed: "Wind speed",
     precipitationUnit: "Precipitation",
     saveFailedGeneric: "Could not save that change.",
+    appearance: "Appearance",
+    account: "Account",
   },
 };
