@@ -20,6 +20,7 @@ export * from "./weather/background";
 export * from "./weather/channels";
 export * from "./weather/color";
 export * from "./weather/condition";
+export * from "./weather/contrast";
 export * from "./weather/forecast";
 export * from "./weather/naive-time";
 export * from "./weather/projection";

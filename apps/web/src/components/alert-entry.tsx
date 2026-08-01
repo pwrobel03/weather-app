@@ -49,7 +49,13 @@ export function AlertEntry({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <TriangleAlert aria-hidden="true" className="size-4" style={{ color: severityColor }} />
           <h3 className="text-base font-semibold">{alert.event}</h3>
-          <span className="text-xs font-semibold" style={{ color: severityColor }}>
+          {/* The word wears text ink, not the severity colour. Level 3 on the
+              alert card measures 4.13:1 - under the 4.5 floor for text this
+              size - and a severity that only a full-colour reader can make out
+              is the failure this whole scale exists to avoid. The triangle
+              beside it carries the colour, where 3:1 is the applicable floor
+              and it passes. */}
+          <span className="text-xs font-semibold text-foreground">
             {messages.severityLabel[alert.severity]}
           </span>
           {expired && (

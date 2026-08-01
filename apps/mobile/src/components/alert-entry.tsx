@@ -53,7 +53,10 @@ export function AlertEntry({
       <View className="min-w-0 flex-1 gap-1.5">
         <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
           <Text className="text-base font-semibold text-tekst">{alert.event}</Text>
-          <Text className="text-xs font-semibold" style={{ color: severityColor }}>
+          {/* Text ink rather than the severity colour - level 3 measures
+              4.13:1 on this surface, under the floor for text this size. The
+              bar down the left carries the colour instead. */}
+          <Text className="text-xs font-semibold text-tekst">
             {messages.severityLabel[alert.severity]}
           </Text>
           {expired && (
