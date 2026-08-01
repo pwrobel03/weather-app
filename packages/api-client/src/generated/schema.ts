@@ -474,6 +474,7 @@ export interface components {
         RegisterPushTokenRequest: {
             token: string;
             locale?: string;
+            timeZone?: string;
         };
         SaveLocationRequest: {
             name: string;

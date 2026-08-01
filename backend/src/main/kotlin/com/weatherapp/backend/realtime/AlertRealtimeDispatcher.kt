@@ -7,6 +7,7 @@ import com.weatherapp.backend.alert.AlertDeliveryRepository
 import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.alert.AlertQueryRepository
 import com.weatherapp.backend.alert.WarningSeverity
+import com.weatherapp.backend.user.PushDevice
 import com.weatherapp.backend.user.UserPushTokenRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -113,13 +114,18 @@ class AlertRealtimeDispatcher(
         // Grouped by language: one user can hold devices set to different
         // languages, which is exactly why the locale rides on the token rather
         // than on the account (follow-up.md point 12).
-        val pushTokens = if (sessions.isEmpty()) {
-            userPushTokenRepository.findTokensByUserIdGroupedByLocale(userId)
+        val pushDevices = if (sessions.isEmpty()) {
+            // Quiet hours are decided per device, so the zone has to travel
+            // with each token rather than be resolved once for the user: two
+            // phones on one account can be in different zones, and one of them
+            // being asleep says nothing about the other.
+            userPushTokenRepository.findDevicesByUserId(userId)
+                .filter { QuietHours.allows(alert.severity, Instant.now(), it.timeZone) }
         } else {
-            emptyMap()
+            emptyList()
         }
 
-        if (sessions.isEmpty() && pushTokens.isEmpty()) return
+        if (sessions.isEmpty() && pushDevices.isEmpty()) return
 
         // Which of this user's matched places are worth a notification at this
         // level. Read before the delivery claim, deliberately: claiming and
@@ -156,7 +162,7 @@ class AlertRealtimeDispatcher(
         val delivered = if (sessions.isNotEmpty()) {
             sendNotification(notification, userId)
         } else {
-            sendPushNotification(notification, pushTokens)
+            sendPushNotification(notification, pushDevices)
         }
 
         if (!delivered) {
@@ -198,11 +204,12 @@ class AlertRealtimeDispatcher(
 
     private fun sendPushNotification(
         notification: AlertRealtimeNotification,
-        tokensByLocale: Map<String, List<String>>,
+        devices: List<PushDevice>,
     ): Boolean {
         // One message per language, not per device: three phones set to the
         // same language cost one composed string.
-        val messages = tokensByLocale.flatMap { (locale, tokens) ->
+        val messages = devices.groupBy { it.locale }.flatMap { (locale, group) ->
+            val tokens = group.map { it.token }
             val title = PushMessages.title(locale, notification.event, notification.severity.level)
             // IMGW's own text, in Polish whatever the device asked for. It is a
             // safety instruction, and a machine translation of one is a

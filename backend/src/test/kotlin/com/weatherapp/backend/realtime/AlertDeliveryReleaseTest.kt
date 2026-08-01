@@ -95,7 +95,7 @@ class AlertDeliveryReleaseTest {
     fun `a failed push release the claim so the alert is retried`() {
         whenever(expoPushClient.sendPushNotifications(any())) doReturn false
         val userId = userWithLocation("alice@example.com", "3029")
-        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl")
+        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl", "Europe/Warsaw")
         val alert = storeAndMatch()
 
         dispatcher.dispatch(listOf(alert))
@@ -108,7 +108,7 @@ class AlertDeliveryReleaseTest {
     fun `a successful push keeps the claim so it is not sent twice`() {
         whenever(expoPushClient.sendPushNotifications(any())) doReturn true
         val userId = userWithLocation("alice@example.com", "3029")
-        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl")
+        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl", "Europe/Warsaw")
         val alert = storeAndMatch()
 
         dispatcher.dispatch(listOf(alert))
