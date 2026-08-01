@@ -79,6 +79,29 @@ class AlertQueryRepository(private val jdbcTemplate: JdbcTemplate) {
             java.sql.Timestamp.from(now),
         ).map { AlertForUser(it, emptyList()) }
 
+    /**
+     * Whether this warning is one the caller is allowed to look at.
+     *
+     * The same rule the list endpoints enforce implicitly, made explicit for a
+     * resource fetched by id: a warning is visible if it covers one of the
+     * user's saved places. Without this the revision history would be the one
+     * endpoint where a guessed id returns somebody else's data.
+     */
+    fun isVisibleToUser(alertId: Long, userId: Long): Boolean =
+        jdbcTemplate.queryForObject(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM alert_location_match alm
+                JOIN saved_location sl ON sl.id = alm.saved_location_id
+                WHERE alm.alert_id = ? AND sl.user_id = ?
+            )
+            """.trimIndent(),
+            Boolean::class.java,
+            alertId,
+            userId,
+        ) ?: false
+
     private fun findForUser(
         userId: Long,
         extraCondition: String,

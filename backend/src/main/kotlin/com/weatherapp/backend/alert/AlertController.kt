@@ -21,6 +21,15 @@ import org.springframework.web.bind.annotation.RestController
 import java.security.Principal
 import java.time.Instant
 
+/**
+ * Thrown for a warning the caller cannot see.
+ *
+ * Surfaces as 404 rather than 403, deliberately and for the same reason
+ * findAlertById gives on the client: a warning belonging to somebody else
+ * should be indistinguishable from one that never existed.
+ */
+class AlertNotVisibleException(alertId: Long) : RuntimeException("Alert $alertId not found")
+
 data class AlertResponse(
     val id: Long,
     val event: String,
@@ -66,9 +75,27 @@ data class AlertResponse(
 @SecurityRequirement(name = "bearerAuth")
 class AlertController(
     private val alertQueryRepository: AlertQueryRepository,
+    private val alertRevisionRepository: AlertRevisionRepository,
     private val savedLocationRepository: SavedLocationRepository,
     private val terytResolutionService: TerytResolutionService,
 ) {
+
+    @Operation(
+        summary = "How this warning has changed since it was issued",
+        description = "IMGW amends warnings in place - a level goes up, an end time moves. Returns what the " +
+            "warning said before each amendment, oldest first. Empty for a warning that has never been " +
+            "changed, which is most of them.",
+    )
+    @GetMapping("/api/alerts/{alertId}/revisions")
+    fun revisions(principal: Principal, @PathVariable alertId: Long): List<AlertRevision> {
+        // A separate resource rather than a field on the alert: revisions are
+        // wanted on one screen and nowhere else, and folding them into the list
+        // responses would cost a query per warning on every home screen.
+        if (!alertQueryRepository.isVisibleToUser(alertId, principal.userId)) {
+            throw AlertNotVisibleException(alertId)
+        }
+        return alertRevisionRepository.findByAlertId(alertId)
+    }
 
     @Operation(
         summary = "Alerts currently in force for the user's saved locations",
@@ -115,6 +142,10 @@ class AlertController(
             .findHistoryForLocation(principal.userId, locationId, limit)
             .map(AlertResponse::from)
     }
+
+    @ExceptionHandler(AlertNotVisibleException::class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    fun handleNotVisible(ex: AlertNotVisibleException): Map<String, String?> = mapOf("error" to ex.message)
 
     @ExceptionHandler(SavedLocationNotFoundException::class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
