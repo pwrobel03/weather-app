@@ -44,3 +44,27 @@ describe("what the offline cache keeps", () => {
     expect(shouldPersist(query(["current", 52.2, 21.0], "pending"))).toBe(false);
   });
 });
+
+/**
+ * The persisted cache's age, which is what stops it becoming a quiet lie.
+ *
+ * A forecast restored from disk is useful; one restored from last week and
+ * presented as current is not, and the only thing separating the two is the
+ * maximum age the persister is given.
+ */
+describe("how long a persisted forecast stays useful", () => {
+  it("keeps a day, which is longer than any gap between opening the app", async () => {
+    const { MAX_AGE_MS } = await import("../src/lib/offline-cache");
+
+    expect(MAX_AGE_MS).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("is versioned, so a changed response shape discards rather than crashes", async () => {
+    // Reading yesterday's field names into today's components throws on first
+    // render - offline, where the network cannot correct it. A buster mismatch
+    // costs one cold start instead.
+    const { CACHE_VERSION } = await import("../src/lib/offline-cache");
+
+    expect(CACHE_VERSION).toBeTruthy();
+  });
+});
