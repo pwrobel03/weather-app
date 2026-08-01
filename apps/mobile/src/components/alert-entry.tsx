@@ -40,6 +40,24 @@ export function AlertEntry({
 
   return (
     <View
+      // One node, one sentence. Left to itself the card reads as six fragments
+      // in layout order, with the severity arriving somewhere after the event
+      // name and the punctuation between them announced as words.
+      accessible
+      accessibilityLabel={[
+        messages.severityLabel[alert.severity],
+        alert.event,
+        expired ? labels.expired : null,
+        `${labels.from} ${formatValidity(alert.validFrom, locale)}`,
+        alert.affectedLocations.length > 0
+          ? `${messages.affects}: ${listFormat(
+              alert.affectedLocations.map((location) => location.name),
+              locale,
+            )}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(". ")}
       className="flex-row gap-3 rounded-2xl bg-powierzchnia p-4"
       style={{ opacity: expired ? 0.62 : 1 }}
     >

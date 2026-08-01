@@ -106,8 +106,11 @@ export function AlertLiveConnection({ locale }: { locale: Locale }) {
     // Always in the tree so assistive technology has a stable region to watch;
     // a live region added at the same moment as its content is often missed.
     <div
-      role="status"
-      aria-live="assertive"
+      // role="alert" rather than role="status" with aria-live overridden: the
+      // two say opposite things about urgency, and a screen reader given a
+      // contradiction is a screen reader whose behaviour depends on which one
+      // it happens to honour. A warning interrupts.
+      role="alert"
       className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
     >
       {latest && (

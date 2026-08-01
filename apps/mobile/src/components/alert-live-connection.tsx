@@ -4,7 +4,7 @@ import { tokens } from "@weather-app/design-tokens";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { AccessibilityInfo, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../lib/auth/context";
@@ -38,9 +38,18 @@ export function AlertLiveConnection({ locale }: { locale: Locale }) {
       onAlert: (alert) => {
         setLatest(alert);
         void queryClient.invalidateQueries({ queryKey: ["active-alerts"] });
+
+        // Spoken as well as shown. accessibilityRole="alert" on the banner
+        // covers a banner that is *rendered into* the tree, but VoiceOver does
+        // not reliably re-announce one whose props merely changed - and a
+        // second warning arriving over the first is exactly the case that must
+        // not pass in silence.
+        AccessibilityInfo.announceForAccessibility(
+          `${alertMessages[locale].severityLabel[alert.severity]}: ${alert.event}`,
+        );
       },
     });
-  }, [session, queryClient]);
+  }, [session, queryClient, locale]);
 
   useEffect(() => {
     if (!session) return;
@@ -72,6 +81,17 @@ export function AlertLiveConnection({ locale }: { locale: Locale }) {
     >
       <Pressable
         accessibilityRole="alert"
+        // Read as one sentence rather than as four fragments. Left to itself
+        // the row reads "Silny wiatr", "middot", "Stopien 2" - punctuation
+        // announced as a word between the two facts that matter.
+        accessible
+        accessibilityLabel={[
+          messages.severityLabel[latest.severity],
+          latest.event,
+          latest.matchedLocations.join(", "),
+        ]
+          .filter(Boolean)
+          .join(". ")}
         onPress={() => {
           router.push({ pathname: "/alerts/[id]", params: { id: String(latest.id) } });
           setLatest(null);
