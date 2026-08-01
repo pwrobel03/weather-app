@@ -8,9 +8,12 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
+import org.springframework.dao.DataIntegrityViolationException
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Duration
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
@@ -86,5 +89,42 @@ class PostgisIntegrationTest {
             insertedId,
         )
         assertTrue(containsPoint == true)
+    }
+
+    @Test
+    fun `saved_location cascades on user delete and rejects duplicate coordinates per user`() {
+        val userId = jdbcTemplate.queryForObject(
+            "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id",
+            Long::class.java,
+            "cascade-test@example.com",
+            "irrelevant-hash",
+        )
+
+        jdbcTemplate.update(
+            "INSERT INTO saved_location (user_id, name, latitude, longitude) VALUES (?, ?, ?, ?)",
+            userId,
+            "Dom",
+            52.23,
+            21.01,
+        )
+
+        assertFailsWith<DataIntegrityViolationException> {
+            jdbcTemplate.update(
+                "INSERT INTO saved_location (user_id, name, latitude, longitude) VALUES (?, ?, ?, ?)",
+                userId,
+                "Duplikat",
+                52.23,
+                21.01,
+            )
+        }
+
+        jdbcTemplate.update("DELETE FROM users WHERE id = ?", userId)
+
+        val remaining = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM saved_location WHERE user_id = ?",
+            Long::class.java,
+            userId,
+        )
+        assertEquals(0L, remaining)
     }
 }
