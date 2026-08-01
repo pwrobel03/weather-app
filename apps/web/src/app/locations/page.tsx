@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SavedLocationsManager } from "@/components/saved-locations-manager";
+import { getRequestLocale } from "@/lib/locale";
 import { isAuthenticated } from "@/lib/auth/session";
 import { fetchSavedLocations } from "@/lib/saved-locations/api";
 
@@ -28,7 +29,7 @@ export default async function LocationsPage() {
   return (
     <div className="mx-auto flex w-full max-w-sm flex-1 flex-col gap-6 px-6 py-12">
       <h1 className="text-2xl font-semibold">Lokalizacje</h1>
-      <SavedLocationsManager locations={locations} />
+      <SavedLocationsManager locations={locations} locale={await getRequestLocale()} />
     </div>
   );
 }

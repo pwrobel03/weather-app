@@ -92,3 +92,38 @@ export async function deleteSavedLocation(id: number): Promise<boolean> {
 
   return response.ok;
 }
+
+/**
+ * Sets the lowest warning level worth notifying about at one place.
+ *
+ * Same shape as every other write here, retry on 401 included: an access token
+ * that expired while somebody was looking at the list should cost a refresh,
+ * not a silently dropped setting.
+ */
+export async function updateMinSeverity(
+  id: number,
+  minSeverity: "1" | "2" | "3",
+): Promise<boolean> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return false;
+  }
+
+  const body = { minSeverity };
+  let { response } = await client(accessToken).PATCH("/api/users/me/locations/{id}", {
+    params: { path: { id } },
+    body,
+  });
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (!refreshed) {
+      return false;
+    }
+    ({ response } = await client(refreshed).PATCH("/api/users/me/locations/{id}", {
+      params: { path: { id } },
+      body,
+    }));
+  }
+
+  return response.ok;
+}

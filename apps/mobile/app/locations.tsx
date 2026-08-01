@@ -31,6 +31,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useLocale } from "../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Segmented } from "../src/components/settings-list";
 import { WeatherArt } from "../src/components/weather-art/weather-art";
 import { fetchActiveAlerts, type ActiveAlert } from "../src/lib/alerts";
 import { fetchCurrentConditions } from "../src/lib/weather";
@@ -40,6 +41,7 @@ import { useAuth } from "../src/lib/auth/context";
 import {
   createSavedLocation,
   deleteSavedLocation,
+  updateMinSeverity,
   fetchSavedLocations,
   reorderSavedLocations,
   searchLocations,
@@ -122,6 +124,24 @@ export default function LocationsScreen() {
   const remove = useMutation({
     mutationFn: deleteSavedLocation,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["saved-locations"] }),
+  });
+
+  /**
+   * Written into the cache before the request goes out, and re-read after.
+   *
+   * A segmented control that waits a round trip to move reads as broken, and
+   * this one sits in a list where a mistaken tap is cheap to correct. The
+   * invalidate afterwards is what settles it on what the server actually kept.
+   */
+  const threshold = useMutation({
+    mutationFn: ({ id, minSeverity }: { id: number; minSeverity: "1" | "2" | "3" }) =>
+      updateMinSeverity(id, minSeverity),
+    onMutate: ({ id, minSeverity }) => {
+      queryClient.setQueryData<SavedLocation[]>(["saved-locations"], (current) =>
+        (current ?? []).map((place) => (place.id === id ? { ...place, minSeverity } : place)),
+      );
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["saved-locations"] }),
   });
 
   /**
@@ -229,6 +249,9 @@ export default function LocationsScreen() {
                   goHome();
                 }}
                 onRemove={() => remove.mutate(item.id)}
+                onThresholdChange={(minSeverity) =>
+                  threshold.mutate({ id: item.id, minSeverity })
+                }
               />
             </ScaleDecorator>
           )}
@@ -330,6 +353,7 @@ const SavedRow = memo(function SavedRow({
   historyLabel,
   onSelect,
   onRemove,
+  onThresholdChange,
 }: {
   location: SavedLocation;
   isActive: boolean;
@@ -344,6 +368,7 @@ const SavedRow = memo(function SavedRow({
   historyLabel: string;
   onSelect: () => void;
   onRemove: () => void;
+  onThresholdChange: (minSeverity: "1" | "2" | "3") => void;
 }) {
   const conditions = useQuery({
     queryKey: ["current", location.latitude, location.longitude],
@@ -400,6 +425,26 @@ const SavedRow = memo(function SavedRow({
         <Pressable onPress={onRemove} hitSlop={8} className="active:opacity-60">
           <Text className="text-sm font-medium text-tekst-muted">{removeLabel}</Text>
         </Pressable>
+      </View>
+
+      {/* The threshold sits on the place it governs rather than in settings,
+          because it is a property of this place and reads as one here: the
+          answer to "and what about the allotment" is on the allotment's row. */}
+      <View className="gap-2 border-t border-linia/10 pt-3">
+        {/* Stacked, not beside the label: three Polish thresholds at a legible
+            size do not fit next to "Powiadamiaj" on a phone, and the answer to
+            that is not a smaller tap target - the same call the theme row in
+            settings makes. */}
+        <Text className="text-xs text-tekst-muted">{appMessages[locale].notifyFrom}</Text>
+        <Segmented
+          fill
+          options={(["1", "2", "3"] as const).map((level) => ({
+            value: level,
+            label: appMessages[locale].notifyFromLevel[level],
+          }))}
+          value={location.minSeverity}
+          onChange={(level) => onThresholdChange(level)}
+        />
       </View>
 
       {alert && (
