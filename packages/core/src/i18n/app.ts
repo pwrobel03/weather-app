@@ -49,6 +49,8 @@ export type AppMessages = {
    * expired, and the only honest answer is to say how old the page is.
    */
   offlineAsOf: (time: string) => string;
+  /** Said when the backend is unreachable, not when one request failed. */
+  upstreamUnavailable: string;
 };
 
 /**
@@ -94,6 +96,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     account: "Konto",
     offlineTitle: "Brak połączenia",
     offlineAsOf: (time) => `Stan na ${time}. Ostrzeżenia mogły się zmienić.`,
+    upstreamUnavailable:
+      "Nie możemy się teraz połączyć z serwerem prognoz. Spróbuj ponownie za chwilę.",
   },
   en: {
     forecastUnavailable: "Could not load the forecast",
@@ -125,5 +129,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     account: "Account",
     offlineTitle: "No connection",
     offlineAsOf: (time) => `As of ${time}. Warnings may have changed since.`,
+    upstreamUnavailable:
+      "We cannot reach the forecast service right now. Try again in a moment.",
   },
 };

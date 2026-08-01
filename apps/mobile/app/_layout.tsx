@@ -14,6 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ErrorScreen } from "../src/components/error-screen";
 import { ActiveLocationProvider } from "../src/lib/active-location";
 import { CACHE_VERSION, MAX_AGE_MS, persister, shouldPersist } from "../src/lib/offline-cache";
 import { LocaleProvider } from "../src/lib/locale";
@@ -45,6 +46,16 @@ holdSplash();
 function ThemedStatusBar() {
   const { colorScheme } = useColorScheme();
   return <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />;
+}
+
+/**
+ * expo-router renders this instead of the tree when a screen throws.
+ *
+ * Named exactly `ErrorBoundary` because that is the contract - renaming it
+ * silently reverts to the default white screen.
+ */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return <ErrorScreen error={error} retry={retry} />;
 }
 
 export default function RootLayout() {
