@@ -81,11 +81,31 @@ export function formatValidity(value: string, locale: Locale, timeZone = "Europe
   }).format(new Date(value));
 }
 
+const LIST_CONJUNCTION: Record<Locale, string> = {
+  pl: "i",
+  en: "and",
+};
+
+/**
+ * "Kraków, Rzeszów i Tarnów" - the places a warning covers.
+ *
+ * Hand-rolled rather than `Intl.ListFormat`, which Hermes does not implement:
+ * on a device the constructor is `undefined`, so every screen showing a warning
+ * died with "undefined cannot be used as a constructor". The other `Intl` use
+ * in this package is `DateTimeFormat`, which Hermes does have.
+ *
+ * Both supported locales share one shape - comma-separated, conjunction before
+ * the last item, no Oxford comma - so this reproduces `Intl.ListFormat`'s own
+ * output for pl-PL and en-GB rather than approximating it. A third locale with
+ * different list grammar would be the point to reconsider, and would want a
+ * polyfill rather than another branch here.
+ */
 export function listFormat(items: readonly string[], locale: Locale): string {
-  return new Intl.ListFormat(INTL_LOCALE[locale], {
-    style: "long",
-    type: "conjunction",
-  }).format(items);
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0]!;
+
+  const head = items.slice(0, -1).join(", ");
+  return `${head} ${LIST_CONJUNCTION[locale]} ${items[items.length - 1]!}`;
 }
 
 /** Phrase under the temperature, plus the metric strip labels (design.md §6). */

@@ -1,4 +1,7 @@
 import "../global.css";
+// Side-effect import, next to the stylesheet it belongs with: it has to run
+// before any screen renders a Link.
+import "../src/lib/link-styling";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DEFAULT_LOCALE } from "@weather-app/core";
@@ -6,10 +9,17 @@ import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
 import { AuthProvider } from "../src/lib/auth/context";
+
+// One deprecation warning, raised from inside react-native-draggable-flatlist
+// and not actionable from here. Silenced by its exact text rather than
+// wholesale, so anything of ours still shows up.
+LogBox.ignoreLogs(["InteractionManager has been deprecated"]);
 
 /**
  * The app shell.
@@ -41,6 +51,9 @@ export default function RootLayout() {
   );
 
   return (
+    // Gesture handling needs a root of its own; without it a pan gesture never
+    // reaches the component that declared it.
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider locale={DEFAULT_LOCALE}>
         <ActiveLocationProvider>
@@ -56,5 +69,6 @@ export default function RootLayout() {
         </ActiveLocationProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }

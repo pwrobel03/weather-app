@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, weatherMessages, hourOf } from "@weather-app/core";
+import { DEFAULT_LOCALE, weatherMessages, localHourFromForecast } from "@weather-app/core";
 import { AlertLiveConnection } from "@/components/alert-live-connection";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
@@ -74,7 +74,7 @@ export default async function Page() {
 
   const weatherCode = conditions?.weatherCode ?? 0;
   const temperatureCelsius = conditions?.temperatureCelsius ?? 0;
-  const localHour = hourOf(hourly[0]?.time ?? new Date().toISOString());
+  const localHour = localHourFromForecast(hourly, new Date());
 
   // Severity of the warning covering *this* powiat, matched on the warning's
   // own teryt codes rather than taken from the first active alert - a user may
@@ -93,7 +93,11 @@ export default async function Page() {
     <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-4 px-0 py-0 sm:px-6 sm:py-6 lg:grid-cols-12 lg:gap-6 lg:px-8 lg:py-8">
       {/* Hero card: edge-to-edge on mobile with only bottom rounded corners (Screen 1 aesthetic) */}
       <div className="order-1 lg:order-1 lg:col-span-8 animate-in-card stagger-1 relative overflow-hidden w-full rounded-none rounded-b-[2.5rem] sm:rounded-[3rem] shadow-[0_24px_60px_-10px_rgba(0,0,0,0.6)] border-b border-white/20 sm:border sm:border-white/20">
-        <WeatherBackground weatherCode={weatherCode} temperatureCelsius={temperatureCelsius}>
+        <WeatherBackground
+          weatherCode={weatherCode}
+          temperatureCelsius={temperatureCelsius}
+          windSpeedKmh={conditions?.windSpeedKmh}
+        >
           <CurrentConditionsClient
             latitude={latitude}
             longitude={longitude}

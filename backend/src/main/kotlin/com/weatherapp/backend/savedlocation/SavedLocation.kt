@@ -9,5 +9,7 @@ data class SavedLocation(
     val latitude: Double,
     val longitude: Double,
     val terytCode: String?,
+    /** Where the user put this place in their list; ties break on createdAt. */
+    val position: Int,
     val createdAt: Instant,
 )

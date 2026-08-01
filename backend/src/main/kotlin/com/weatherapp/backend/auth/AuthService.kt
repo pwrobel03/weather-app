@@ -1,5 +1,6 @@
 package com.weatherapp.backend.auth
 
+import com.weatherapp.backend.user.AnonymousMergeService
 import com.weatherapp.backend.user.User
 import com.weatherapp.backend.user.UserService
 import io.jsonwebtoken.JwtException
@@ -14,16 +15,43 @@ class AuthService(
     private val userService: UserService,
     private val jwtService: JwtService,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val anonymousMergeService: AnonymousMergeService,
     private val properties: JwtProperties,
 ) {
 
-    fun register(email: String, password: String, displayName: String?): TokenPair {
-        val user = userService.register(email, password, displayName)
+    /**
+     * Registers, either as a fresh account or as the caller's own anonymous
+     * user when the request carries an anonymous session.
+     */
+    fun register(email: String, password: String, displayName: String?, currentUserId: Long?): TokenPair {
+        val user = if (currentUserId == null) {
+            userService.register(email, password, displayName)
+        } else {
+            userService.promote(currentUserId, email, password, displayName)
+        }
         return issueTokens(user)
     }
 
-    fun login(email: String, password: String): TokenPair {
+    /**
+     * Issues a session for a brand-new anonymous user.
+     *
+     * The refresh token is the device's only proof of who it is - there is no
+     * email to recover from - so the client has to keep it somewhere durable
+     * and private. Rotation still applies, exactly as for a registered user.
+     */
+    fun registerAnonymous(): TokenPair = issueTokens(userService.createAnonymous())
+
+    /**
+     * Logs in, folding the caller's anonymous user into the account first when
+     * the request carries one. Everything saved on the device before signing in
+     * ends up on the account, and the account's own places come back with the
+     * next fetch.
+     */
+    fun login(email: String, password: String, currentUserId: Long?): TokenPair {
         val user = userService.authenticate(email, password)
+        if (currentUserId != null) {
+            anonymousMergeService.absorb(currentUserId, user.id)
+        }
         return issueTokens(user)
     }
 

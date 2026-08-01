@@ -30,6 +30,8 @@ import kotlin.test.assertNotNull
         "rate-limit.login.window=15m",
         "rate-limit.register.limit=2",
         "rate-limit.register.window=1h",
+        "rate-limit.anonymous.limit=2",
+        "rate-limit.anonymous.window=1h",
     ],
 )
 class RateLimitFilterTest {
@@ -110,6 +112,24 @@ class RateLimitFilterTest {
 
         val limited = assertThrows { postRegister("third@example.com", "correct-horse-battery") }
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, limited.statusCode)
+    }
+
+    @Test
+    fun `anonymous sessions are capped, and on their own budget`() {
+        // Unlimited, this endpoint writes a users row per call - a table-growth
+        // primitive for anyone with a loop.
+        repeat(3) { assertThrows { postLogin("nobody@example.com", "wrong-password") } }
+
+        postAnonymous()
+        postAnonymous()
+
+        val limited = assertThrows { postAnonymous() }
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, limited.statusCode)
+        assertNotNull(limited.responseHeaders?.getFirst(HttpHeaders.RETRY_AFTER))
+    }
+
+    private fun postAnonymous() {
+        client.post().uri("/api/auth/anonymous").retrieve().toBodilessEntity()
     }
 
     private fun postLogin(email: String, password: String) {

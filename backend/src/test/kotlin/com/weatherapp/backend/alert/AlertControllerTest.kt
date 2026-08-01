@@ -85,6 +85,62 @@ class AlertControllerTest {
     }
 
     @Test
+    fun `returns the warnings in force where the device is standing`() {
+        val token = register("podrozny@example.com")
+        boundary("1465", minLon = 20.99, minLat = 52.21)
+        storeAlert(teryt = listOf("1465"))
+
+        // No saved location anywhere near - the point of this endpoint is a
+        // place nobody kept.
+        val alerts = alertsAt(token, latitude = 52.23, longitude = 21.01)
+
+        assertEquals(1, alerts.size)
+        assertEquals("Burze", alerts[0]["event"].asText())
+        // Nothing to name: the position belongs to no saved location.
+        assertEquals(0, alerts[0]["affectedLocations"].size())
+    }
+
+    @Test
+    fun `reports nothing for a position in a powiat with no warning`() {
+        val token = register("spokoj@example.com")
+        boundary("1465", minLon = 20.99, minLat = 52.21)
+        boundary("1261", minLon = 19.90, minLat = 50.02)
+        storeAlert(teryt = listOf("1261"))
+
+        assertEquals(0, alertsAt(token, latitude = 52.23, longitude = 21.01).size)
+    }
+
+    @Test
+    fun `reports nothing for a position outside every known boundary`() {
+        val token = register("morze@example.com")
+        boundary("1465", minLon = 20.99, minLat = 52.21)
+        storeAlert(teryt = listOf("1465"))
+
+        // At sea, or abroad: an ordinary answer, not an error.
+        assertEquals(0, alertsAt(token, latitude = 0.0, longitude = 0.0).size)
+    }
+
+    @Test
+    fun `leaves no trace of the position it was asked about`() {
+        val token = register("prywatnosc@example.com")
+        boundary("1465", minLon = 20.99, minLat = 52.21)
+        storeAlert(teryt = listOf("1465"))
+
+        alertsAt(token, latitude = 52.23, longitude = 21.01)
+
+        // The whole reason this endpoint exists instead of saving the position
+        // as a location: asking must not record where the user is.
+        assertEquals(
+            0,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM saved_location", Int::class.java),
+        )
+        assertEquals(
+            0,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM alert_location_match", Int::class.java),
+        )
+    }
+
+    @Test
     fun `returns alerts covering the user's locations with the affected places named`() {
         val token = register("alice@example.com")
         val userId = userId("alice@example.com")
@@ -236,6 +292,30 @@ class AlertControllerTest {
             ex
         }
         assertEquals(HttpStatus.NOT_FOUND, error.statusCode)
+    }
+
+    private fun alertsAt(token: String, latitude: Double, longitude: Double): List<JsonNode> {
+        val body = client.get()
+            .uri("/api/alerts/at?latitude=$latitude&longitude=$longitude")
+            .header("Authorization", "Bearer $token")
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readTree(body).toList()
+    }
+
+    /** Real TERYT code, synthetic geometry - the shape used across these tests. */
+    private fun boundary(terytCode: String, minLon: Double, minLat: Double) {
+        jdbcTemplate.update(
+            """
+            INSERT INTO powiat_boundary (teryt_code, name, voivodeship, boundary)
+            VALUES (?, ?, 'mazowieckie', ST_GeogFromText(?))
+            ON CONFLICT (teryt_code) DO NOTHING
+            """.trimIndent(),
+            terytCode,
+            "powiat $terytCode",
+            "MULTIPOLYGON((($minLon $minLat, $minLon ${minLat + 0.1}, ${minLon + 0.1} ${minLat + 0.1}, " +
+                "${minLon + 0.1} $minLat, $minLon $minLat)))",
+        )
     }
 
     private fun historyFor(token: String, locationId: Long): List<JsonNode> {

@@ -171,14 +171,15 @@
   --ease-out: var(--dt-ease-out);
   --earth: var(--dt-color-ziemia);
 
-  /* Overwritten per time of day below. */
+  /* Every one of these is set inline by <WeatherBackground>, from the
+     composition computed in @weather-app/core. The values here are the
+     fallback for a render with no data yet - not a table of combinations,
+     which is what used to live below and what Faza 9 exists to remove. */
   --glow-a: var(--dt-glow-day);
-  --glow-b: rgba(38, 84, 138, 0.42);
-  --glow-y: 8%;
-  --sky-a: #4C9EDE;
-  --sky-b: #245A93;
-
-  /* Overwritten per phenomenon below. */
+  --glow-b: var(--dt-sky-day-glow-b);
+  --glow-y: var(--dt-sky-day-glow-y);
+  --sky-a: var(--dt-sky-day-a);
+  --sky-b: var(--dt-sky-day-b);
   --veil-opacity: 0;
   --veil-contrast: 1;
 
@@ -234,7 +235,6 @@
    being the whole effect. */
 .weather-background__glow {
   z-index: 0;
-  filter: saturate(var(--bg-saturation, 1));
   transition: opacity 700ms var(--ease-out);
   background:
     radial-gradient(120% 70% at 50% var(--glow-y), var(--glow-a) 0%, transparent 62%),
@@ -252,6 +252,113 @@
   background:
     linear-gradient(180deg, rgba(10, 14, 20, 0.55) 0%, transparent 45%),
     radial-gradient(140% 90% at 50% 110%, rgba(8, 11, 16, 0.7) 0%, transparent 60%);
+}
+
+/* Precipitation texture — the streaks, separate from the veil above.
+
+   Two values because they are two different quantities: fog is the heaviest
+   veil in the set and has no streaks at all, while drizzle barely darkens the
+   sky and is visibly full of them.
+
+   Repeating gradients rather than a particle layer (design.md, rejected):
+   thousands of moving sprites behind a screen whose actual job is to stay
+   readable is a lot of battery spent making text harder to read. */
+.weather-background__texture {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--texture-density, 0);
+  /* Overdrawn and rotated about the centre, so rotating the streaks never
+     exposes an uncovered corner. */
+  inset: -30%;
+  transform: rotate(var(--texture-angle, 0deg));
+  background-image: var(--texture-image, none);
+  background-size: var(--texture-size, auto);
+}
+
+.weather-background[data-texture="drizzle"] {
+  /* Fine, closely spaced, low contrast: many strokes, none of them assertive. */
+  --texture-image: repeating-linear-gradient(
+    180deg,
+    rgba(226, 238, 252, 0.5) 0px,
+    rgba(226, 238, 252, 0.5) 6px,
+    transparent 6px,
+    transparent 13px
+  );
+  --texture-size: 3px 19px;
+}
+
+.weather-background[data-texture="rain"] {
+  /* Longer strokes, wider gaps, more contrast — read as falling, not as noise. */
+  --texture-image: repeating-linear-gradient(
+    180deg,
+    rgba(214, 233, 252, 0.62) 0px,
+    rgba(214, 233, 252, 0.62) 14px,
+    transparent 14px,
+    transparent 30px
+  );
+  --texture-size: 4px 44px;
+}
+
+.weather-background[data-texture="snow"] {
+  /* Soft round marks on two offset grids, so the fall does not read as a
+     lattice. Radial rather than linear: snow drifts, it does not streak. */
+  --texture-image:
+    radial-gradient(circle at 30% 30%, rgba(238, 246, 255, 0.85) 0 1.6px, transparent 2px),
+    radial-gradient(circle at 70% 65%, rgba(226, 239, 252, 0.6) 0 1.2px, transparent 1.8px);
+  --texture-size: 46px 46px, 31px 31px;
+}
+
+.weather-background[data-texture="hail"] {
+  /* Fewer, harder, brighter. Hail is violent in a way rain is not, and that
+     difference is contrast and edge, not count. */
+  --texture-image:
+    radial-gradient(circle at 50% 50%, rgba(244, 250, 255, 0.95) 0 2px, transparent 2.4px);
+  --texture-size: 58px 58px;
+}
+
+/* Thunderstorm — the flash.
+
+   Built inside three constraints, all of them deliberate:
+
+   1. Photosensitivity. WCAG 2.3.1 allows at most three flashes per second;
+      this runs roughly one every nine, and lifts luminance by a few percent
+      rather than going white. A full-screen white flash behind a warning
+      about a storm would be a hazard aimed precisely at the people the
+      warning is for.
+   2. It never touches the alert surfaces. The flash sits below the content
+      layer, so warning text keeps its contrast while it happens.
+   3. Reduced motion removes it entirely. The darkened sky and the falling
+      texture already say "thunderstorm" without it — the flash is the event,
+      the darkness is the state, and only the event is motion. */
+.weather-background__storm {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    120% 70% at 50% 18%,
+    rgba(226, 240, 255, calc(0.5 * var(--storm-intensity, 0))) 0%,
+    transparent 60%
+  );
+  animation: weather-storm-flash 9s var(--ease-out) infinite;
+}
+
+@keyframes weather-storm-flash {
+  0%, 92% { opacity: 0; }
+  /* Two beats, as real lightning almost always is. */
+  93% { opacity: 1; }
+  94.5% { opacity: 0.15; }
+  95.5% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-background__storm {
+    animation: none;
+  }
 }
 
 .weather-background__content {
@@ -282,78 +389,6 @@ body {
 
 /* Time-of-day channel: glow colour, intensity and vertical position.
    Values are the poświata tokens from design.md. */
-.weather-background[data-time-of-day="dawn"] {
-  --sky-a: var(--dt-sky-dawn-a);
-  --sky-b: var(--dt-sky-dawn-b);
-  --glow-a: var(--dt-glow-dawn);
-  --glow-b: var(--dt-sky-dawn-glow-b);
-  --glow-y: var(--dt-sky-dawn-glow-y);
-}
-
-.weather-background[data-time-of-day="day"] {
-  --sky-a: var(--dt-sky-day-a);
-  --sky-b: var(--dt-sky-day-b);
-  --glow-a: var(--dt-glow-day);
-  --glow-b: var(--dt-sky-day-glow-b);
-  --glow-y: var(--dt-sky-day-glow-y);
-}
-
-.weather-background[data-time-of-day="dusk"] {
-  --sky-a: var(--dt-sky-dusk-a);
-  --sky-b: var(--dt-sky-dusk-b);
-  --glow-a: var(--dt-glow-dusk);
-  --glow-b: var(--dt-sky-dusk-glow-b);
-  --glow-y: var(--dt-sky-dusk-glow-y);
-}
-
-.weather-background[data-time-of-day="night"] {
-  --sky-a: var(--dt-sky-night-a);
-  --sky-b: var(--dt-sky-night-b);
-  --glow-a: var(--dt-glow-night);
-  --glow-b: var(--dt-sky-night-glow-b);
-  --glow-y: var(--dt-sky-night-glow-y);
-}
-
-/* Phenomenon channel: how heavily the sky sits on the scene. */
-.weather-background[data-phenomenon="clear"] {
-  --veil-opacity: var(--dt-veil-clear-opacity);
-}
-
-.weather-background[data-phenomenon="cloud"] {
-  --veil-opacity: var(--dt-veil-cloud-opacity);
-  --veil-contrast: var(--dt-veil-cloud-contrast);
-}
-
-.weather-background[data-phenomenon="fog"] {
-  --veil-opacity: var(--dt-veil-fog-opacity);
-  --veil-contrast: var(--dt-veil-fog-contrast);
-}
-
-.weather-background[data-phenomenon="drizzle"] {
-  --veil-opacity: var(--dt-veil-drizzle-opacity);
-  --veil-contrast: var(--dt-veil-drizzle-contrast);
-}
-
-.weather-background[data-phenomenon="rain"] {
-  --veil-opacity: var(--dt-veil-rain-opacity);
-  --veil-contrast: var(--dt-veil-rain-contrast);
-}
-
-.weather-background[data-phenomenon="snow"] {
-  --veil-opacity: var(--dt-veil-snow-opacity);
-  --veil-contrast: var(--dt-veil-snow-contrast);
-}
-
-.weather-background[data-phenomenon="hail"] {
-  --veil-opacity: var(--dt-veil-hail-opacity);
-  --veil-contrast: var(--dt-veil-hail-contrast);
-}
-
-.weather-background[data-phenomenon="thunderstorm"] {
-  --veil-opacity: var(--dt-veil-thunderstorm-opacity);
-  --veil-contrast: var(--dt-veil-thunderstorm-contrast);
-}
-
 /* ---------------------------------------------------------------------------
    Alert takeover (markdown/design.md, ported from prototype/alert-layer.html)
 

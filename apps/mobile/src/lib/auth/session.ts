@@ -42,6 +42,39 @@ export async function hydrate(): Promise<StoredSession | null> {
   return current;
 }
 
+/**
+ * Gives the device a user of its own, before anyone signs up.
+ *
+ * This is what lets a fresh install save places and receive warnings straight
+ * away: the backend issues a credential-less user and an ordinary token pair,
+ * so every authorised call downstream works exactly as it does for a
+ * registered account. Registering later attaches an email to this same user,
+ * so nothing saved beforehand has to move.
+ *
+ * A failure here is not fatal and must not be: the forecast is public, so the
+ * app still shows weather. Only the parts that need a user - saving a place,
+ * warnings - stay unavailable until a later launch succeeds.
+ */
+export async function startAnonymousSession(): Promise<StoredSession | null> {
+  try {
+    const { data } = await createWeatherApiClient({ baseUrl: API_BASE_URL }).POST(
+      "/api/auth/anonymous",
+      {},
+    );
+    if (!data) return null;
+
+    const session: StoredSession = {
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      anonymous: true,
+    };
+    await setSession(session);
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 export async function setSession(session: StoredSession): Promise<void> {
   current = session;
   await saveSession(session);
@@ -88,7 +121,13 @@ async function doRefresh(): Promise<string | null> {
       return null;
     }
 
-    await setSession({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+    // Refreshing renews tokens, it does not change who the device is - an
+    // anonymous session stays anonymous until someone registers or signs in.
+    await setSession({
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+      anonymous: current?.anonymous ?? false,
+    });
     return data.accessToken;
   } catch {
     // A transport failure is not proof the session is dead - the phone may
@@ -119,11 +158,19 @@ export function authorizedClient(): ApiClient {
       pristine.set(request, request.clone());
       return request;
     },
+    // Returning nothing means "untouched, use what you already have".
+    //
+    // Handing the response back instead looks equivalent and is not: openapi-
+    // fetch treats any returned value as a replacement and rejects one that
+    // fails `instanceof Response` - and React Native's fetch resolves to a
+    // Response-*like* object that does exactly that. The request succeeds, the
+    // guard throws, and every call through this client fails with
+    // "onResponse: must return new Response() when modifying the response".
     async onResponse({ request, response }) {
-      if (response.status !== 401) return response;
+      if (response.status !== 401) return;
 
       const token = await refreshAccessToken();
-      if (!token) return response;
+      if (!token) return;
 
       const original = pristine.get(request) ?? request;
       const retried = new Request(original, { headers: new Headers(original.headers) });
@@ -131,7 +178,19 @@ export function authorizedClient(): ApiClient {
 
       // Plain fetch, not the client: the retry must not re-enter this
       // middleware, or a genuinely dead session would loop.
-      return fetch(retried);
+      const fresh = await fetch(retried);
+
+      // Rebuilt through the global constructor for the same reason as above -
+      // this one *is* a replacement, so it has to be a Response the guard
+      // recognises. Statuses that forbid a body get none, or the constructor
+      // throws on its own.
+      const bodyless = fresh.status === 204 || fresh.status === 205 || fresh.status === 304;
+
+      return new Response(bodyless ? null : await fresh.text(), {
+        status: fresh.status,
+        statusText: fresh.statusText,
+        headers: fresh.headers,
+      });
     },
   });
 

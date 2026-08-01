@@ -56,12 +56,19 @@ class AuthControllerTest {
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
+    @Autowired
+    lateinit var rateLimiter: RateLimiter
+
     private lateinit var client: RestClient
     private val objectMapper = jacksonObjectMapper()
 
     @BeforeEach
     fun setUp() {
         jdbcTemplate.update("TRUNCATE users CASCADE")
+        // These tests spend more of the anonymous budget than a real device
+        // ever would - nine sessions where an install asks for one. Cleared per
+        // test so the limiter under test elsewhere does not fail them here.
+        rateLimiter.reset()
         client = RestClient.create("http://localhost:$port")
     }
 
@@ -111,6 +118,228 @@ class AuthControllerTest {
     }
 
     @Test
+    fun `starts an anonymous session without any credentials`() {
+        val tokens = anonymous()
+
+        assertNotEquals("", tokens.accessToken)
+        assertNotEquals("", tokens.refreshToken)
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM users", Int::class.java))
+    }
+
+    @Test
+    fun `gives every anonymous device a user of its own`() {
+        // Two installs are two users, or one device's saved places and warnings
+        // would show up on another's.
+        val first = anonymous()
+        val second = anonymous()
+
+        assertNotEquals(first.refreshToken, second.refreshToken)
+        assertEquals(2, jdbcTemplate.queryForObject("SELECT count(*) FROM users", Int::class.java))
+    }
+
+    @Test
+    fun `leaves an anonymous user without credentials`() {
+        anonymous()
+
+        val row = jdbcTemplate.queryForMap("SELECT email, password_hash, role FROM users")
+        assertEquals(null, row["email"])
+        assertEquals(null, row["password_hash"])
+        // Anonymous is about credentials, not privileges - the role is the
+        // ordinary one, so nothing downstream needs to special-case it.
+        assertEquals("USER", row["role"])
+    }
+
+    @Test
+    fun `an anonymous session refreshes like any other`() {
+        val tokens = anonymous()
+
+        val refreshed = refresh(tokens.refreshToken)
+
+        assertNotEquals(tokens.refreshToken, refreshed.refreshToken)
+    }
+
+    @Test
+    fun `refuses a user that is half registered`() {
+        // The schema, not the service, is the last line here: an email without
+        // a password hash would be an account nobody can authenticate as, and
+        // a hash without an email one nobody can reach.
+        val exception = assertThrows<Exception> {
+            jdbcTemplate.update("INSERT INTO users (email) VALUES ('half@example.com')")
+        }
+
+        assertEquals(true, exception.message?.contains("users_credentials_complete"))
+    }
+
+    @Test
+    fun `registering from an anonymous session keeps the same user`() {
+        val device = anonymous()
+        val userId = jdbcTemplate.queryForObject("SELECT id FROM users", Long::class.java)
+
+        registerAs(device.accessToken, "erin@example.com", "correct-horse-battery")
+
+        // One user, not two - which is the entire point: whatever this device
+        // saved before signing up already hangs off this id.
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM users", Int::class.java))
+        assertEquals(
+            userId,
+            jdbcTemplate.queryForObject("SELECT id FROM users WHERE email = 'erin@example.com'", Long::class.java),
+        )
+    }
+
+    @Test
+    fun `a place saved anonymously survives registration`() {
+        val device = anonymous()
+        val userId = jdbcTemplate.queryForObject("SELECT id FROM users", Long::class.java)!!
+        jdbcTemplate.update(
+            "INSERT INTO saved_location (user_id, name, latitude, longitude) VALUES (?, 'Kraków', 50.06, 19.94)",
+            userId,
+        )
+
+        registerAs(device.accessToken, "frank@example.com", "correct-horse-battery")
+
+        assertEquals(
+            "Kraków",
+            jdbcTemplate.queryForObject(
+                "SELECT name FROM saved_location WHERE user_id = ?",
+                String::class.java,
+                userId,
+            ),
+        )
+    }
+
+    @Test
+    fun `the anonymous session's own tokens still work after registering`() {
+        // The id did not change, so a client that registers mid-session is not
+        // logged out of the requests already in flight.
+        val device = anonymous()
+
+        registerAs(device.accessToken, "grace@example.com", "correct-horse-battery")
+
+        val refreshed = refresh(device.refreshToken)
+        assertNotEquals("", refreshed.accessToken)
+    }
+
+    @Test
+    fun `refuses to register a session that already has credentials`() {
+        val account = register("heidi@example.com", "correct-horse-battery")
+
+        val exception = assertThrows<HttpClientErrorException> {
+            registerAs(account.accessToken, "heidi-second@example.com", "correct-horse-battery")
+        }
+
+        assertEquals(409, exception.statusCode.value())
+    }
+
+    @Test
+    fun `refuses to promote onto an email somebody else already uses`() {
+        register("ivan@example.com", "correct-horse-battery")
+        val device = anonymous()
+
+        val exception = assertThrows<HttpClientErrorException> {
+            registerAs(device.accessToken, "ivan@example.com", "another-password-here")
+        }
+
+        assertEquals(409, exception.statusCode.value())
+        // The failed attempt must leave the device anonymous and usable, not
+        // half-written.
+        assertEquals(
+            1,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE email IS NULL", Int::class.java),
+        )
+    }
+
+    @Test
+    fun `logging in from a device carries its places onto the account`() {
+        val account = register("jan@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'jan@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Gdańsk", 54.35, 18.65)
+
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        savePlace(deviceId, "Kraków", 50.06, 19.94)
+
+        loginAs(device.accessToken, "jan@example.com", "correct-horse-battery")
+
+        // The union, both directions at once: what the device saved is now on
+        // the account, and what the account had is what the device will fetch.
+        assertEquals(listOf("Gdańsk", "Kraków"), placesOf("jan@example.com"))
+        assertNotEquals("", account.accessToken)
+    }
+
+    @Test
+    fun `the same place saved on both sides does not become two`() {
+        register("ola@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'ola@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Kraków", 50.06, 19.94)
+
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        // Same coordinates, different spelling - the name cannot be the
+        // deduplication key, the position can.
+        savePlace(deviceId, "Krakow", 50.06, 19.94)
+
+        loginAs(device.accessToken, "ola@example.com", "correct-horse-battery")
+
+        assertEquals(listOf("Kraków"), placesOf("ola@example.com"))
+    }
+
+    @Test
+    fun `the absorbed anonymous user is gone afterwards`() {
+        register("piotr@example.com", "correct-horse-battery")
+        val device = anonymous()
+
+        loginAs(device.accessToken, "piotr@example.com", "correct-horse-battery")
+
+        assertEquals(
+            0,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE email IS NULL", Int::class.java),
+        )
+    }
+
+    @Test
+    fun `logging in without a device session leaves the account untouched`() {
+        register("ewa@example.com", "correct-horse-battery")
+        val accountId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email = 'ewa@example.com'", Long::class.java,
+        )!!
+        savePlace(accountId, "Gdańsk", 54.35, 18.65)
+
+        login("ewa@example.com", "correct-horse-battery")
+
+        assertEquals(listOf("Gdańsk"), placesOf("ewa@example.com"))
+    }
+
+    @Test
+    fun `a wrong password merges nothing`() {
+        register("adam@example.com", "correct-horse-battery")
+        val device = anonymous()
+        val deviceId = jdbcTemplate.queryForObject(
+            "SELECT id FROM users WHERE email IS NULL", Long::class.java,
+        )!!
+        savePlace(deviceId, "Kraków", 50.06, 19.94)
+
+        assertThrows<HttpClientErrorException> {
+            loginAs(device.accessToken, "adam@example.com", "wrong-password")
+        }
+
+        // Authentication comes first: a failed attempt must not be a way to
+        // push places onto somebody else's account.
+        assertEquals(emptyList(), placesOf("adam@example.com"))
+        assertEquals(
+            1,
+            jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE email IS NULL", Int::class.java),
+        )
+    }
+
+    @Test
     fun `rejects login for an unknown email`() {
         val exception = assertThrows<HttpClientErrorException> {
             login("nobody@example.com", "whatever-password")
@@ -138,8 +367,57 @@ class AuthControllerTest {
         assertEquals(401, exception.statusCode.value())
     }
 
+    private fun anonymous(): AuthResponse {
+        val json = client.post()
+            .uri("/api/auth/anonymous")
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readValue<AuthResponse>(json)
+    }
+
     private fun register(email: String, password: String): AuthResponse =
         post("/api/auth/register", mapOf("email" to email, "password" to password))
+
+    /** Registration carrying a session, which is how a device signs up. */
+    private fun registerAs(accessToken: String, email: String, password: String): AuthResponse {
+        val json = client.post()
+            .uri("/api/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $accessToken")
+            .body(mapOf("email" to email, "password" to password))
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readValue<AuthResponse>(json)
+    }
+
+    /** Logging in while holding an anonymous session, which is what a device does. */
+    private fun loginAs(accessToken: String, email: String, password: String): AuthResponse {
+        val json = client.post()
+            .uri("/api/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer $accessToken")
+            .body(mapOf("email" to email, "password" to password))
+            .retrieve()
+            .body(String::class.java)!!
+        return objectMapper.readValue<AuthResponse>(json)
+    }
+
+    private fun savePlace(userId: Long, name: String, latitude: Double, longitude: Double) {
+        jdbcTemplate.update(
+            "INSERT INTO saved_location (user_id, name, latitude, longitude) VALUES (?, ?, ?, ?)",
+            userId,
+            name,
+            latitude,
+            longitude,
+        )
+    }
+
+    private fun placesOf(email: String): List<String> =
+        jdbcTemplate.queryForList(
+            "SELECT name FROM saved_location WHERE user_id = (SELECT id FROM users WHERE email = ?) ORDER BY name",
+            String::class.java,
+            email,
+        ).filterNotNull()
 
     private fun login(email: String, password: String): AuthResponse =
         post("/api/auth/login", mapOf("email" to email, "password" to password))

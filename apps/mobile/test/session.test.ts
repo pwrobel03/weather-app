@@ -30,7 +30,7 @@ beforeEach(async () => {
   __reset();
   fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
-  await setSession({ accessToken: "access-1", refreshToken: "refresh-1" });
+  await setSession({ accessToken: "access-1", refreshToken: "refresh-1", anonymous: false });
 });
 
 afterEach(async () => {

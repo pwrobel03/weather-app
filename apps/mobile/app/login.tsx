@@ -5,13 +5,15 @@ import { AuthForm } from "../src/components/auth-form";
 import { useAuth } from "../src/lib/auth/context";
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, registered } = useAuth();
   const locale = DEFAULT_LOCALE;
 
   return (
     <AuthForm
       mode="signIn"
       locale={locale}
+      // Only while this device has places of its own to worry about.
+      note={registered ? undefined : authMessages[locale].placesKeptOnSignIn}
       alternate={{ href: "/register", label: authMessages[locale].noAccount }}
       onSubmit={async (credentials) => {
         const failure = await signIn(credentials);

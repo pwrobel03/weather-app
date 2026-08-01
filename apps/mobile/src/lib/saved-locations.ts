@@ -32,6 +32,17 @@ export async function createSavedLocation(
   return data ? { ok: true } : { ok: false, status: response.status };
 }
 
+/**
+ * Persists the whole order. The server takes every id exactly once, so this
+ * sends the list as displayed rather than a diff.
+ */
+export async function reorderSavedLocations(orderedIds: number[]): Promise<boolean> {
+  const { response } = await authorizedClient().PUT("/api/users/me/locations/order", {
+    body: { orderedIds },
+  });
+  return response.ok;
+}
+
 export async function deleteSavedLocation(id: number): Promise<boolean> {
   const { response } = await authorizedClient().DELETE("/api/users/me/locations/{id}", {
     params: { path: { id } },

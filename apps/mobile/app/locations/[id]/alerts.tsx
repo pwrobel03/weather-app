@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { alertUiMessages, appMessages, DEFAULT_LOCALE } from "@weather-app/core";
-import { Link, useLocalSearchParams } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -32,10 +32,18 @@ export default function LocationAlertsScreen() {
   return (
     <View className="flex-1 bg-tlo-ciemne" style={{ paddingTop: insets.top + 12 }}>
       <View className="gap-4 px-5 pb-4">
-        <Link href="/locations" className="text-sm text-tekst-muted">
-          ← {appMessages[locale].back}
-        </Link>
-        <Text className="text-3xl font-bold text-tekst">{labels.warnings}</Text>
+        {/* Back to the list this was opened from. `back()` rather than a
+            fixed link so browsing several places' histories in a row returns
+            to the list each time, with the saved-places screen as the fallback
+            for a deep link that had no list underneath it. */}
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/locations"))}
+          hitSlop={8}
+          className="self-start active:opacity-60"
+        >
+          <Text className="text-sm text-tekst-muted">← {appMessages[locale].back}</Text>
+        </Pressable>
+        <Text className="text-3xl font-bold text-tekst">{labels.warningHistory}</Text>
       </View>
 
       <FlatList

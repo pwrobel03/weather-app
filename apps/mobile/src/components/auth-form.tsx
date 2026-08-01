@@ -23,6 +23,11 @@ type AuthFormProps = {
   }) => Promise<string | null>;
   /** Where to go when the user does not have the account this screen assumes. */
   alternate: { href: "/login" | "/register"; label: string };
+  /**
+   * One line under the title, for what happens to what the device already
+   * holds. Absent when there is nothing at stake.
+   */
+  note?: string;
 };
 
 /**
@@ -37,7 +42,7 @@ type AuthFormProps = {
  * silently never offers a saved password, which reads to the user as the app
  * being broken rather than as a missing prop.
  */
-export function AuthForm({ mode, locale, onSubmit, alternate }: AuthFormProps) {
+export function AuthForm({ mode, locale, onSubmit, alternate, note }: AuthFormProps) {
   const insets = useSafeAreaInsets();
   const messages = authMessages[locale];
 
@@ -70,9 +75,11 @@ export function AuthForm({ mode, locale, onSubmit, alternate }: AuthFormProps) {
         }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text className="mb-8 text-3xl font-bold text-tekst">
+        <Text className={`text-3xl font-bold text-tekst ${note ? "mb-2" : "mb-8"}`}>
           {mode === "signIn" ? messages.signIn : messages.signUp}
         </Text>
+
+        {note && <Text className="mb-8 text-sm text-tekst-muted">{note}</Text>}
 
         {mode === "signUp" && (
           <Field

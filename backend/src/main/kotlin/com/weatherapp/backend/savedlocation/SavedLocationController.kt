@@ -7,6 +7,7 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.DecimalMax
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
@@ -32,6 +34,11 @@ data class SaveLocationRequest(
     val longitude: Double,
 )
 
+data class ReorderRequest(
+    @field:NotEmpty
+    val orderedIds: List<Long>,
+)
+
 @RestController
 @Tag(name = "Saved Locations", description = "The authenticated user's saved locations")
 @SecurityRequirement(name = "bearerAuth")
@@ -47,6 +54,17 @@ class SavedLocationController(private val savedLocationService: SavedLocationSer
     fun create(principal: Principal, @Valid @RequestBody request: SaveLocationRequest): SavedLocation =
         savedLocationService.create(principal.userId, request.name, request.latitude, request.longitude)
 
+    @Operation(
+        summary = "Reorder the current user's saved locations",
+        description = "Takes every saved location's id exactly once, in the wanted order. A list that omits or " +
+            "repeats any of them is rejected rather than partially applied.",
+    )
+    @PutMapping("/api/users/me/locations/order")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun reorder(principal: Principal, @Valid @RequestBody request: ReorderRequest) {
+        savedLocationService.reorder(principal.userId, request.orderedIds)
+    }
+
     @Operation(summary = "Delete one of the current user's saved locations")
     @DeleteMapping("/api/users/me/locations/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -57,6 +75,11 @@ class SavedLocationController(private val savedLocationService: SavedLocationSer
     @ExceptionHandler(DuplicateSavedLocationException::class)
     @ResponseStatus(HttpStatus.CONFLICT)
     fun handleDuplicate(ex: DuplicateSavedLocationException): Map<String, String?> = mapOf("error" to ex.message)
+
+    @ExceptionHandler(InvalidSavedLocationOrderException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleInvalidOrder(ex: InvalidSavedLocationOrderException): Map<String, String?> =
+        mapOf("error" to ex.message)
 
     @ExceptionHandler(SavedLocationNotFoundException::class)
     @ResponseStatus(HttpStatus.NOT_FOUND)

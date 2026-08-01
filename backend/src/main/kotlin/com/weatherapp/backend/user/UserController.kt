@@ -18,7 +18,8 @@ import java.security.Principal
 
 data class UserResponse(
     val id: Long,
-    val email: String,
+    /** Absent until the device registers. */
+    val email: String?,
     val displayName: String?,
     val temperatureUnit: TemperatureUnit,
     val windSpeedUnit: WindSpeedUnit,

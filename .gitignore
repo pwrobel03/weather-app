@@ -99,6 +99,16 @@ pgdata/
 # Klient TS generowany z OpenAPI — źródłem prawdy jest specyfikacja, nie wynik
 **/generated/
 **/__generated__/
+
+# ...except the generated API client, which is committed on purpose
+# (follow-up.md point 13). It is a build artefact, but it is also the record of
+# the contract with the backend, and committing it makes an API change show up
+# in a diff instead of materialising out of nowhere after someone's local
+# `pnpm generate:api-client`. A stale local copy silently hid endpoints that
+# existed in the backend twice in one session, each time surfacing as a type
+# error somewhere unrelated to the cause.
+!packages/api-client/src/generated/
+!packages/api-client/src/generated/**
 openapi-client/
 
 # Granice powiatów pobierane skryptem (duże, odtwarzalne)

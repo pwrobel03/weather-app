@@ -114,7 +114,7 @@ async function signIn(password: string) {
   if (!response.ok) return false;
 
   const tokens = (await response.json()) as { accessToken: string; refreshToken: string };
-  await setSession(tokens);
+  await setSession({ ...tokens, anonymous: false });
   return true;
 }
 

@@ -1,14 +1,28 @@
-import { tokens } from "@weather-app/design-tokens";
-import { resolveWeatherChannels } from "@weather-app/core";
-import { LinearGradient } from "expo-linear-gradient";
+import {
+  BackdropFilter,
+  Canvas,
+  ColorMatrix,
+  Group,
+  Circle as SkCircle,
+  LinearGradient as SkLinearGradient,
+  RadialGradient as SkRadialGradient,
+  Rect as SkRect,
+  vec,
+} from "@shopify/react-native-skia";
+import { composeBackground, type BackgroundTexture } from "@weather-app/core";
 import type { ReactNode } from "react";
-import { View } from "react-native";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import { useState } from "react";
+import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
+
+import { StormFlash } from "./storm-flash";
+import { contrastMatrix, veilContrastAmount } from "./veil-contrast";
 
 type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */
   weatherCode: number;
   temperatureCelsius: number;
+  /** Drives how far the falling texture leans. Absent means still air. */
+  windSpeedKmh?: number;
   /** IANA zone of the displayed location, not of the viewer. */
   timeZone?: string;
   /** Injectable clock, so the render is deterministic in tests. */
@@ -17,77 +31,179 @@ type WeatherBackgroundProps = {
 };
 
 /**
- * The web hero's background, rebuilt from React Native primitives.
+ * The web hero's background, painted with Skia.
  *
- * Same three channels and the same numbers - both apps read `sky` and `veil`
- * from @weather-app/design-tokens, so the gradient cannot drift between them.
- * What differs is only how each is painted:
+ * Skia rather than expo-linear-gradient (follow-up.md point 11), for a reason
+ * visible in one line below: `BackdropFilter`. The phenomenon channel carries a
+ * contrast value, and React Native has no equivalent of a CSS filter - the
+ * pre-Skia version simply dropped it and approximated the difference with
+ * opacity. Filtering the backdrop computes the same thing the web does instead
+ * of imitating it.
  *
- *  - sky:        a two-stop expo-linear-gradient, same as the CSS.
- *  - glow:       an SVG radial gradient. React Native has no radial-gradient
- *                background, and the glow is what stops the hero reading as a
- *                flat colour swatch, so it is worth an <Svg> layer.
- *  - phenomenon: a dark veil at the token's opacity. The CSS version also
- *                pushes contrast through backdrop-filter, which has no React
- *                Native equivalent - the ordering (drizzle lighter than rain,
- *                rain lighter than a thunderstorm) is what carries the meaning
- *                and that survives intact.
+ * Worth knowing that the dependency alone did not buy this: the first Skia
+ * version put the colour matrix on the veil group's own `layer`, which filtered
+ * the overlay rather than the sky and left the channel inert until a device
+ * review measured it.
+ *
+ * The rest follows from the same choice: the glow is a real radial gradient
+ * rather than an SVG stand-in, and the storm flash runs on the UI thread
+ * instead of through the JS bridge.
+ *
+ * The cost, stated where it hurts: Skia is a native module, so this app can no
+ * longer run in Expo Go and needs a development build.
  */
 export function WeatherBackground({
   weatherCode,
   temperatureCelsius,
+  windSpeedKmh,
   timeZone,
   now,
   children,
 }: WeatherBackgroundProps) {
-  const channels = resolveWeatherChannels({ weatherCode, temperatureCelsius, now, timeZone });
-  const sky = tokens.sky[channels.timeOfDay];
-  const veil = tokens.veil[channels.phenomenon];
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const { sky, glow, veil, texture, storm } = composeBackground({
+    weatherCode,
+    temperatureCelsius,
+    windSpeedKmh,
+    now,
+    timeZone,
+  });
+
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    // Compared before setting: onLayout fires on every re-render, and an
+    // unconditional setState here is an infinite render loop.
+    setSize((current) =>
+      current.width === width && current.height === height ? current : { width, height },
+    );
+  };
+
+  const { width, height } = size;
+  const glowY = (Number(glow.y.replace("%", "")) / 100) * height;
 
   return (
-    <View className="relative flex-1 overflow-hidden">
-      <LinearGradient
-        colors={[sky.a, sky.b]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-      />
+    <View className="relative flex-1 overflow-hidden" onLayout={onLayout}>
+      {width > 0 && height > 0 && (
+        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+          <SkRect x={0} y={0} width={width} height={height}>
+            <SkLinearGradient
+              start={vec(width / 2, 0)}
+              end={vec(width / 2, height)}
+              colors={[sky.from, sky.to]}
+            />
+          </SkRect>
 
-      <Svg
-        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-        pointerEvents="none"
-      >
-        <Defs>
-          <RadialGradient id="wb-glow-a" cx="50%" cy={sky.glowY} rx="120%" ry="70%">
-            <Stop offset="0" stopColor={tokens.glow[channels.timeOfDay]} />
-            <Stop offset="0.62" stopColor={tokens.glow[channels.timeOfDay]} stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient id="wb-glow-b" cx="18%" cy="34%" rx="90%" ry="55%">
-            <Stop offset="0" stopColor={sky.glowB} />
-            <Stop offset="0.7" stopColor={sky.glowB} stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#wb-glow-a)" />
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#wb-glow-b)" />
-      </Svg>
+          {/* Primary glow, riding down the panel as the day passes. */}
+          <SkRect x={0} y={0} width={width} height={height}>
+            <SkRadialGradient
+              c={vec(width / 2, glowY)}
+              r={Math.max(width, height) * 0.85}
+              colors={[glow.color, "transparent"]}
+            />
+          </SkRect>
 
-      {Number(veil.opacity) > 0 && (
-        <LinearGradient
-          colors={["rgba(10, 14, 20, 0.55)", "transparent", "rgba(8, 11, 16, 0.7)"]}
-          locations={[0, 0.45, 1]}
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            opacity: Number(veil.opacity),
-          }}
-        />
+          <SkRect x={0} y={0} width={width} height={height}>
+            <SkRadialGradient
+              c={vec(width * 0.18, height * 0.34)}
+              r={Math.max(width, height) * 0.7}
+              colors={[glow.secondary, "transparent"]}
+            />
+          </SkRect>
+
+          {veil.opacity > 0 && (
+            // A backdrop filter, not a layer on the group. `layer` renders the
+            // group's own children offscreen and filters those - here that is
+            // the veil gradient alone, so the contrast channel spent its whole
+            // effect on a semi-transparent overlay and left the sky untouched.
+            // Measured on a storm: raising the amount from 1.1 to 3.0 moved the
+            // average channel by 0.3/255. The web's `backdrop-filter` filters
+            // what is *behind* the element, which is the sky, and this is its
+            // equivalent.
+            <BackdropFilter
+              filter={<ColorMatrix matrix={contrastMatrix(veilContrastAmount(veil))} />}
+            >
+              <Group opacity={veil.opacity}>
+                <SkRect x={0} y={0} width={width} height={height}>
+                  <SkLinearGradient
+                    start={vec(width / 2, 0)}
+                    end={vec(width / 2, height)}
+                    colors={["rgba(10, 14, 20, 0.55)", "rgba(0,0,0,0)", "rgba(8, 11, 16, 0.7)"]}
+                    positions={[0, 0.45, 1]}
+                  />
+                </SkRect>
+              </Group>
+            </BackdropFilter>
+          )}
+
+          <Texture texture={texture} width={width} height={height} />
+
+          {storm.active && <StormFlash width={width} height={height} intensity={storm.intensity} />}
+        </Canvas>
       )}
 
       <View className="relative flex-1">{children}</View>
     </View>
+  );
+}
+
+/**
+ * The falling texture: streaks for water, round marks for snow and hail.
+ *
+ * A fixed lattice rotated by the wind angle, not particles - design.md
+ * rejected a particle layer, and the reasoning holds harder on a phone:
+ * thousands of moving sprites behind a screen whose job is to stay readable is
+ * a lot of battery spent making text harder to read.
+ */
+function Texture({
+  texture,
+  width,
+  height,
+}: {
+  texture: BackgroundTexture;
+  width: number;
+  height: number;
+}) {
+  // Fog has the heaviest veil in the set and nothing falling; giving it marks
+  // is the single easiest way to make it read as rain.
+  if (texture.density === 0 || texture.kind === "none" || texture.kind === "fog") return null;
+
+  const round = texture.kind === "snow" || texture.kind === "hail";
+  const spacing = round ? (texture.kind === "hail" ? 58 : 44) : texture.kind === "drizzle" ? 22 : 34;
+  // Overdrawn past the bounds, so rotating never exposes an uncovered corner.
+  const margin = Math.max(width, height) * 0.4;
+
+  const marks: { x: number; y: number }[] = [];
+  for (let y = -margin; y < height + margin; y += spacing) {
+    // Every other row is offset, or the lattice reads as a grid rather than as
+    // weather.
+    const offset = (Math.round(y / spacing) % 2) * (spacing / 2);
+    for (let x = -margin; x < width + margin; x += spacing) {
+      marks.push({ x: x + offset, y });
+    }
+  }
+
+  const color = round ? "rgba(238, 246, 255, 0.85)" : "rgba(214, 233, 252, 0.62)";
+  const length = texture.kind === "drizzle" ? 7 : 15;
+
+  return (
+    <Group
+      opacity={texture.density}
+      transform={[{ rotate: (texture.angle * Math.PI) / 180 }]}
+      origin={vec(width / 2, height / 2)}
+    >
+      {marks.map((mark, index) =>
+        round ? (
+          <SkCircle
+            key={index}
+            cx={mark.x}
+            cy={mark.y}
+            r={texture.kind === "hail" ? 2 : 1.6}
+            color={color}
+          />
+        ) : (
+          <SkRect key={index} x={mark.x} y={mark.y} width={1.5} height={length} color={color} />
+        ),
+      )}
+    </Group>
   );
 }

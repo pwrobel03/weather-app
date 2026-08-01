@@ -15,6 +15,14 @@
 
 export type TimeOfDay = "dawn" | "day" | "dusk" | "night";
 
+/**
+ * Note on `hail`: WMO codes only ever name hail *with* a thunderstorm (96 and
+ * 99), so nothing maps to it from a code alone. This used to have a branch
+ * that tried, placed after the 95-99 thunderstorm check and therefore
+ * unreachable - dead code that read as a working feature. Hail now travels as
+ * a property of the texture instead, which is also more truthful: a hailstorm
+ * is a thunderstorm that happens to be throwing ice.
+ */
 export type Phenomenon =
   | "clear"
   | "cloud"
@@ -33,6 +41,66 @@ export function timeOfDayFromHour(hour: number): TimeOfDay {
   if (hour >= 9 && hour < 17) return "day";
   if (hour >= 17 && hour < 21) return "dusk";
   return "night";
+}
+
+/**
+ * Where the day currently sits between two time-of-day anchors.
+ *
+ * The discrete bucket above is still what a data attribute or a test wants,
+ * but it is the wrong thing to paint from: it makes the sky jump at 17:00,
+ * from the middle of afternoon to the middle of dusk in one frame, on a
+ * background whose whole job is to be a state nobody has to read.
+ *
+ * Each bucket gets an anchor hour where it is fully itself, and every other
+ * moment is a blend of the two it lies between. Sunrise and sunset would be
+ * more faithful anchors than fixed hours, and they move by three hours across
+ * a Polish year - noted as the obvious next step rather than smuggled in here,
+ * since it needs a solar calculation and a location, and this channel is meant
+ * to be a function of the clock alone.
+ */
+export type TimeOfDayBlend = { from: TimeOfDay; to: TimeOfDay; t: number };
+
+/** Hour at which each bucket is fully itself. Wraps: night owns both ends. */
+const ANCHORS: readonly { timeOfDay: TimeOfDay; at: number }[] = [
+  { timeOfDay: "night", at: 1 },
+  { timeOfDay: "dawn", at: 7 },
+  { timeOfDay: "day", at: 13 },
+  { timeOfDay: "dusk", at: 19 },
+  { timeOfDay: "night", at: 25 },
+];
+
+export function timeOfDayBlendFromHour(hourOfDay: number): TimeOfDayBlend {
+  // Everything before the first anchor belongs to the night segment that wraps
+  // past midnight, so 00:30 is 24.5 rather than a case of its own.
+  const hour = hourOfDay < ANCHORS[0]!.at ? hourOfDay + 24 : hourOfDay;
+
+  for (let index = 0; index < ANCHORS.length - 1; index += 1) {
+    const from = ANCHORS[index]!;
+    const to = ANCHORS[index + 1]!;
+    if (hour >= from.at && hour < to.at) {
+      return {
+        from: from.timeOfDay,
+        to: to.timeOfDay,
+        t: (hour - from.at) / (to.at - from.at),
+      };
+    }
+  }
+
+  return { from: "night", to: "night", t: 0 };
+}
+
+export function timeOfDayBlend(now: Date, timeZone = "Europe/Warsaw"): TimeOfDayBlend {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  }).formatToParts(now);
+
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((part) => part.type === type)?.value ?? 0);
+
+  return timeOfDayBlendFromHour(value("hour") + value("minute") / 60);
 }
 
 /**
@@ -71,7 +139,6 @@ export function phenomenonFromWeatherCode(code: number): Phenomenon {
   if (code >= 80 && code <= 82) return "rain";
   if (code === 85 || code === 86) return "snow";
   if (code >= 95 && code <= 99) return "thunderstorm";
-  if (code === 96 || code === 99) return "hail";
   return "cloud";
 }
 
@@ -86,14 +153,25 @@ const SATURATION_MAX = 1.14;
  *
  * Clamped at both ends so a freak reading cannot drain the background to grey
  * or oversaturate it into competing with the warning scale.
+ *
+ * The ramp is eased rather than linear, and that is the whole point of the
+ * calibration. Poland's record extremes are about -41 and +40, but a Polish
+ * year lives between roughly -10 and +30; a linear ramp across the full range
+ * spends half its resolution on temperatures that occur a few days a decade,
+ * so ordinary days - which is every day a user actually opens the app - all
+ * land within a few percent of each other and the channel says nothing.
+ *
+ * Smoothstep keeps the endpoints and the monotonicity exactly as they were and
+ * moves the slope into the middle, where the readings are.
  */
 export function temperatureSaturation(celsius: number): number {
   if (Number.isNaN(celsius)) return 1;
 
   const clamped = Math.min(Math.max(celsius, SATURATION_FLOOR_C), SATURATION_CEILING_C);
   const ratio = (clamped - SATURATION_FLOOR_C) / (SATURATION_CEILING_C - SATURATION_FLOOR_C);
+  const eased = ratio * ratio * (3 - 2 * ratio);
 
-  return Number((SATURATION_MIN + ratio * (SATURATION_MAX - SATURATION_MIN)).toFixed(3));
+  return Number((SATURATION_MIN + eased * (SATURATION_MAX - SATURATION_MIN)).toFixed(3));
 }
 
 export type WeatherChannels = {

@@ -50,3 +50,29 @@ export function nowAsNaiveIsoTimestamp(now: Date, timeZone = "Europe/Warsaw"): s
 
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
 }
+
+/**
+ * What hour it is where the forecast is for, read off the forecast itself.
+ *
+ * The hourly entries are the only clock in hand that already speaks the
+ * displayed location's time, so the current hour is the first entry that has
+ * not passed yet - the same rule the hourly strip filters by, which is what
+ * keeps the hero and the strip's leading chip telling the same story.
+ *
+ * The obvious-looking `entries[0]` is the trap: the backend returns the whole
+ * day starting at midnight, so it reports hour 0 at every hour of the day and
+ * paints the hero in night art until the clock happens to agree.
+ */
+export function localHourFromForecast(
+  entries: readonly { readonly time: string }[],
+  now: Date,
+  timeZone = "Europe/Warsaw",
+): number {
+  const nowLocal = nowAsNaiveIsoTimestamp(now, timeZone);
+  const current = entries.find((entry) => entry.time >= nowLocal);
+
+  // Past the end of the forecast there is nothing better than the local clock,
+  // which is what `nowLocal` already is - not `now.toISOString()`, whose hour
+  // is UTC and so is wrong by the offset for most of the year.
+  return hourOf(current?.time ?? nowLocal);
+}

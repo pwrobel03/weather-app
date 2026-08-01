@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
 import { releasePushToken } from "../src/lib/realtime/push";
+import { createSavedLocation, type SavedLocation } from "../src/lib/saved-locations";
 import { fetchProfile, updatePreferences, type UnitPreferences } from "../src/lib/user";
 
 type UnitField = keyof typeof unitLabels;
@@ -23,7 +24,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const locale = DEFAULT_LOCALE;
   const messages = appMessages[locale];
-  const { session, ready, signOut } = useAuth();
+  const { session, registered, signOut } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -42,18 +43,6 @@ export default function SettingsScreen() {
     onError: () => setError(messages.saveFailedGeneric),
   });
 
-  if (ready && !session) {
-    return (
-      <View
-        className="flex-1 items-center justify-center gap-4 bg-tlo-ciemne px-8"
-        style={{ paddingTop: insets.top }}
-      >
-        <Link href="/login" className="text-base font-semibold text-primary">
-          {authMessages[locale].signIn}
-        </Link>
-      </View>
-    );
-  }
 
   const labels: Record<UnitField, string> = {
     temperatureUnit: messages.temperature,
@@ -121,25 +110,62 @@ export default function SettingsScreen() {
         </View>
       )}
 
-      <Pressable
-        onPress={async () => {
-          // Before signOut, not after: unregistering is itself an
-          // authenticated call, so clearing the tokens first would leave this
-          // device registered with no way left to reach the registration -
-          // and the next warning for this account landing on a phone somebody
-          // else is now holding.
-          await releasePushToken();
-          await signOut();
-          // The cached profile, saved places and warnings all belong to the
-          // account that just left. Without this the next person to sign in on
-          // this device sees them until each query happens to refetch.
-          queryClient.clear();
-          router.replace("/");
-        }}
-        className="mt-4 h-12 items-center justify-center rounded-2xl border border-white/10 bg-powierzchnia active:opacity-70"
-      >
-        <Text className="text-base font-semibold text-tekst">{authMessages[locale].signOut}</Text>
-      </Pressable>
+      {registered ? (
+        <Pressable
+          onPress={async () => {
+            // Read while still signed in, and kept afterwards. Signing out of
+            // an account should not empty the phone of the places being
+            // watched on it - they are the reason the app is open. They stay
+            // on the account as well, so this makes two independent copies:
+            // removing one afterwards does not remove the other, and signing
+            // back in merges them by position rather than duplicating.
+            const places = queryClient.getQueryData<SavedLocation[]>(["saved-locations"]) ?? [];
+
+            // Before signOut, not after: unregistering is itself an
+            // authenticated call, so clearing the tokens first would leave this
+            // device registered with no way left to reach the registration -
+            // and the next warning for this account landing on a phone somebody
+            // else is now holding.
+            await releasePushToken();
+            await signOut();
+
+            // Recreated one at a time on the device's new anonymous user, in
+            // the order they were shown. A failure here costs a place on the
+            // phone, never on the account, which still has all of them.
+            for (const place of places) {
+              await createSavedLocation(place.name, place.latitude, place.longitude);
+            }
+            // Signing out already emptied the cache of the account's data;
+            // this pulls in the copies just written for the device.
+            await queryClient.invalidateQueries({ queryKey: ["saved-locations"] });
+            router.replace("/");
+          }}
+          className="mt-4 h-12 items-center justify-center rounded-2xl border border-white/10 bg-powierzchnia active:opacity-70"
+        >
+          <Text className="text-base font-semibold text-tekst">{authMessages[locale].signOut}</Text>
+        </Pressable>
+      ) : (
+        // No account on this device. Everything here still works - the places
+        // and the warnings belong to it already - so this says what an account
+        // adds rather than what it unlocks.
+        <View className="mt-4 gap-3">
+          <Text className="text-sm text-tekst-muted">{authMessages[locale].accountBenefit}</Text>
+
+          <Link
+            href="/register"
+            className="h-12 rounded-2xl bg-primary text-center text-base font-semibold leading-[48px] text-white"
+          >
+            {authMessages[locale].signUp}
+          </Link>
+
+          <Link
+            href="/login"
+            className="h-12 rounded-2xl border border-white/10 bg-powierzchnia text-center text-base font-semibold leading-[48px] text-tekst"
+          >
+            {authMessages[locale].signIn}
+          </Link>
+        </View>
+      )}
     </ScrollView>
   );
 }
