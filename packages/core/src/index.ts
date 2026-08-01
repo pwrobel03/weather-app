@@ -19,4 +19,5 @@ export * from "./weather/channels";
 export * from "./weather/condition";
 export * from "./weather/forecast";
 export * from "./weather/naive-time";
+export * from "./weather/projection";
 export * from "./weather/scene";

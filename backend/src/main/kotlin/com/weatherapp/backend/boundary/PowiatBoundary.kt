@@ -24,3 +24,13 @@ data class PowiatGeoJsonFeature(
         val voivodeship: String,
     )
 }
+
+/**
+ * Standard GeoJSON FeatureCollection, which is what a map layer consumes
+ * directly - MapLibre's GeoJSON source takes this shape with no reshaping on
+ * the client.
+ */
+data class PowiatGeoJsonFeatureCollection(
+    val features: List<PowiatGeoJsonFeature>,
+    val type: String = "FeatureCollection",
+)

@@ -122,6 +122,37 @@ class PowiatBoundaryRepositoryTest {
     }
 
     @Test
+    fun `returns geojson for several teryt codes in one query`() {
+        val features = repository.findSimplifiedGeoJson(listOf("1465", "1261"))
+
+        assertEquals(listOf("1261", "1465"), features.map { it.properties.terytCode })
+        assertTrue(features.all { it.geometry.contains("\"type\":\"MultiPolygon\"") })
+    }
+
+    @Test
+    fun `skips unknown codes in a batch instead of failing the whole request`() {
+        // One powiat missing from the import should leave that shape unpainted,
+        // not blank the map for the other hundred the warning covers.
+        val features = repository.findSimplifiedGeoJson(listOf("1465", "9999"))
+
+        assertEquals(listOf("1465"), features.map { it.properties.terytCode })
+    }
+
+    @Test
+    fun `returns nothing for an empty batch without touching the database`() {
+        // The IN () that a naive implementation builds here is a syntax error
+        // in Postgres, so this is a crash rather than an empty result.
+        assertEquals(emptyList(), repository.findSimplifiedGeoJson(emptyList()))
+    }
+
+    @Test
+    fun `returns every powiat for the map base layer`() {
+        val features = repository.findAllSimplifiedGeoJson()
+
+        assertEquals(listOf("1261", "1421", "1465"), features.map { it.properties.terytCode })
+    }
+
+    @Test
     fun `returns null geojson for an unknown teryt code`() {
         val feature = repository.findSimplifiedGeoJson("9999")
 

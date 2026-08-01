@@ -2,6 +2,7 @@ package com.weatherapp.backend.boundary
 
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
 class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
@@ -50,6 +51,88 @@ class PowiatBoundaryRepository(private val jdbcTemplate: JdbcTemplate) {
             SIMPLIFY_TOLERANCE_DEGREES,
             terytCode,
         ).firstOrNull()
+
+    /**
+     * The same simplified geometry as [findSimplifiedGeoJson], for many codes
+     * at once.
+     *
+     * One statement rather than a loop of them: a single IMGW warning can name
+     * over a hundred powiats, and issuing a query per code turns one map render
+     * into a hundred round trips against geometry that is identical every time.
+     *
+     * Codes are bound as parameters, never interpolated - they arrive from a
+     * query string.
+     */
+    fun findSimplifiedGeoJson(terytCodes: Collection<String>): List<PowiatGeoJsonFeature> {
+        if (terytCodes.isEmpty()) return emptyList()
+
+        val placeholders = terytCodes.joinToString(",") { "?" }
+        return jdbcTemplate.query(
+            """
+            SELECT teryt_code, name, voivodeship,
+                   ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(boundary::geometry, ?))) AS geometry
+            FROM powiat_boundary
+            WHERE teryt_code IN ($placeholders)
+            ORDER BY teryt_code
+            """.trimIndent(),
+            { rs, _ ->
+                PowiatGeoJsonFeature(
+                    properties = PowiatGeoJsonFeature.Properties(
+                        terytCode = rs.getString("teryt_code"),
+                        name = rs.getString("name"),
+                        voivodeship = rs.getString("voivodeship"),
+                    ),
+                    geometry = rs.getString("geometry"),
+                )
+            },
+            SIMPLIFY_TOLERANCE_DEGREES,
+            *terytCodes.toTypedArray(),
+        )
+    }
+
+    /**
+     * When the boundary dataset was last written, used as its version.
+     *
+     * Derived from the data rather than from a clock or a deploy marker: the
+     * import truncates and reinserts (commit 24), so this changes exactly when
+     * the geometry changes and at no other time. A clock-based version would
+     * expire correct caches nightly; a deploy-based one would serve stale
+     * geometry after an import with no deploy.
+     */
+    /**
+     * Every powiat's simplified boundary.
+     *
+     * The map needs the whole country, not a selection: with no basemap behind
+     * it, a handful of highlighted shapes would float in an empty rectangle
+     * with nothing to place them against. 380 polygons drawn once is what makes
+     * the outline of Poland readable at all.
+     */
+    fun findAllSimplifiedGeoJson(): List<PowiatGeoJsonFeature> =
+        jdbcTemplate.query(
+            """
+            SELECT teryt_code, name, voivodeship,
+                   ST_AsGeoJSON(ST_Multi(ST_SimplifyPreserveTopology(boundary::geometry, ?))) AS geometry
+            FROM powiat_boundary
+            ORDER BY teryt_code
+            """.trimIndent(),
+            { rs, _ ->
+                PowiatGeoJsonFeature(
+                    properties = PowiatGeoJsonFeature.Properties(
+                        terytCode = rs.getString("teryt_code"),
+                        name = rs.getString("name"),
+                        voivodeship = rs.getString("voivodeship"),
+                    ),
+                    geometry = rs.getString("geometry"),
+                )
+            },
+            SIMPLIFY_TOLERANCE_DEGREES,
+        )
+
+    fun datasetVersion(): Instant? =
+        jdbcTemplate.queryForObject(
+            "SELECT max(created_at) FROM powiat_boundary",
+            Instant::class.java,
+        )
 
     private companion object {
         // ~100m at Polish latitudes - enough to thin out map-display polygons
