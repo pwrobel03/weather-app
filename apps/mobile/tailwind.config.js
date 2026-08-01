@@ -28,7 +28,19 @@ module.exports = {
   theme: {
     extend: {
       // Single source of truth: packages/design-tokens (markdown/design.md).
-      colors,
+      //
+      // The four surfaces below are overridden to read CSS variables instead of
+      // fixed token values, because they are the ones that differ between
+      // themes. Everything else - primary, the IMGW warning scale, the hero's
+      // own ground - is the same colour whatever the theme, and stays a token.
+      colors: {
+        ...colors,
+        tlo: "rgb(var(--tlo) / <alpha-value>)",
+        powierzchnia: "rgb(var(--powierzchnia) / <alpha-value>)",
+        tekst: "rgb(var(--tekst) / <alpha-value>)",
+        "tekst-muted": "rgb(var(--tekst-muted) / <alpha-value>)",
+        linia: "rgb(var(--linia) / <alpha-value>)",
+      },
     },
   },
   plugins: [],

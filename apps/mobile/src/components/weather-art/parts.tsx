@@ -78,7 +78,20 @@ export function Moon({ cx = 32, cy = 27, r = 12 }: { cx?: number; cy?: number; r
         <Rect x="0" y="0" width="64" height="64" fill="white" />
         <Circle cx={cx + r * 0.55} cy={cy - r * 0.42} r={r * 0.92} fill="black" />
       </Mask>
-      <Circle cx={cx} cy={cy} r={r} fill={fill} mask={`url(#${maskId})`} />
+      {/* Outlined, unlike every other part of this set. The moon is a pale
+          disc, which reads against a night sky and disappears against the white
+          card the hourly strip uses in the light theme. A mid tone is darker
+          than the moon and lighter than the night sky, so one stroke serves
+          both grounds rather than needing a second moon. */}
+      <Circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill={fill}
+        stroke="#7C8CA8"
+        strokeWidth={r * 0.09}
+        mask={`url(#${maskId})`}
+      />
     </G>
   );
 }

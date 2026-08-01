@@ -3,10 +3,14 @@ import { appMessages, authMessages, DEFAULT_LOCALE, unitLabels } from "@weather-
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useLocale } from "../src/lib/locale";
+import { useTheme } from "../src/lib/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../src/lib/auth/context";
 import { releasePushToken } from "../src/lib/realtime/push";
+import { publishTestAlert } from "../src/lib/alerts";
+import { useActiveLocation } from "../src/lib/active-location";
 import { createSavedLocation, type SavedLocation } from "../src/lib/saved-locations";
 import { fetchProfile, updatePreferences, type UnitPreferences } from "../src/lib/user";
 
@@ -22,11 +26,14 @@ type UnitField = keyof typeof unitLabels;
  */
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale, choose: chooseLocale } = useLocale();
+  const { theme, choose: chooseTheme } = useTheme();
   const messages = appMessages[locale];
   const { session, registered, signOut } = useAuth();
+  const { active } = useActiveLocation();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const profile = useQuery({
     queryKey: ["profile"],
@@ -52,7 +59,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-tlo-ciemne"
+      className="flex-1 bg-tlo"
       contentContainerStyle={{
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 24,
@@ -85,7 +92,7 @@ export default function SettingsScreen() {
                       key={value}
                       onPress={() => save.mutate({ [field]: value } as UnitPreferences)}
                       className={`rounded-xl border px-4 py-2 active:opacity-70 ${
-                        selected ? "border-primary bg-primary" : "border-white/10 bg-powierzchnia"
+                        selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
                       }`}
                     >
                       <Text
@@ -107,6 +114,93 @@ export default function SettingsScreen() {
               {error}
             </Text>
           )}
+        </View>
+      )}
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-tekst-muted">
+          {messages.theme}
+        </Text>
+        <View className="flex-row gap-2">
+          {(["system", "light", "dark"] as const).map((option) => {
+            const selected = theme === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => void chooseTheme(option)}
+                className={`rounded-xl border px-4 py-2 active:opacity-70 ${
+                  selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${selected ? "text-white" : "text-tekst-muted"}`}
+                >
+                  {messages.themeNames[option]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View className="mt-8 gap-3">
+        <Text className="text-xs font-semibold uppercase tracking-wider text-tekst-muted">
+          {messages.language}
+        </Text>
+        <View className="flex-row gap-2">
+          {(["pl", "en"] as const).map((option) => {
+            const selected = locale === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => void chooseLocale(option)}
+                className={`rounded-xl border px-4 py-2 active:opacity-70 ${
+                  selected ? "border-primary bg-primary" : "border-linia/10 bg-powierzchnia"
+                }`}
+              >
+                <Text
+                  className={`text-sm font-semibold ${selected ? "text-white" : "text-tekst-muted"}`}
+                >
+                  {/* Each language named in itself - "Polski", not "Polish" -
+                      or the label is unreadable to the person who needs it. */}
+                  {appMessages[option].languageNames[option]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Development builds only. Not a feature flag and not a hidden setting -
+          it simply does not exist in a shipped app, because a warning that is
+          not real must never be one tap away from somebody who would read it
+          as real. Requires an ADMIN account; anything else comes back 403. */}
+      {__DEV__ && (
+        <View className="mt-8 gap-2 rounded-2xl border border-warning-2/40 bg-powierzchnia p-4">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-warning-2">
+            Tylko build deweloperski
+          </Text>
+          <Text className="text-xs text-tekst-muted">
+            Publikuje ostrzeżenie oznaczone jako testowe dla powiatu, w którym leży aktywne miejsce.
+            Przechodzi tą samą ścieżką co ostrzeżenie z IMGW: dopasowanie, socket, push.
+          </Text>
+          <Pressable
+            onPress={async () => {
+              const outcome = await publishTestAlert(active.latitude, active.longitude);
+              setTestResult(
+                outcome.ok
+                  ? `Opublikowane. Dopasowanych miejsc: ${outcome.matched}.`
+                  : outcome.status === 403
+                    ? "403 — to konto nie ma roli ADMIN."
+                    : `Nie udało się (${outcome.status}).`,
+              );
+              if (outcome.ok) void queryClient.invalidateQueries({ queryKey: ["active-alerts"] });
+            }}
+            className="h-11 items-center justify-center rounded-xl bg-warning-2/20 active:opacity-70"
+          >
+            <Text className="text-sm font-semibold text-warning-2">Opublikuj ostrzeżenie testowe</Text>
+          </Pressable>
+          {testResult && <Text className="text-xs text-tekst-muted">{testResult}</Text>}
         </View>
       )}
 
@@ -140,7 +234,7 @@ export default function SettingsScreen() {
             await queryClient.invalidateQueries({ queryKey: ["saved-locations"] });
             router.replace("/");
           }}
-          className="mt-4 h-12 items-center justify-center rounded-2xl border border-white/10 bg-powierzchnia active:opacity-70"
+          className="mt-4 h-12 items-center justify-center rounded-2xl border border-linia/10 bg-powierzchnia active:opacity-70"
         >
           <Text className="text-base font-semibold text-tekst">{authMessages[locale].signOut}</Text>
         </Pressable>
@@ -160,7 +254,7 @@ export default function SettingsScreen() {
 
           <Link
             href="/login"
-            className="h-12 rounded-2xl border border-white/10 bg-powierzchnia text-center text-base font-semibold leading-[48px] text-tekst"
+            className="h-12 rounded-2xl border border-linia/10 bg-powierzchnia text-center text-base font-semibold leading-[48px] text-tekst"
           >
             {authMessages[locale].signIn}
           </Link>

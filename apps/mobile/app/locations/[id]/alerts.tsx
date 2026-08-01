@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { alertUiMessages, appMessages, DEFAULT_LOCALE } from "@weather-app/core";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
+import { useLocale } from "../../../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertEntry } from "../../../src/components/alert-entry";
@@ -16,7 +17,7 @@ import { fetchAlertHistory } from "../../../src/lib/alerts";
  */
 export default function LocationAlertsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const labels = alertUiMessages[locale];
   const { id } = useLocalSearchParams<{ id: string }>();
   const locationId = Number(id);
@@ -30,7 +31,7 @@ export default function LocationAlertsScreen() {
   const now = new Date();
 
   return (
-    <View className="flex-1 bg-tlo-ciemne" style={{ paddingTop: insets.top + 12 }}>
+    <View className="flex-1 bg-tlo" style={{ paddingTop: insets.top + 12 }}>
       <View className="gap-4 px-5 pb-4">
         {/* Back to the list this was opened from. `back()` rather than a
             fixed link so browsing several places' histories in a row returns

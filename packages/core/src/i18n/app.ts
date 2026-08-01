@@ -16,6 +16,11 @@ export type AppMessages = {
   savedPlaces: string;
   /** Header for the page showing where the phone is. */
   myLocation: string;
+  language: string;
+  theme: string;
+  themeNames: Record<"system" | "light" | "dark", string>;
+  /** Endonyms: a language is listed in itself, or the person who needs it cannot read it. */
+  languageNames: Record<Locale, string>;
   searchPlaceholder: string;
   noSavedPlaces: string;
   noSearchResults: string;
@@ -53,6 +58,10 @@ export const appMessages: Record<Locale, AppMessages> = {
     loading: "Ładowanie",
     savedPlaces: "Twoje miejsca",
     myLocation: "Moja lokalizacja",
+    language: "Język",
+    theme: "Motyw",
+    themeNames: { system: "Systemowy", light: "Jasny", dark: "Ciemny" },
+    languageNames: { pl: "Polski", en: "English" },
     searchPlaceholder: "Szukaj miejscowości",
     noSearchResults: "Brak wyników",
     cancel: "Anuluj",
@@ -76,6 +85,10 @@ export const appMessages: Record<Locale, AppMessages> = {
     loading: "Loading",
     savedPlaces: "Your places",
     myLocation: "My location",
+    language: "Language",
+    theme: "Theme",
+    themeNames: { system: "System", light: "Light", dark: "Dark" },
+    languageNames: { pl: "Polski", en: "English" },
     searchPlaceholder: "Search for a town",
     noSearchResults: "No results",
     cancel: "Cancel",

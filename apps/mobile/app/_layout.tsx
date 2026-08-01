@@ -4,22 +4,29 @@ import "../global.css";
 import "../src/lib/link-styling";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { DEFAULT_LOCALE } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useColorScheme } from "nativewind";
 import { useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ActiveLocationProvider } from "../src/lib/active-location";
+import { LocaleProvider } from "../src/lib/locale";
+import { ThemeProvider } from "../src/lib/theme";
+import { holdSplash } from "../src/lib/splash";
 import { AuthProvider } from "../src/lib/auth/context";
 
 // One deprecation warning, raised from inside react-native-draggable-flatlist
 // and not actionable from here. Silenced by its exact text rather than
 // wholesale, so anything of ours still shows up.
 LogBox.ignoreLogs(["InteractionManager has been deprecated"]);
+
+// At module scope, before any screen mounts: the native splash has to be
+// claimed before React gets a chance to draw over it.
+holdSplash();
 
 /**
  * The app shell.
@@ -33,6 +40,11 @@ LogBox.ignoreLogs(["InteractionManager has been deprecated"]);
  * Headers are off across the stack: every screen paints its own gradient to the
  * top edge, and a stack header would sit as an opaque strip on top of it.
  */
+function ThemedStatusBar() {
+  const { colorScheme } = useColorScheme();
+  return <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />;
+}
+
 export default function RootLayout() {
   // Created once per mount, not at module scope: a module-level client is
   // shared across Fast Refresh reloads and keeps serving a stale cache.
@@ -53,12 +65,21 @@ export default function RootLayout() {
   return (
     // Gesture handling needs a root of its own; without it a pan gesture never
     // reaches the component that declared it.
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    // Background on the root view, not only on the stack's screens: between the
+    // splash going and the first screen painting there is a frame of the root
+    // view alone, and React Native paints that white by default - the exact
+    // flash the splash exists to prevent.
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.colors.tloCiemne }}>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider locale={DEFAULT_LOCALE}>
+      <ThemeProvider>
+      <LocaleProvider>
+      <AuthProvider>
         <ActiveLocationProvider>
           <SafeAreaProvider>
-            <StatusBar style="light" />
+            {/* Follows the theme, because most screens are now a themed
+                surface. The home screen overrides it back to light: its top is
+                the hero, which is dark whatever the theme says. */}
+            <ThemedStatusBar />
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -68,6 +89,8 @@ export default function RootLayout() {
           </SafeAreaProvider>
         </ActiveLocationProvider>
       </AuthProvider>
+      </LocaleProvider>
+      </ThemeProvider>
     </QueryClientProvider>
     </GestureHandlerRootView>
   );

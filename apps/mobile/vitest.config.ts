@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 
 /**
  * Node-environment tests for the logic layer: session renewal, the alert
- * socket, alert resolution.
+ * socket, alert resolution, stored preferences.
  *
  * Deliberately not rendering React Native components. @testing-library/
  * react-native targets Jest, and react-native ships untranspiled Flow, so

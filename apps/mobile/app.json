@@ -32,6 +32,13 @@
         {
           "locationWhenInUsePermission": "Pogoda używa Twojego położenia, żeby pokazać prognozę dla miejsca, w którym jesteś."
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#070A11",
+          "resizeMode": "contain"
+        }
       ]
     ],
     "scheme": "weatherapp"

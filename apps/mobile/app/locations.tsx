@@ -27,6 +27,7 @@ import DraggableFlatList, {
   type RenderItemParams,
 } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useLocale } from "../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { WeatherArt } from "../src/components/weather-art/weather-art";
@@ -55,7 +56,7 @@ import {
  */
 export default function LocationsScreen() {
   const insets = useSafeAreaInsets();
-  const locale = DEFAULT_LOCALE;
+  const { locale } = useLocale();
   const messages = appMessages[locale];
   const { session } = useAuth();
   const { active, choose } = useActiveLocation();
@@ -173,7 +174,7 @@ export default function LocationsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-tlo-ciemne" style={{ paddingTop: insets.top + 12 }}>
+    <View className="flex-1 bg-tlo" style={{ paddingTop: insets.top + 12 }}>
       <View className="px-5 pb-3">
         {/* The only way out that does not depend on the platform's edge swipe -
             which is invisible, and on Android is a different gesture entirely. */}
@@ -239,7 +240,7 @@ export default function LocationsScreen() {
             unreadable anyway, so it reads as a rendering fault rather than as
             the list underneath. */}
         {searchOpen && (
-          <View className="absolute inset-0 bg-tlo-ciemne">
+          <View className="absolute inset-0 bg-tlo">
             <FlatList
               data={results.data ?? []}
               keyExtractor={(item) => String(item.id)}
@@ -275,7 +276,7 @@ export default function LocationsScreen() {
           rides above the keyboard rather than hiding behind it. */}
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View
-          className="border-t border-white/10 bg-tlo-ciemne px-5 pt-3"
+          className="border-t border-linia/10 bg-tlo px-5 pt-3"
           style={{ paddingBottom: insets.bottom + 12 }}
         >
           {error && (
@@ -293,7 +294,7 @@ export default function LocationsScreen() {
               placeholderTextColor="#8A94A6"
               autoCorrect={false}
               returnKeyType="search"
-              className="h-12 flex-1 rounded-2xl border border-white/10 bg-powierzchnia px-4 text-base text-tekst"
+              className="h-12 flex-1 rounded-2xl border border-linia/10 bg-powierzchnia px-4 text-base text-tekst"
             />
             {searchOpen && (
               <Pressable onPress={closeSearch} hitSlop={8} className="active:opacity-60">

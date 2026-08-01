@@ -1,9 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createWeatherApiClient } from "@weather-app/api-client";
-import { authMessages, type Locale } from "@weather-app/core";
+import { authMessages } from "@weather-app/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { API_BASE_URL } from "../api";
+import { useLocale } from "../locale";
 import {
   endSession,
   getSession,
@@ -50,7 +51,11 @@ export function useAuth(): AuthContextValue {
  * UI re-renders when the session changes, and so sign-in and sign-up have one
  * place that maps a backend status onto a translated message.
  */
-export function AuthProvider({ locale, children }: { locale: Locale; children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Read here rather than passed in: the messages this maps backend statuses
+  // onto have to follow the language the user picked, and threading it through
+  // the layout would just be the same context read one level higher.
+  const { locale } = useLocale();
   const queryClient = useQueryClient();
   const [session, setLocalSession] = useState<StoredSession | null>(getSession);
   const [ready, setReady] = useState(isHydrated);

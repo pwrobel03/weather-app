@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Theme as variables, not as `dark:` on every class.
+ *
+ * The alternative was a `dark:` variant beside each of the ~120 colour classes
+ * in this app, which is 120 chances to forget one and no way to notice until a
+ * screen is opened in the other theme. Here the class names never change and
+ * only what they resolve to does.
+ *
+ * Light is the default because design.md §3 says so - it is the theme the app
+ * was designed for, and the dark one is the tuned variant.
+ *
+ * The hero is deliberately absent from all of this. Its colour is composed from
+ * the weather channels rather than from tokens, and that colour *is* the
+ * information (decision 16), so it stays as it is in both themes.
+ */
+@layer base {
+  :root {
+    --tlo: 232 237 245;
+    --powierzchnia: 255 255 255;
+    --tekst: 15 24 38;
+    --tekst-muted: 90 102 122;
+    /* Hairlines on a light ground have to be darker than the ground, not
+       lighter - `border-white/10` is invisible here. */
+    --linia: 15 24 38;
+    --linia-krycie: 0.12;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --tlo: 7 10 17;
+      --powierzchnia: 22 32 47;
+      --tekst: 232 236 242;
+      --tekst-muted: 138 148 166;
+      --linia: 255 255 255;
+      --linia-krycie: 0.1;
+    }
+  }
+}
