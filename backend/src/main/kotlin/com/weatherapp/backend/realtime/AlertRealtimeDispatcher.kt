@@ -121,13 +121,27 @@ class AlertRealtimeDispatcher(
 
         if (sessions.isEmpty() && pushTokens.isEmpty()) return
 
+        // Which of this user's matched places are worth a notification at this
+        // level. Read before the delivery claim, deliberately: claiming and
+        // then finding nothing to say would burn the once-only guarantee on a
+        // notification that never went out, and the next warning for the same
+        // place would look like a duplicate and be dropped.
+        val locationNames = alertMatchRepository.findNotifiableLocationNames(alert.id, userId, alert.severity)
+        if (locationNames.isEmpty()) {
+            log.debug(
+                "Alert {} matched user {} but is below the threshold at every matched place",
+                alert.id,
+                userId,
+            )
+            return
+        }
+
         // Claim delivery right in the database to prevent duplicate notifications
         // across racing channels (e.g. WebSocket and Push).
         if (!alertDeliveryRepository.claimDelivery(alert.id, userId)) {
             return
         }
 
-        val locationNames = alertMatchRepository.findMatchedLocationNames(alert.id, userId)
         val notification = AlertRealtimeNotification(
             id = alert.id,
             event = alert.event,

@@ -80,7 +80,34 @@ class AlertMatchRepository(private val jdbcTemplate: JdbcTemplate) {
             alertId,
         )
 
-    /** Saved locations of one user covered by this alert, for naming them in a notification. */
+    /**
+     * Saved locations of one user that this alert is worth notifying about.
+     *
+     * The threshold is per place, so the comparison happens per row: a warning
+     * matching the house at level 1 and the allotment at level 3 notifies about
+     * the house alone, and the notification names only what it woke you for.
+     *
+     * Compared as text on purpose. `min_severity` and the alert's severity are
+     * both the IMGW level, '1' to '3', and single characters order the same
+     * lexically as numerically - so this needs no cast, no lookup table, and no
+     * agreement about which direction "higher severity" counts in.
+     */
+    fun findNotifiableLocationNames(alertId: Long, userId: Long, severity: WarningSeverity): List<String> =
+        jdbcTemplate.query(
+            """
+            SELECT sl.name
+            FROM alert_location_match alm
+            JOIN saved_location sl ON sl.id = alm.saved_location_id
+            WHERE alm.alert_id = ? AND sl.user_id = ? AND sl.min_severity <= ?
+            ORDER BY sl.name
+            """.trimIndent(),
+            { rs, _ -> rs.getString("name") },
+            alertId,
+            userId,
+            severity.level,
+        )
+
+    /** Saved locations of one user covered by this alert, whatever their threshold. */
     fun findMatchedLocationNames(alertId: Long, userId: Long): List<String> =
         jdbcTemplate.query(
             """
