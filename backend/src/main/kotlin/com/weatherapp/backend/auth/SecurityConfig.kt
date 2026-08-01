@@ -46,6 +46,7 @@ class SecurityConfig(private val jwtAuthenticationFilter: JwtAuthenticationFilte
                         "/api/forecast/**",
                         "/api/locations/**",
                         "/api/boundaries/**",
+                        "/api/ws/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
                         "/swagger-ui.html",

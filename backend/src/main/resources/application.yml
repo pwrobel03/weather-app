@@ -32,3 +32,6 @@ jwt:
 meteoalarm:
   base-url: ${METEOALARM_BASE_URL:https://feeds.meteoalarm.org}
   feed-path: ${METEOALARM_FEED_PATH:/api/v1/warnings/feeds-poland}
+
+expo:
+  base-url: ${EXPO_BASE_URL:https://exp.host}

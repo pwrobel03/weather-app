@@ -165,6 +165,39 @@ class UserControllerTest {
         assertEquals(401, exception.statusCode.value())
     }
 
+    @Test
+    fun `registers and unregisters push notification tokens`() {
+        val tokens = register("push@example.com", "correct-horse-battery")
+
+        client.post()
+            .uri("/api/users/me/push-tokens")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokens.accessToken}")
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(mapOf("token" to "ExponentPushToken[1234567890]"))
+            .retrieve()
+            .toBodilessEntity()
+
+        val savedCount = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM user_push_token WHERE token = ?",
+            Long::class.java,
+            "ExponentPushToken[1234567890]",
+        )!!
+        assertEquals(1L, savedCount)
+
+        client.delete()
+            .uri("/api/users/me/push-tokens?token=ExponentPushToken[1234567890]")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${tokens.accessToken}")
+            .retrieve()
+            .toBodilessEntity()
+
+        val afterDelete = jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM user_push_token WHERE token = ?",
+            Long::class.java,
+            "ExponentPushToken[1234567890]",
+        )!!
+        assertEquals(0L, afterDelete)
+    }
+
     private fun me(accessToken: String): UserResponse {
         val body = client.get()
             .uri("/api/users/me")

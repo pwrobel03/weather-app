@@ -4,6 +4,7 @@ import com.weatherapp.backend.imgw.ImgwClient
 import com.weatherapp.backend.meteoalarm.CapEnrichmentMapper
 import com.weatherapp.backend.meteoalarm.MeteoAlarmClient
 import com.weatherapp.backend.meteoalarm.MeteoAlarmClientException
+import com.weatherapp.backend.realtime.AlertRealtimeDispatcher
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -28,6 +29,7 @@ class AlertIngestService(
     private val alertMatchRepository: AlertMatchRepository,
     private val meteoAlarmClient: MeteoAlarmClient,
     private val capEnrichmentMapper: CapEnrichmentMapper,
+    private val alertRealtimeDispatcher: AlertRealtimeDispatcher,
 ) {
 
     private val log = LoggerFactory.getLogger(javaClass)
@@ -67,6 +69,7 @@ class AlertIngestService(
         }
 
         val enriched = enrichNewAlerts(newAlerts)
+        alertRealtimeDispatcher.dispatch(newAlerts + updatedAlerts)
 
         if (rejected > 0) {
             log.warn(

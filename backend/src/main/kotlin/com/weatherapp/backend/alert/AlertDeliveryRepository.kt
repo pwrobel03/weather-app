@@ -28,6 +28,25 @@ class AlertDeliveryRepository(private val jdbcTemplate: JdbcTemplate) {
             userId,
         ) > 0
 
+    /**
+     * Gives the claim back after delivery failed.
+     *
+     * Without this, a claim is a promise the sender may be unable to keep: a
+     * socket dying between claim and write would mark the user as told, and
+     * `findUsersAwaitingDelivery` would never offer that alert again. In an
+     * app whose only job is to not let someone miss a storm warning, that is a
+     * silent, permanent loss.
+     *
+     * Releasing is safe against the channel race the claim exists to prevent:
+     * the loser of the race never sends, so it never releases either.
+     */
+    fun releaseDelivery(alertId: Long, userId: Long): Boolean =
+        jdbcTemplate.update(
+            "DELETE FROM alert_delivery WHERE alert_id = ? AND user_id = ?",
+            alertId,
+            userId,
+        ) > 0
+
     fun hasBeenDelivered(alertId: Long, userId: Long): Boolean =
         jdbcTemplate.queryForObject(
             "SELECT EXISTS (SELECT 1 FROM alert_delivery WHERE alert_id = ? AND user_id = ?)",
