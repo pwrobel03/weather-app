@@ -861,6 +861,15 @@ body {
     animation: none !important;
   }
 
+  /* Tailwind's own pulse, worn by every loading skeleton. Held at the dimmer
+     end rather than at full opacity: still legibly a placeholder, no longer a
+     moving one. Left out, this would be the most frequently seen animation in
+     the app for somebody who asked for none - every cold start has one. */
+  .animate-pulse {
+    animation: none !important;
+    opacity: 0.6;
+  }
+
   .interactive-tile,
   .micro-press {
     transition: none !important;

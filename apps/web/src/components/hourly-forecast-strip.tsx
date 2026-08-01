@@ -29,7 +29,7 @@ export function HourlyForecastStrip({ entries, now = new Date() }: HourlyForecas
         return (
           <li
             key={entry.time}
-            className={`group/hour relative flex min-w-[5.25rem] sm:min-w-[5.75rem] shrink-0 flex-col items-center justify-between gap-3 rounded-[2rem] border py-4 px-2.5 transition-[transform,background-color,border-color,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.04] active:scale-[0.96] cursor-default ${isCurrent
+            className={`micro-press group/hour relative flex min-w-[5.25rem] sm:min-w-[5.75rem] shrink-0 flex-col items-center justify-between gap-3 rounded-[2rem] border py-4 px-2.5 transition-[transform,background-color,border-color,box-shadow] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] hover:scale-[1.04] active:scale-[0.96] cursor-default ${isCurrent
               ? "border-white/35 bg-gradient-to-br from-[#00d2ff] via-[#0094ff] to-[#0062ff] text-white shadow-lg shadow-sky-500/25 scale-[1.03] z-10"
               : "border-white/5 bg-card-darker text-foreground hover:border-white/20 hover:bg-card/80 dark:hover:bg-[#1c2230] hover:shadow-lg"
               }`}

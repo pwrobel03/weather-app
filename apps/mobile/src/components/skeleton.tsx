@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
-import { AccessibilityInfo, View, type ViewStyle } from "react-native";
+import { useEffect } from "react";
+import { View, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+
+import { useReduceMotion } from "../lib/reduce-motion";
 
 /** Slow enough to read as breathing rather than as flicker. */
 const PERIOD_MS = 900;
@@ -85,30 +87,4 @@ export function HomeSkeleton({ heroHeight }: { heroHeight: number }) {
       </View>
     </View>
   );
-}
-
-/**
- * Whether the system asks for less movement.
- *
- * Read once and then subscribed to, because it can change while the app is
- * open - a setting somebody turns on precisely when the animation is bothering
- * them.
- */
-function useReduceMotion(): boolean {
-  const [reduce, setReduce] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (!cancelled) setReduce(enabled);
-    });
-
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduce);
-    return () => {
-      cancelled = true;
-      subscription.remove();
-    };
-  }, []);
-
-  return reduce;
 }

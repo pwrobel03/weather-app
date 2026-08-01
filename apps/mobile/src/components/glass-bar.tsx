@@ -12,6 +12,8 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
+import { useReduceMotion } from "../lib/reduce-motion";
+
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 /** A press sinks the button rather than growing it: glass that grows covers
@@ -177,9 +179,14 @@ function GlassButton({
   opaque: boolean;
 }) {
   const pressed = useSharedValue(0);
+  const reduceMotion = useReduceMotion();
 
+  // Under reduced motion the button dims but does not move. The press still
+  // has to answer - a control that acknowledges nothing reads as broken, which
+  // is not what "less motion" asked for - so the opacity stays and only the
+  // travel goes.
   const style = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(1 - 0.07 * pressed.value, PRESS) }],
+    transform: [{ scale: reduceMotion ? 1 : withSpring(1 - 0.07 * pressed.value, PRESS) }],
     opacity: withSpring(1 - 0.2 * pressed.value, PRESS),
   }));
 
