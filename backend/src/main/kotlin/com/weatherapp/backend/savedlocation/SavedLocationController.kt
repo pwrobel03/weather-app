@@ -1,5 +1,6 @@
 package com.weatherapp.backend.savedlocation
 
+import com.weatherapp.backend.alert.WarningSeverity
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
@@ -32,6 +34,17 @@ data class SaveLocationRequest(
     @field:DecimalMin("-180.0")
     @field:DecimalMax("180.0")
     val longitude: Double,
+)
+
+/**
+ * The one field this endpoint owns.
+ *
+ * A dedicated request rather than a partial update of the whole place: name
+ * and coordinates identify a location and are not editable, so a general PATCH
+ * would advertise a capability that does not exist.
+ */
+data class UpdateMinSeverityRequest(
+    val minSeverity: WarningSeverity,
 )
 
 data class ReorderRequest(
@@ -64,6 +77,18 @@ class SavedLocationController(private val savedLocationService: SavedLocationSer
     fun reorder(principal: Principal, @Valid @RequestBody request: ReorderRequest) {
         savedLocationService.reorder(principal.userId, request.orderedIds)
     }
+
+    @Operation(
+        summary = "Set the lowest warning level worth notifying about at this place",
+        description = "Governs notification only. A warning below the threshold is still matched, still " +
+            "recorded and still shown on the place's screen - the setting means \"do not wake me for this\".",
+    )
+    @PatchMapping("/api/users/me/locations/{id}")
+    fun updateMinSeverity(
+        principal: Principal,
+        @PathVariable id: Long,
+        @Valid @RequestBody request: UpdateMinSeverityRequest,
+    ): SavedLocation = savedLocationService.updateMinSeverity(principal.userId, id, request.minSeverity)
 
     @Operation(summary = "Delete one of the current user's saved locations")
     @DeleteMapping("/api/users/me/locations/{id}")

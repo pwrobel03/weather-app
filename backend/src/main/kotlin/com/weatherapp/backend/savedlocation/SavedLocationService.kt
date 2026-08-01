@@ -1,5 +1,6 @@
 package com.weatherapp.backend.savedlocation
 
+import com.weatherapp.backend.alert.WarningSeverity
 import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.boundary.TerytResolutionService
 import org.springframework.dao.DataIntegrityViolationException
@@ -58,6 +59,20 @@ class SavedLocationService(
             throw InvalidSavedLocationOrderException()
         }
         repository.applyOrder(userId, orderedIds)
+    }
+
+    /**
+     * Sets the lowest warning level worth a notification at one place.
+     *
+     * Returns the updated place rather than nothing: the clients render the
+     * control from the value they hold, and handing back the stored row means
+     * a client never has to guess whether its optimistic update survived.
+     */
+    fun updateMinSeverity(userId: Long, id: Long, minSeverity: WarningSeverity): SavedLocation {
+        if (!repository.updateMinSeverity(id, userId, minSeverity)) {
+            throw SavedLocationNotFoundException(id)
+        }
+        return repository.findByIdAndUserId(id, userId) ?: throw SavedLocationNotFoundException(id)
     }
 
     fun delete(userId: Long, id: Long) {
