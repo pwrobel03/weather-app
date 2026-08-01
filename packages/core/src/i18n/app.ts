@@ -41,6 +41,14 @@ export type AppMessages = {
   appearance: string;
   /** Settings group holding sign-in state. */
   account: string;
+  /** Shown when the page is being served from disk with no network. */
+  offlineTitle: string;
+  /**
+   * Takes the time the data was stored, e.g. "Stan na 14:20". Warnings are the
+   * reason this is not optional: a cached page can show one that has since
+   * expired, and the only honest answer is to say how old the page is.
+   */
+  offlineAsOf: (time: string) => string;
 };
 
 /**
@@ -84,6 +92,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     saveFailedGeneric: "Nie udało się zapisać zmiany.",
     appearance: "Wygląd",
     account: "Konto",
+    offlineTitle: "Brak połączenia",
+    offlineAsOf: (time) => `Stan na ${time}. Ostrzeżenia mogły się zmienić.`,
   },
   en: {
     forecastUnavailable: "Could not load the forecast",
@@ -113,5 +123,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     saveFailedGeneric: "Could not save that change.",
     appearance: "Appearance",
     account: "Account",
+    offlineTitle: "No connection",
+    offlineAsOf: (time) => `As of ${time}. Warnings may have changed since.`,
   },
 };

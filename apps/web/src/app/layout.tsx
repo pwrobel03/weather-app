@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { OfflineBanner } from "@/components/offline-banner";
 import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WeatherArtGradients } from "@/components/weather-art/gradients";
@@ -37,6 +38,9 @@ export default function RootLayout({
             Inlining them per icon would duplicate ids the moment two icons
             share a screen. */}
         <WeatherArtGradients />
+        {/* Above the providers: it has to be reachable on a page served from
+            disk, where nothing behind it may have data to render. */}
+        <OfflineBanner />
         <ThemeProvider>
           <QueryProvider>{children}</QueryProvider>
         </ThemeProvider>
