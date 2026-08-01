@@ -7,8 +7,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* design.md asks for the platform's own font, not a shipped webface: SF on
+     Apple, Roboto on Android, system-ui elsewhere. The previous
+     `--font-sans: var(--font-sans)` was self-referential, resolved to nothing,
+     and silently fell back to the browser's default serif. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -129,4 +133,264 @@
   html {
     @apply font-sans;
   }
+}
+/* ---------------------------------------------------------------------------
+   Weather background — channel composition (markdown/design.md)
+
+   Layered radial gradients driven by data attributes and one custom property.
+   No JavaScript: the background is a function of the weather, not of input.
+
+   The palette lives in cool neutrals on purpose. The IMGW warning scale
+   (#F5C518 / #F08A24 / #E0342B) is reserved for warnings and must never show
+   up as decoration — which is why dusk leans violet instead of the literal
+   orange of a sunset, a hue that would collide with severity 2 and 3.
+--------------------------------------------------------------------------- */
+.weather-background {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --earth: #0b0e14;
+
+  /* Overwritten per time of day below. */
+  --glow-a: rgba(46, 111, 168, 0.6);
+  --glow-b: rgba(38, 84, 138, 0.42);
+  --glow-y: 8%;
+
+  /* Overwritten per phenomenon below. */
+  --veil-opacity: 0;
+  --veil-contrast: 1;
+
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 100%;
+  background: var(--earth);
+  color: #e8ecf2;
+}
+
+.weather-background__glow,
+.weather-background__phenomenon {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.weather-background__glow {
+  z-index: 0;
+  filter: saturate(var(--bg-saturation, 1));
+  transition: opacity 700ms var(--ease-out);
+  background:
+    radial-gradient(120% 70% at 50% var(--glow-y), var(--glow-a) 0%, transparent 62%),
+    radial-gradient(90% 55% at 18% 34%, var(--glow-b) 0%, transparent 70%);
+}
+
+/* Phenomenon channel: a veil, never a particle field. A full-screen rain or
+   snow layer was rejected in design.md — motion without information, competing
+   for attention with the alert, and two separate implementations to maintain. */
+.weather-background__phenomenon {
+  z-index: 1;
+  opacity: var(--veil-opacity);
+  backdrop-filter: contrast(var(--veil-contrast));
+  background:
+    linear-gradient(180deg, rgba(10, 14, 20, 0.55) 0%, transparent 45%),
+    radial-gradient(140% 90% at 50% 110%, rgba(8, 11, 16, 0.7) 0%, transparent 60%);
+}
+
+.weather-background__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* Time-of-day channel: glow colour, intensity and vertical position.
+   Values are the poświata tokens from design.md. */
+.weather-background[data-time-of-day="dawn"] {
+  --glow-a: rgba(88, 116, 176, 0.5);
+  --glow-b: rgba(46, 84, 140, 0.4);
+  --glow-y: 22%;
+}
+.weather-background[data-time-of-day="day"] {
+  --glow-a: rgba(46, 111, 168, 0.6);
+  --glow-b: rgba(38, 84, 138, 0.42);
+  --glow-y: 8%;
+}
+.weather-background[data-time-of-day="dusk"] {
+  --glow-a: rgba(120, 78, 168, 0.55);
+  --glow-b: rgba(58, 74, 150, 0.45);
+  --glow-y: 30%;
+}
+.weather-background[data-time-of-day="night"] {
+  --glow-a: rgba(32, 58, 104, 0.62);
+  --glow-b: rgba(18, 32, 64, 0.55);
+  --glow-y: 14%;
+}
+
+/* Phenomenon channel: how heavily the sky sits on the scene. */
+.weather-background[data-phenomenon="clear"] {
+  --veil-opacity: 0;
+}
+.weather-background[data-phenomenon="cloud"] {
+  --veil-opacity: 0.3;
+  --veil-contrast: 0.97;
+}
+.weather-background[data-phenomenon="fog"] {
+  --veil-opacity: 0.55;
+  --veil-contrast: 0.88;
+}
+.weather-background[data-phenomenon="drizzle"] {
+  --veil-opacity: 0.42;
+  --veil-contrast: 0.95;
+}
+.weather-background[data-phenomenon="rain"] {
+  --veil-opacity: 0.58;
+  --veil-contrast: 0.92;
+}
+.weather-background[data-phenomenon="snow"] {
+  --veil-opacity: 0.34;
+  --veil-contrast: 1.04;
+}
+.weather-background[data-phenomenon="hail"] {
+  --veil-opacity: 0.62;
+  --veil-contrast: 1.06;
+}
+.weather-background[data-phenomenon="thunderstorm"] {
+  --veil-opacity: 0.72;
+  --veil-contrast: 1.1;
+}
+
+/* ---------------------------------------------------------------------------
+   Alert takeover (markdown/design.md, ported from prototype/alert-layer.html)
+
+   When a warning is in force the background stops describing the weather and
+   starts carrying the warning. The calm layers recede rather than compete.
+
+   The IMGW scale is a public convention, known from RCB alerts. It is not
+   ours to restyle, and these three values appear nowhere else in the app.
+--------------------------------------------------------------------------- */
+.weather-background {
+  --sev-1: #f5c518;
+  --sev-2: #f08a24;
+  --sev-3: #e0342b;
+}
+
+.weather-background[data-alert-severity="1"] { --sev: var(--sev-1); }
+.weather-background[data-alert-severity="2"] { --sev: var(--sev-2); }
+.weather-background[data-alert-severity="3"] { --sev: var(--sev-3); }
+
+.weather-background__alert {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 420ms var(--ease-out);
+  background:
+    radial-gradient(130% 78% at 50% 12%, var(--sev) 0%, transparent 66%),
+    radial-gradient(100% 60% at 50% 100%, color-mix(in srgb, var(--sev) 55%, #000) 0%, transparent 70%),
+    color-mix(in srgb, var(--sev) 16%, #07090d);
+
+  /* Arrival pulses three times, then holds. A warning can be in force for
+     nine hours or more; a background pulsing that whole time stops alarming
+     and starts exhausting, and the user turns notifications off. */
+  animation: alert-arrive 620ms var(--ease-out) 3;
+}
+
+/* Level 3 keeps breathing. Sustained motion is reserved for danger to life -
+   at that point it stops being decoration and carries information: if the
+   screen is alive, the situation is serious. */
+.weather-background[data-alert-severity="3"] .weather-background__alert {
+  animation:
+    alert-arrive 620ms var(--ease-out) 3,
+    alert-breathe 3400ms ease-in-out 1860ms infinite;
+}
+
+/* The calm layers recede to 12% - present, but no longer competing. */
+.weather-background[data-alert-severity] .weather-background__glow,
+.weather-background[data-alert-severity] .weather-background__phenomenon {
+  opacity: 0.12;
+}
+
+@keyframes alert-arrive {
+  0% { filter: brightness(1); }
+  45% { filter: brightness(1.5); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes alert-breathe {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.28); }
+}
+
+/* The takeover itself is information and must survive; only the motion goes.
+   Stripping the colour too would hide the severity from exactly the people
+   who asked for less movement, not less meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .weather-background__alert,
+  .weather-background[data-alert-severity="3"] .weather-background__alert {
+    animation: none;
+  }
+  .weather-background__glow,
+  .weather-background__alert {
+    transition-duration: 0.01ms;
+  }
+}
+
+/* Alert card — opaque material, never glass over a shifting gradient. */
+.alert-card {
+  background: #10141b;
+  border-radius: 0.875rem;
+  padding: 1rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 34rem;
+  color: #e8ecf2;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.alert-card__severity {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sev, #e8ecf2);
+}
+
+.alert-card__event {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.alert-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.alert-card__meta dt {
+  color: #8a94a6;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+}
+
+.alert-card__meta dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert-card__content {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #cdd4de;
+}
+
+.alert-card__source {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #8a94a6;
 }
