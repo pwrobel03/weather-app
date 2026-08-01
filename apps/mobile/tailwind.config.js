@@ -1,22 +1,34 @@
+// The generated file does `module.exports = tokens`, so it must NOT be
+// destructured - `const { tokens } = require(...)` yields undefined and every
+// colour below silently becomes undefined with it. That was the previous
+// version, and it never surfaced only because no screen had rendered yet.
+const tokens = require("@weather-app/design-tokens/generated/tokens.cjs");
+
+/**
+ * camelCase -> kebab-case, mirroring packages/design-tokens/scripts/build.ts,
+ * so `tloCiemne` is `bg-tlo-ciemne` here and `--dt-color-tlo-ciemne` on web.
+ */
+function kebab(value) {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/([a-zA-Z])(\d)/g, "$1-$2")
+    .toLowerCase();
+}
+
+// Derived, not hand-listed. Listing them by hand meant a token added to
+// tokens.ts silently never reached NativeWind, with nothing to say why.
+const colors = Object.fromEntries(
+  Object.entries(tokens.colors).map(([name, value]) => [kebab(name), value]),
+);
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./App.tsx", "./src/**/*.{js,jsx,ts,tsx}"],
+  content: ["./app/**/*.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      colors: {
-        // Tokeny z markdown/design.md — te same wartości co apps/web/src/app/globals.css (.dark)
-        ziemia: "#0B0E14",
-        powierzchnia: "#141922",
-        tekst: "#E8ECF2",
-        "tekst-muted": "#8A94A6",
-        primary: "#2E6FA8",
-        warning: {
-          1: "#F5C518",
-          2: "#F08A24",
-          3: "#E0342B",
-        },
-      },
+      // Single source of truth: packages/design-tokens (markdown/design.md).
+      colors,
     },
   },
   plugins: [],

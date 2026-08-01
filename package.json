@@ -9,6 +9,12 @@
     "dev:web": "pnpm --filter web dev",
     "dev:mobile": "pnpm --filter mobile start",
     "generate:api-client": "(cd backend && ./gradlew generateOpenApiDocs) && pnpm --filter @weather-app/api-client generate",
-    "typecheck": "pnpm -r typecheck"
+    "generate:design-tokens": "pnpm --filter @weather-app/design-tokens build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.10",
+    "vitest": "^4.1.10"
   }
 }

@@ -25,6 +25,16 @@ export type Phenomenon =
   | "hail"
   | "thunderstorm";
 
+/** Pure bucketing, split out so callers with an hour already in hand (e.g. a
+ * naive local timestamp string, see time.ts) don't have to round-trip
+ * through a Date/Intl just to classify it. */
+export function timeOfDayFromHour(hour: number): TimeOfDay {
+  if (hour >= 5 && hour < 9) return "dawn";
+  if (hour >= 9 && hour < 17) return "day";
+  if (hour >= 17 && hour < 21) return "dusk";
+  return "night";
+}
+
 /**
  * Drives glow brightness and position.
  *
@@ -40,10 +50,7 @@ export function timeOfDay(now: Date, timeZone = "Europe/Warsaw"): TimeOfDay {
     }).format(now),
   );
 
-  if (hour >= 5 && hour < 9) return "dawn";
-  if (hour >= 9 && hour < 17) return "day";
-  if (hour >= 17 && hour < 21) return "dusk";
-  return "night";
+  return timeOfDayFromHour(hour);
 }
 
 /**

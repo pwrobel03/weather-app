@@ -31,6 +31,13 @@ data class AlertResponse(
     val comment: String?,
     val office: String?,
     val affectedLocations: List<AffectedLocation>,
+    /**
+     * Powiat codes this warning covers. Needed by any client that has to
+     * answer "does this warning apply *here*" for a place that is not one of
+     * the user's saved locations - the home screen's county tile did exactly
+     * that, and without this had to guess.
+     */
+    val terytCodes: List<String>,
 ) {
     companion object {
         fun from(source: AlertForUser) = AlertResponse(
@@ -45,6 +52,7 @@ data class AlertResponse(
             comment = source.alert.comment,
             office = source.alert.office,
             affectedLocations = source.affectedLocations,
+            terytCodes = source.alert.terytCodes,
         )
     }
 }

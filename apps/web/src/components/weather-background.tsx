@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import type { WarningSeverityLevel } from "@/components/alert-takeover";
-import { resolveWeatherChannels } from "@/lib/weather/channels";
+import { resolveWeatherChannels } from "@weather-app/core";
 
 type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */

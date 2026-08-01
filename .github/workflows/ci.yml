@@ -55,11 +55,17 @@ jobs:
       - name: Generate API client from OpenAPI spec
         run: pnpm run generate:api-client
 
+      - name: Generate design tokens
+        run: pnpm run generate:design-tokens
+
       - name: Typecheck @weather-app/contract
         run: pnpm --filter @weather-app/contract typecheck
 
       - name: Typecheck @weather-app/api-client
         run: pnpm --filter @weather-app/api-client typecheck
+
+      - name: Typecheck @weather-app/design-tokens
+        run: pnpm --filter @weather-app/design-tokens typecheck
 
       - name: Lint web
         run: pnpm --filter web lint

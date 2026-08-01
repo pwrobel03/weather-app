@@ -3,7 +3,7 @@ import {
   formatValidity,
   listFormat,
   type Locale,
-} from "@/lib/i18n/messages";
+} from "@weather-app/core";
 
 export type WarningSeverityLevel = "1" | "2" | "3";
 

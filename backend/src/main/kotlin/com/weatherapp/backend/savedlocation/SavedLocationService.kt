@@ -1,5 +1,6 @@
 package com.weatherapp.backend.savedlocation
 
+import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.boundary.TerytResolutionService
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service
 class SavedLocationService(
     private val repository: SavedLocationRepository,
     private val terytResolutionService: TerytResolutionService,
+    private val alertMatchRepository: AlertMatchRepository,
 ) {
 
     fun list(userId: Long): List<SavedLocation> = repository.findAllByUserId(userId)
@@ -19,11 +21,27 @@ class SavedLocationService(
      */
     fun create(userId: Long, name: String, latitude: Double, longitude: Double): SavedLocation {
         val terytCode = terytResolutionService.resolve(latitude, longitude)?.terytCode
-        try {
-            return repository.create(userId, name, latitude, longitude, terytCode)
+        val saved = try {
+            repository.create(userId, name, latitude, longitude, terytCode)
         } catch (ex: DataIntegrityViolationException) {
-            throw DuplicateSavedLocationException()
+            // DataIntegrityViolationException also fires for the user_id
+            // foreign key (e.g. a JWT signed for a user that no longer
+            // exists) - only the named unique constraint actually means
+            // "already saved". Anything else should surface as a real
+            // error, not a misleading 409.
+            if (ex.mostSpecificCause.message?.contains("saved_location_user_id_latitude_longitude_key") == true) {
+                throw DuplicateSavedLocationException()
+            }
+            throw ex
         }
+
+        // Match against warnings already in force, rather than leaving it to
+        // the next ingest. Someone who saves their home town during a storm
+        // has to see that storm now, not up to an ingest interval later - the
+        // gap the Faza 7 checkpoint walked straight into.
+        alertMatchRepository.recordMatchesForLocation(saved.id)
+
+        return saved
     }
 
     fun delete(userId: Long, id: Long) {

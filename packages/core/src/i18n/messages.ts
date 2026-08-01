@@ -14,11 +14,21 @@
  * translating a safety message is a risk nobody asked us to take.
  */
 
-export const LOCALES = ["pl", "en"] as const;
+import { LocaleSchema } from "@weather-app/contract";
 
-export type Locale = (typeof LOCALES)[number];
+import type { ConditionKey } from "../weather/condition";
 
-export const DEFAULT_LOCALE: Locale = "pl";
+/**
+ * The locale list is the contract's, not ours. It used to be declared here as
+ * well, which meant adding a language needed two edits and silently half-worked
+ * if you made one.
+ */
+export const LOCALES = LocaleSchema.options;
+
+export type { Locale } from "@weather-app/contract";
+export { DEFAULT_LOCALE } from "@weather-app/contract";
+
+type Locale = (typeof LOCALES)[number];
 
 export type AlertMessages = {
   /** Indexed by IMGW severity level, matching WarningSeveritySchema. */
@@ -76,4 +86,73 @@ export function listFormat(items: readonly string[], locale: Locale): string {
     style: "long",
     type: "conjunction",
   }).format(items);
+}
+
+/** Phrase under the temperature, plus the metric strip labels (design.md §6). */
+export type WeatherMessages = {
+  condition: Record<ConditionKey, string>;
+  wind: string;
+  humidity: string;
+  precipitation: string;
+  feelsLike: string;
+  sevenDays: string;
+  today: string;
+};
+
+export const weatherMessages: Record<Locale, WeatherMessages> = {
+  pl: {
+    condition: {
+      clear: "Bezchmurnie",
+      mainlyClear: "Przeważnie bezchmurnie",
+      partlyCloudy: "Częściowe zachmurzenie",
+      overcast: "Zachmurzenie całkowite",
+      fog: "Mgła",
+      drizzle: "Mżawka",
+      rain: "Deszcz",
+      heavyRain: "Silny deszcz",
+      showers: "Przelotny deszcz",
+      snow: "Śnieg",
+      heavySnow: "Intensywny śnieg",
+      thunderstorm: "Burza",
+      thunderstormHail: "Burza z gradem",
+    },
+    wind: "Wiatr",
+    humidity: "Wilgotność",
+    precipitation: "Opad",
+    feelsLike: "Odczuwalna",
+    sevenDays: "7 dni",
+    today: "Dzisiaj",
+  },
+  en: {
+    condition: {
+      clear: "Clear",
+      mainlyClear: "Mainly clear",
+      partlyCloudy: "Partly cloudy",
+      overcast: "Overcast",
+      fog: "Fog",
+      drizzle: "Drizzle",
+      rain: "Rain",
+      heavyRain: "Heavy rain",
+      showers: "Showers",
+      snow: "Snow",
+      heavySnow: "Heavy snow",
+      thunderstorm: "Thunderstorm",
+      thunderstormHail: "Thunderstorm with hail",
+    },
+    wind: "Wind",
+    humidity: "Humidity",
+    precipitation: "Precipitation",
+    feelsLike: "Feels like",
+    sevenDays: "7 days",
+    today: "Today",
+  },
+};
+
+/** Weekday plus day and month, as under the temperature in major.png. */
+export function formatHeroDate(value: Date, locale: Locale): string {
+  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(value);
 }

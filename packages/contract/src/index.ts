@@ -1,2 +1,2 @@
-export * from "./locale.js";
-export * from "./severity.js";
+export * from "./locale";
+export * from "./severity";
