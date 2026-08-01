@@ -9,7 +9,6 @@ import {
 import { Link, router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -17,12 +16,19 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertLiveConnection } from "../src/components/alert-live-connection";
 import { AlertsTile } from "../src/components/alerts-tile";
 import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
+import { HomeSkeleton, Skeleton } from "../src/components/skeleton";
+import { ForecastTrend } from "../src/components/forecast-trend";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
@@ -66,7 +72,7 @@ import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from 
  * the finger mid-gesture.
  */
 export default function HomeScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { active, choose } = useActiveLocation();
   const { session } = useAuth();
 
@@ -133,18 +139,36 @@ export default function HomeScreen() {
   const shownIndex = useRef(initialIndex);
   const [dotIndex, setDotIndex] = useState(initialIndex);
 
+  // The pager's position in pixels, written on every scroll frame on the UI
+  // thread. The dots read it from there, so following the finger costs no
+  // React renders at all - which is what lets them follow it at 120Hz while
+  // three forecast queries are settling on the page underneath.
+  const scrollX = useSharedValue(initialIndex * width);
+  const scrollHandler = useAnimatedScrollHandler((event) => {
+    scrollX.value = event.contentOffset.x;
+  });
+
+  // In pages rather than pixels, so the dots never need to know how wide the
+  // screen is.
+  const pageProgress = useDerivedValue(() => scrollX.value / width);
+
   useEffect(() => {
     const index = pages.findIndex((page) => page.savedLocationId === active.savedLocationId);
     if (index < 0 || index === shownIndex.current) return;
 
     shownIndex.current = index;
     setDotIndex(index);
+    // Moved with the list rather than left to the scroll event: this jump is
+    // unanimated, and an unanimated scroll is not guaranteed to emit one.
+    scrollX.value = index * width;
     pagerRef.current?.scrollToIndex({ index, animated: false });
   }, [active.savedLocationId, pages]);
 
   // Nothing to page through until it is known whether there is a first page.
+  // Shaped rather than blank: the splash releases on the first forecast, so
+  // whatever shows here is what somebody sees while the location resolves.
   if (!settled) {
-    return <View className="flex-1 bg-tlo" />;
+    return <HomeSkeleton heroHeight={Math.max(Math.round(height * 0.62), 440)} />;
   }
 
   return (
@@ -154,12 +178,16 @@ export default function HomeScreen() {
     {/* The hero is dark in both themes, so the clock above it has to be light
         in both - this overrides the themed one set in the layout. */}
     <StatusBar style="light" />
-    <FlatList
+    <Animated.FlatList
       ref={pagerRef}
       data={pages}
       horizontal
       pagingEnabled
       showsHorizontalScrollIndicator={false}
+      onScroll={scrollHandler}
+      // Every frame, not every sixteenth: the dots are driven from this, and a
+      // throttled offset is exactly the stutter this replaces.
+      scrollEventThrottle={16}
       keyExtractor={(page) => String(page.savedLocationId ?? `${page.latitude},${page.longitude}`)}
       initialScrollIndex={initialIndex}
       // Required for initialScrollIndex, and free to state: every page is
@@ -205,7 +233,11 @@ export default function HomeScreen() {
         icon: "places",
         onPress: () => router.push("/locations"),
       }}
-      dots={pages.length > 1 ? { count: pages.length, current: dotIndex } : undefined}
+      dots={
+        pages.length > 1
+          ? { count: pages.length, current: dotIndex, progress: pageProgress }
+          : undefined
+      }
     />
     </View>
   );
@@ -341,7 +373,14 @@ function LocationPage({
               style={{ paddingTop: insets.top }}
             >
               {conditions.isPending ? (
-                <ActivityIndicator color="#fff" accessibilityLabel={messages.loading} />
+                // Shaped like the hero's own contents rather than a spinner:
+                // the icon, the number, the phrase. A spinner in the middle of
+                // a full-bleed gradient says "wait" and nothing about what for.
+                <View className="items-center gap-4" accessibilityLabel={messages.loading}>
+                  <Skeleton className="h-24 w-24 rounded-full bg-white/20" />
+                  <Skeleton className="h-16 w-32 bg-white/20" />
+                  <Skeleton className="h-5 w-40 bg-white/20" />
+                </View>
               ) : (
                 <>
                   <Text className="text-center text-sm text-white/80">
@@ -377,6 +416,9 @@ function LocationPage({
         }
       >
         <HourlyForecastStrip entries={hourly.data ?? []} />
+        {/* Under the strip, not instead of it: the strip answers "what is it
+            doing at four", the plots answer the shape of the day. */}
+        <ForecastTrend entries={hourly.data ?? []} />
       </Tile>
       </View>
 

@@ -18,6 +18,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
+      "@react-native-async-storage/async-storage": path.resolve(
+        __dirname,
+        "test/stubs/async-storage.ts",
+      ),
       "expo-constants": path.resolve(__dirname, "test/stubs/expo-constants.ts"),
       "expo-secure-store": path.resolve(__dirname, "test/stubs/expo-secure-store.ts"),
       "react-native": path.resolve(__dirname, "test/stubs/react-native.ts"),

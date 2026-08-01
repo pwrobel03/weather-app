@@ -91,8 +91,11 @@ describe("AlertLiveConnection", () => {
     // missed by screen readers, so the region has to already be there.
     render(<AlertLiveConnection locale="pl" />);
 
-    const region = screen.getByRole("status");
-    expect(region).toHaveAttribute("aria-live", "assertive");
+    // role="alert" rather than role="status": the two carry opposite urgency,
+    // and the pair - status with aria-live overridden to assertive - left the
+    // behaviour up to whichever a given screen reader honoured. "alert" is
+    // implicitly assertive, so the attribute is not restated here.
+    expect(screen.getByRole("alert")).toBeInTheDocument();
   });
 
   it("translates the level for an English reader", async () => {

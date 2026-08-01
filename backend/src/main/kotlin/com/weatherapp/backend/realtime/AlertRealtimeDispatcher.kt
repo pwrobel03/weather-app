@@ -110,7 +110,14 @@ class AlertRealtimeDispatcher(
 
     private fun deliverToUser(alert: Alert, userId: Long) {
         val sessions = sessionManager.getSessions(userId)
-        val pushTokens = if (sessions.isEmpty()) userPushTokenRepository.findTokensByUserId(userId) else emptyList()
+        // Grouped by language: one user can hold devices set to different
+        // languages, which is exactly why the locale rides on the token rather
+        // than on the account (follow-up.md point 12).
+        val pushTokens = if (sessions.isEmpty()) {
+            userPushTokenRepository.findTokensByUserIdGroupedByLocale(userId)
+        } else {
+            emptyMap()
+        }
 
         if (sessions.isEmpty() && pushTokens.isEmpty()) return
 
@@ -175,16 +182,20 @@ class AlertRealtimeDispatcher(
         return delivered
     }
 
-    private fun sendPushNotification(notification: AlertRealtimeNotification, tokens: List<String>): Boolean {
-        val title = "Ostrzeżenie: ${notification.event} (stopień ${notification.severity.level})"
-        val locationsText = if (notification.matchedLocations.isNotEmpty()) {
-            "Dotyczy: ${notification.matchedLocations.joinToString(", ")}. "
-        } else {
-            ""
-        }
-        val body = "$locationsText${notification.content ?: ""}".trim()
+    private fun sendPushNotification(
+        notification: AlertRealtimeNotification,
+        tokensByLocale: Map<String, List<String>>,
+    ): Boolean {
+        // One message per language, not per device: three phones set to the
+        // same language cost one composed string.
+        val messages = tokensByLocale.flatMap { (locale, tokens) ->
+            val title = PushMessages.title(locale, notification.event, notification.severity.level)
+            // IMGW's own text, in Polish whatever the device asked for. It is a
+            // safety instruction, and a machine translation of one is a
+            // liability rather than a feature.
+            val body = "${PushMessages.affects(locale, notification.matchedLocations)}${notification.content ?: ""}".trim()
 
-        val messages = tokens.map { token ->
+            tokens.map { token ->
             ExpoPushMessage(
                 to = token,
                 title = title,
@@ -200,6 +211,7 @@ class AlertRealtimeDispatcher(
                     "matchedLocations" to notification.matchedLocations,
                 ),
             )
+            }
         }
         val delivered = expoPushClient.sendPushNotifications(messages)
         if (delivered) {

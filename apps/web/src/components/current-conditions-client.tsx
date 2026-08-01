@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, LayoutGrid, MapPin, Moon, RefreshCw, Search, Settings, Sun, User } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Languages, LayoutGrid, MapPin, Moon, RefreshCw, Search, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
@@ -9,6 +9,9 @@ import { useEffect, useState, useTransition } from "react";
 import { HeroContent } from "@/components/hero-content";
 import { LocationSearch } from "@/components/location-search";
 import { Button } from "@/components/ui/button";
+import { appMessages } from "@weather-app/core";
+
+import { LanguageToggle } from "@/components/language-toggle";
 import { setActiveLocationAction } from "@/lib/active-location/actions";
 import type { ActiveLocation } from "@/lib/active-location/cookie";
 import type { Locale } from "@weather-app/core";
@@ -222,13 +225,36 @@ export function CurrentConditionsClient({
                   {resolvedTheme === "dark" ? "Ciemny" : "Jasny"}
                 </span>
               </button>
+
+              {/* Beside the theme, because they are the same kind of choice:
+                  how the app presents itself, not what it is showing. */}
+              <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-white/85">
+                <span className="flex items-center gap-2.5">
+                  <Languages className="size-4 text-sky-400" />
+                  <span>{appMessages[locale].language}</span>
+                </span>
+                <LanguageToggle locale={locale} />
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* CENTER: Prominent City Location Title (Screen 1 aesthetic) */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-4 sm:top-6 flex flex-col items-center justify-center text-center pointer-events-auto">
+      <div className="absolute left-1/2 -translate-x-1/2 top-4 sm:top-6 flex items-center justify-center gap-1 text-center pointer-events-auto">
+        {/* One click per place, matching the swipe on mobile. The menu below
+            still holds the full list and the search - this is for the common
+            case, which is two or three places and a step between them. A
+            keyboard reaches these as ordinary buttons, which a swipe never
+            offered anyone. */}
+        <StepPlace
+          direction="previous"
+          places={savedLocations}
+          active={active}
+          disabled={isPending}
+          onSelect={handleSelectLocation}
+        />
+
         <button
           type="button"
           onClick={() => {
@@ -241,6 +267,14 @@ export function CurrentConditionsClient({
           <span>{active?.name ?? "Warszawa"}</span>
           <ChevronDown className="size-3 sm:size-4 text-white/65 group-hover:text-white transition-colors ml-0.5" />
         </button>
+
+        <StepPlace
+          direction="next"
+          places={savedLocations}
+          active={active}
+          disabled={isPending}
+          onSelect={handleSelectLocation}
+        />
       </div>
 
       {/* RIGHT: Refresh Action Vector */}
@@ -277,5 +311,62 @@ export function CurrentConditionsClient({
       isUpdating={isFetching}
       isOffline={isOfflineState}
     />
+  );
+}
+
+/**
+ * One step through the saved places, in either direction.
+ *
+ * The last inequality between the two clients: mobile moves between places
+ * with a swipe, while web made you open a menu and pick from a list. The menu
+ * is still there and still holds the search - this covers the common case,
+ * which is two or three places and a step between them.
+ *
+ * Renders nothing for fewer than two places, and wraps around at the ends
+ * rather than disabling: a disabled arrow at the edge of a three-item list is
+ * a control that spends most of its life dead.
+ */
+function StepPlace({
+  direction,
+  places,
+  active,
+  disabled,
+  onSelect,
+}: {
+  direction: "previous" | "next";
+  places: SavedLocation[];
+  active?: ActiveLocation;
+  disabled: boolean;
+  onSelect: (location: ActiveLocation) => void;
+}) {
+  if (places.length < 2) return null;
+
+  const current = places.findIndex((place) => place.id === active?.savedLocationId);
+  const step = direction === "next" ? 1 : -1;
+  // From -1 (a place that is not saved, e.g. one just searched for) a step
+  // forward lands on the first saved place rather than nowhere.
+  const target = places[(current + step + places.length) % places.length]!;
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() =>
+        onSelect({
+          savedLocationId: target.id,
+          name: target.name,
+          latitude: target.latitude,
+          longitude: target.longitude,
+        })
+      }
+      aria-label={target.name}
+      className="rounded-full p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"
+    >
+      {direction === "next" ? (
+        <ChevronRight className="size-4 sm:size-5" />
+      ) : (
+        <ChevronLeft className="size-4 sm:size-5" />
+      )}
+    </button>
   );
 }

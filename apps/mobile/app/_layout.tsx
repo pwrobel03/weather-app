@@ -3,7 +3,8 @@ import "../global.css";
 // before any screen renders a Link.
 import "../src/lib/link-styling";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { tokens } from "@weather-app/design-tokens";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -13,7 +14,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LogBox } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { ErrorScreen } from "../src/components/error-screen";
 import { ActiveLocationProvider } from "../src/lib/active-location";
+import { CACHE_VERSION, MAX_AGE_MS, persister, shouldPersist } from "../src/lib/offline-cache";
 import { LocaleProvider } from "../src/lib/locale";
 import { ThemeProvider } from "../src/lib/theme";
 import { holdSplash } from "../src/lib/splash";
@@ -45,6 +48,16 @@ function ThemedStatusBar() {
   return <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />;
 }
 
+/**
+ * expo-router renders this instead of the tree when a screen throws.
+ *
+ * Named exactly `ErrorBoundary` because that is the contract - renaming it
+ * silently reverts to the default white screen.
+ */
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return <ErrorScreen error={error} retry={retry} />;
+}
+
 export default function RootLayout() {
   // Created once per mount, not at module scope: a module-level client is
   // shared across Fast Refresh reloads and keeps serving a stale cache.
@@ -57,6 +70,10 @@ export default function RootLayout() {
             // stops a screen focus from refetching the whole home screen.
             staleTime: 60_000,
             retry: 1,
+            // Longer than staleTime and shorter than the persisted maximum: a
+            // query dropped from memory before it is written out cannot be
+            // restored, so this is what makes the disk copy reachable at all.
+            gcTime: MAX_AGE_MS,
           },
         },
       }),
@@ -70,7 +87,15 @@ export default function RootLayout() {
     // view alone, and React Native paints that white by default - the exact
     // flash the splash exists to prevent.
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.colors.tloCiemne }}>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: MAX_AGE_MS,
+        buster: CACHE_VERSION,
+        dehydrateOptions: { shouldDehydrateQuery: shouldPersist },
+      }}
+    >
       <ThemeProvider>
       <LocaleProvider>
       <AuthProvider>
@@ -91,7 +116,7 @@ export default function RootLayout() {
       </AuthProvider>
       </LocaleProvider>
       </ThemeProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
     </GestureHandlerRootView>
   );
 }

@@ -1,8 +1,10 @@
 "use server";
 
 import { createWeatherApiClient } from "@weather-app/api-client";
+import { authMessages } from "@weather-app/core";
 import { redirect } from "next/navigation";
 
+import { getRequestLocale } from "../locale";
 import { clearSessionCookies, setSessionCookies } from "./session";
 
 export type AuthActionState = { error?: string };
@@ -27,10 +29,8 @@ export async function loginAction(_prevState: AuthActionState, formData: FormDat
   });
 
   if (!data) {
-    if (response.status === 401) {
-      return { error: "Nieprawidłowy e-mail lub hasło." };
-    }
-    return { error: "Logowanie nie powiodło się. Spróbuj ponownie." };
+    const messages = authMessages[await getRequestLocale()];
+    return { error: response.status === 401 ? messages.invalidCredentials : messages.failed };
   }
 
   await setSessionCookies(data.accessToken, data.refreshToken);
@@ -47,13 +47,10 @@ export async function registerAction(_prevState: AuthActionState, formData: Form
   });
 
   if (!data) {
-    if (response.status === 409) {
-      return { error: "Ten adres e-mail jest już zarejestrowany." };
-    }
-    if (response.status === 400) {
-      return { error: "Sprawdź poprawność danych - hasło musi mieć od 8 do 72 znaków." };
-    }
-    return { error: "Rejestracja nie powiodła się. Spróbuj ponownie." };
+    const messages = authMessages[await getRequestLocale()];
+    if (response.status === 409) return { error: messages.emailTaken };
+    if (response.status === 400) return { error: messages.invalidInput };
+    return { error: messages.failed };
   }
 
   await setSessionCookies(data.accessToken, data.refreshToken);

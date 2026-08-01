@@ -1,10 +1,18 @@
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "nativewind";
-import { useEffect, useState } from "react";
-import { AccessibilityInfo, Pressable, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { Pressable, View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  type SharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
+
+import { useReduceMotion } from "../lib/reduce-motion";
+import { useReduceTransparency } from "../lib/reduce-transparency";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -44,27 +52,22 @@ export function GlassBar({
   left: Action;
   right: Action;
   /** Absent when there is only one place to look at. */
-  dots?: { count: number; current: number };
+  dots?: {
+    count: number;
+    /** The settled page, for the screen reader. Whole numbers only. */
+    current: number;
+    /**
+     * Where the pager is *right now*, in pages: 1.4 means the finger is 40% of
+     * the way from the second place to the third. Driven by the scroll offset
+     * rather than by the settle, so the dots move with the gesture instead of
+     * catching up after it.
+     */
+    progress: SharedValue<number>;
+  };
 }) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
-  const [reduceTransparency, setReduceTransparency] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceTransparencyEnabled().then((enabled) => {
-      if (!cancelled) setReduceTransparency(enabled);
-    });
-
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceTransparencyChanged",
-      setReduceTransparency,
-    );
-    return () => {
-      cancelled = true;
-      subscription.remove();
-    };
-  }, []);
+  const reduceTransparency = useReduceTransparency();
 
   const dark = colorScheme !== "light";
 
@@ -77,7 +80,7 @@ export function GlassBar({
       <GlassButton action={left} dark={dark} opaque={reduceTransparency} />
 
       {dots ? (
-        <Dots count={dots.count} current={dots.current} dark={dark} />
+        <Dots count={dots.count} current={dots.current} progress={dots.progress} dark={dark} />
       ) : (
         // Keeps the two buttons in their corners when there is nothing to show
         // between them.
@@ -89,7 +92,27 @@ export function GlassBar({
   );
 }
 
-function Dots({ count, current, dark }: { count: number; current: number; dark: boolean }) {
+/**
+ * Which place of how many, and how far between them.
+ *
+ * The dot for the page being left fades as the dot for the page being entered
+ * brightens, in step with the finger. This is not decoration: a swipe that can
+ * be abandoned halfway needs the indicator to say so while it is happening,
+ * and one that only redraws on settle reads as a control that stopped
+ * responding. The current page is a whole number only after the gesture ends,
+ * which is why the screen reader gets its own settled value rather than this.
+ */
+function Dots({
+  count,
+  current,
+  progress,
+  dark,
+}: {
+  count: number;
+  current: number;
+  progress: SharedValue<number>;
+  dark: boolean;
+}) {
   const colour = dark ? "bg-white" : "bg-[#0F1826]";
 
   return (
@@ -99,14 +122,35 @@ function Dots({ count, current, dark }: { count: number; current: number; dark: 
       accessibilityLabel={`${current + 1} / ${count}`}
     >
       {Array.from({ length: count }, (_, index) => (
-        <View
-          key={index}
-          className={`h-1.5 w-1.5 rounded-full ${colour}`}
-          style={{ opacity: index === current ? 0.95 : 0.3 }}
-        />
+        <Dot key={index} index={index} progress={progress} colour={colour} />
       ))}
     </View>
   );
+}
+
+function Dot({
+  index,
+  progress,
+  colour,
+}: {
+  index: number;
+  progress: SharedValue<number>;
+  colour: string;
+}) {
+  const style = useAnimatedStyle(() => {
+    // Distance in pages, clamped at one: a dot two places away is no dimmer
+    // than one place away, or a long list would fade to nothing at both ends.
+    const distance = Math.min(Math.abs(progress.value - index), 1);
+
+    return {
+      opacity: interpolate(distance, [0, 1], [0.95, 0.3]),
+      // The active dot is also slightly larger. Opacity alone is hard to read
+      // at 6pt against a background that is itself changing colour.
+      transform: [{ scale: interpolate(distance, [0, 1], [1, 0.75]) }],
+    };
+  });
+
+  return <Animated.View className={`h-1.5 w-1.5 rounded-full ${colour}`} style={style} />;
 }
 
 function GlassButton({
@@ -119,9 +163,14 @@ function GlassButton({
   opaque: boolean;
 }) {
   const pressed = useSharedValue(0);
+  const reduceMotion = useReduceMotion();
 
+  // Under reduced motion the button dims but does not move. The press still
+  // has to answer - a control that acknowledges nothing reads as broken, which
+  // is not what "less motion" asked for - so the opacity stays and only the
+  // travel goes.
   const style = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(1 - 0.07 * pressed.value, PRESS) }],
+    transform: [{ scale: reduceMotion ? 1 : withSpring(1 - 0.07 * pressed.value, PRESS) }],
     opacity: withSpring(1 - 0.2 * pressed.value, PRESS),
   }));
 

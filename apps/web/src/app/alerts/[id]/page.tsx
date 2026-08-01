@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { getRequestLocale } from "@/lib/locale";
 
 import { AlertEntry } from "@/components/alert-entry";
 import { findAlertById } from "@/lib/alerts/api";
@@ -27,7 +28,7 @@ const LABELS: Record<Locale, { title: string; back: string; signIn: string; disc
 };
 
 export default async function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const locale = DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const labels = LABELS[locale];
   const { id } = await params;
   const alertId = Number(id);

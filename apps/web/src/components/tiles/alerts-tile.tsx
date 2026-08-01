@@ -3,7 +3,9 @@ import { ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { Tile } from "@/components/tiles/tile";
 import { Button } from "@/components/ui/button";
-import { alertMessages, formatValidity, listFormat, type Locale } from "@weather-app/core";
+import { alertMessages, formatValidity, listFormat, type Locale,
+  phenomenonName,
+} from "@weather-app/core";
 import type { ActiveAlert } from "@/lib/alerts/api";
 
 const LABELS: Record<
@@ -116,7 +118,7 @@ export function AlertsTile({
                   />
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-base leading-tight font-bold tracking-tight text-white">{alert.event}</p>
+                      <p className="text-base leading-tight font-bold tracking-tight text-white">{phenomenonName(alert.event, locale)}</p>
                       <span
                         className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider text-white bg-black/30 shadow-xs"
                         style={{ borderColor: colour, borderWidth: "1px" }}

@@ -45,6 +45,13 @@ data class UpdatePreferencesRequest(
 
 data class RegisterPushTokenRequest(
     val token: String,
+    /**
+     * The language this device wants its notifications in.
+     *
+     * Optional so an older client keeps working; absent means Polish, which is
+     * what those clients are already receiving.
+     */
+    val locale: String? = null,
 )
 
 @RestController
@@ -84,7 +91,10 @@ class UserController(
     @PostMapping("/api/users/me/push-tokens")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun registerPushToken(principal: Principal, @RequestBody request: RegisterPushTokenRequest) {
-        userPushTokenRepository.upsert(principal.userId, request.token)
+        // Normalised here rather than trusted: this is a two-character column
+        // and the value arrives from a client.
+        val locale = if (request.locale?.lowercase() == "en") "en" else "pl"
+        userPushTokenRepository.upsert(principal.userId, request.token, locale)
     }
 
     @Operation(

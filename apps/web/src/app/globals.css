@@ -147,6 +147,23 @@
     @apply border-border outline-ring/50;
   }
 
+  /* A visible focus ring on anything reachable by keyboard. The base layer
+     above sets a ring *colour* and nothing that draws one, so focus was
+     leaving no mark at all on several surfaces - a tab order that exists but
+     cannot be followed is not a tab order. :focus-visible rather than :focus,
+     so a mouse click does not leave a ring behind it. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Over the hero the ring has to be light: --ring is tuned for the page
+     ground, and on a saturated gradient it disappears into the sky. */
+  .weather-background :focus-visible {
+    outline-color: rgb(255 255 255 / 0.9);
+  }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -744,7 +761,11 @@ body {
 
 @media (prefers-reduced-transparency: reduce) {
   .weather-background .glass {
-    background: rgb(11 14 20 / 0.72);
+    /* Opaque, not 72% of the way there. Dropping the blur while keeping the
+       alpha left the gradient showing through the one surface that exists to
+       carry small text over it - which is the legibility the setting was
+       turned on to get back. */
+    background: rgb(11 14 20);
     border-color: rgb(255 255 255 / 0.2);
     border-top-color: rgb(255 255 255 / 0.2);
     backdrop-filter: none;
@@ -859,6 +880,15 @@ body {
   .animate-in-card,
   .animate-pulse-subtle {
     animation: none !important;
+  }
+
+  /* Tailwind's own pulse, worn by every loading skeleton. Held at the dimmer
+     end rather than at full opacity: still legibly a placeholder, no longer a
+     moving one. Left out, this would be the most frequently seen animation in
+     the app for somebody who asked for none - every cold start has one. */
+  .animate-pulse {
+    animation: none !important;
+    opacity: 0.6;
   }
 
   .interactive-tile,

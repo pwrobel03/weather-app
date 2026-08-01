@@ -4,6 +4,7 @@ import {
   formatValidity,
   listFormat,
   type Locale,
+  phenomenonName,
 } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Text, View } from "react-native";
@@ -40,6 +41,24 @@ export function AlertEntry({
 
   return (
     <View
+      // One node, one sentence. Left to itself the card reads as six fragments
+      // in layout order, with the severity arriving somewhere after the event
+      // name and the punctuation between them announced as words.
+      accessible
+      accessibilityLabel={[
+        messages.severityLabel[alert.severity],
+        phenomenonName(alert.event, locale),
+        expired ? labels.expired : null,
+        `${labels.from} ${formatValidity(alert.validFrom, locale)}`,
+        alert.affectedLocations.length > 0
+          ? `${messages.affects}: ${listFormat(
+              alert.affectedLocations.map((location) => location.name),
+              locale,
+            )}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(". ")}
       className="flex-row gap-3 rounded-2xl bg-powierzchnia p-4"
       style={{ opacity: expired ? 0.62 : 1 }}
     >
@@ -52,8 +71,13 @@ export function AlertEntry({
 
       <View className="min-w-0 flex-1 gap-1.5">
         <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-          <Text className="text-base font-semibold text-tekst">{alert.event}</Text>
-          <Text className="text-xs font-semibold" style={{ color: severityColor }}>
+          <Text className="text-base font-semibold text-tekst">
+            {phenomenonName(alert.event, locale)}
+          </Text>
+          {/* Text ink rather than the severity colour - level 3 measures
+              4.13:1 on this surface, under the floor for text this size. The
+              bar down the left carries the colour instead. */}
+          <Text className="text-xs font-semibold text-tekst">
             {messages.severityLabel[alert.severity]}
           </Text>
           {expired && (
