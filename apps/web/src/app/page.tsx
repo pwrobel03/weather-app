@@ -2,6 +2,7 @@ import { DEFAULT_LOCALE, weatherMessages, localHourFromForecast } from "@weather
 import { AlertLiveConnection } from "@/components/alert-live-connection";
 import { CurrentConditionsClient } from "@/components/current-conditions-client";
 import { DailyForecastList } from "@/components/daily-forecast-list";
+import { ForecastTrend } from "@/components/forecast-trend";
 import { HourlyForecastStrip } from "@/components/hourly-forecast-strip";
 import { AlertsTile } from "@/components/tiles/alerts-tile";
 import { MetricsTile } from "@/components/tiles/metrics-tile";
@@ -123,6 +124,10 @@ export default async function Page() {
           className="h-full justify-center"
         >
           <HourlyForecastStrip entries={hourly} />
+          {/* Under the strip, not instead of it: the strip answers "what is it
+              doing at four", the plots answer the shape of the day, and neither
+              question is served well by the other's layout. */}
+          <ForecastTrend entries={hourly} />
         </Tile>
       </div>
 

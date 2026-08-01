@@ -28,6 +28,7 @@ import { AlertLiveConnection } from "../src/components/alert-live-connection";
 import { AlertsTile } from "../src/components/alerts-tile";
 import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
+import { ForecastTrend } from "../src/components/forecast-trend";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
 import { WeatherBackground } from "../src/components/weather-background";
@@ -406,6 +407,9 @@ function LocationPage({
         }
       >
         <HourlyForecastStrip entries={hourly.data ?? []} />
+        {/* Under the strip, not instead of it: the strip answers "what is it
+            doing at four", the plots answer the shape of the day. */}
+        <ForecastTrend entries={hourly.data ?? []} />
       </Tile>
       </View>
 
