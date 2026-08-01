@@ -22,6 +22,10 @@ kotlin {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.springframework.boot:spring-boot-starter-restclient")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    implementation("com.github.ben-manes.caffeine:caffeine")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
@@ -36,9 +40,33 @@ dependencies {
     testImplementation(platform("org.testcontainers:testcontainers-bom:2.0.5"))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation(kotlin("test"))
 }
 
 tasks.test {
     useJUnitPlatform()
+    // OpenApiGeneratorTest writes build/openapi/openapi.json as a side effect.
+    // Declaring it as an output keeps Gradle's up-to-date check honest: if the
+    // file is missing, `test` reruns even when the sources haven't changed.
+    outputs.file(layout.buildDirectory.file("openapi/openapi.json"))
+}
+
+tasks.register("generateOpenApiDocs") {
+    group = "documentation"
+    description = "Generates OpenAPI specification as a build artifact at build/openapi/openapi.json"
+    dependsOn(tasks.test)
+    doLast {
+        val specFile = file("build/openapi/openapi.json")
+        if (!specFile.exists()) {
+            throw GradleException(
+                "OpenAPI specification was not found at ${specFile.absolutePath}. Ensure OpenApiGeneratorTest passes.",
+            )
+        }
+        logger.lifecycle("OpenAPI specification available at: ${specFile.absolutePath}")
+    }
+}
+
+tasks.register("generateOpenApi") {
+    dependsOn("generateOpenApiDocs")
 }

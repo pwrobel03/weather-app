@@ -40,11 +40,26 @@ jobs:
           node-version: "22"
           cache: pnpm
 
+      - name: Set up JDK 21 for OpenAPI spec generation
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate API client from OpenAPI spec
+        run: pnpm run generate:api-client
+
       - name: Typecheck @weather-app/contract
         run: pnpm --filter @weather-app/contract typecheck
+
+      - name: Typecheck @weather-app/api-client
+        run: pnpm --filter @weather-app/api-client typecheck
 
       - name: Lint web
         run: pnpm --filter web lint

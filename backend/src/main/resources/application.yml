@@ -10,3 +10,7 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+
+open-meteo:
+  base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
+  geocoding-base-url: ${OPEN_METEO_GEOCODING_BASE_URL:https://geocoding-api.open-meteo.com}
