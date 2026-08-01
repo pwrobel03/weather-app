@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.security.Principal
+import java.time.ZoneId
 
 data class UserResponse(
     val id: Long,
@@ -52,6 +53,13 @@ data class RegisterPushTokenRequest(
      * what those clients are already receiving.
      */
     val locale: String? = null,
+    /**
+     * IANA zone this device wants its quiet hours measured in.
+     *
+     * Optional so an older client keeps working; absent means Europe/Warsaw,
+     * which is where every device registered before this field existed is.
+     */
+    val timeZone: String? = null,
 )
 
 @RestController
@@ -94,7 +102,14 @@ class UserController(
         // Normalised here rather than trusted: this is a two-character column
         // and the value arrives from a client.
         val locale = if (request.locale?.lowercase() == "en") "en" else "pl"
-        userPushTokenRepository.upsert(principal.userId, request.token, locale)
+        // Validated rather than trusted: an unknown identifier would make every
+        // future quiet-hours check fall through to "notify" - the safe
+        // direction, but silently wrong. Rejecting it at the door keeps the
+        // column meaning what it says.
+        val timeZone = request.timeZone
+            ?.takeIf { runCatching { ZoneId.of(it) }.isSuccess }
+            ?: "Europe/Warsaw"
+        userPushTokenRepository.upsert(principal.userId, request.token, locale, timeZone)
     }
 
     @Operation(

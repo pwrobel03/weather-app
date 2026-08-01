@@ -55,7 +55,13 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
     // The chosen language travels with the token, not with the account: iOS
     // and Android both allow a language per app, so the same account can want
     // Polish on the phone and English on the tablet (follow-up.md point 12).
-    await authorizedClient().POST("/api/users/me/push-tokens", { body: { token, locale } });
+    // The zone travels with the token beside the language, and for the same
+    // reason: quiet hours belong to the phone next to the bed. Read from Intl,
+    // which already answers this on every runtime the app runs on.
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await authorizedClient().POST("/api/users/me/push-tokens", {
+      body: { token, locale, timeZone },
+    });
     currentToken = token;
     return token;
   } catch {

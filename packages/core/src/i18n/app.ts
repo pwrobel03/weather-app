@@ -53,6 +53,18 @@ export type AppMessages = {
   upstreamUnavailable: string;
   /** First stop in the tab order, invisible until focused. */
   skipToContent: string;
+  /** Row label for the per-place notification threshold. */
+  notifyFrom: string;
+  /**
+   * The three thresholds, phrased as what gets through rather than as a level.
+   * "Od 2. stopnia" answers the question somebody actually has, where a bare
+   * "2" makes them work out which direction the scale runs.
+   *
+   * Kept parallel and short because they sit in a three-way control on a phone:
+   * "Od 3. stopnia" rather than "Tylko 3. stopień", which is the same statement
+   * - three is the top of the scale - in a width that fits.
+   */
+  notifyFromLevel: Record<"1" | "2" | "3", string>;
 };
 
 /**
@@ -101,6 +113,8 @@ export const appMessages: Record<Locale, AppMessages> = {
     upstreamUnavailable:
       "Nie możemy się teraz połączyć z serwerem prognoz. Spróbuj ponownie za chwilę.",
     skipToContent: "Przejdź do treści",
+    notifyFrom: "Powiadamiaj",
+    notifyFromLevel: { "1": "Zawsze", "2": "Od 2. stopnia", "3": "Od 3. stopnia" },
   },
   en: {
     forecastUnavailable: "Could not load the forecast",
@@ -135,5 +149,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     upstreamUnavailable:
       "We cannot reach the forecast service right now. Try again in a moment.",
     skipToContent: "Skip to content",
+    notifyFrom: "Notify me",
+    notifyFromLevel: { "1": "Always", "2": "Level 2+", "3": "Level 3" },
   },
 };

@@ -43,6 +43,28 @@ export async function reorderSavedLocations(orderedIds: number[]): Promise<boole
   return response.ok;
 }
 
+/**
+ * Sets the lowest warning level worth waking this device for, at one place.
+ *
+ * Returns the stored row so the caller can settle on what the server kept
+ * rather than on what it hoped for - the endpoint hands it back for exactly
+ * this reason (commit 132).
+ */
+export async function updateMinSeverity(
+  id: number,
+  minSeverity: "1" | "2" | "3",
+): Promise<SavedLocation | null> {
+  try {
+    const { data } = await authorizedClient().PATCH("/api/users/me/locations/{id}", {
+      params: { path: { id } },
+      body: { minSeverity },
+    });
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deleteSavedLocation(id: number): Promise<boolean> {
   const { response } = await authorizedClient().DELETE("/api/users/me/locations/{id}", {
     params: { path: { id } },

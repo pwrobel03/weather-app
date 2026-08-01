@@ -236,7 +236,7 @@ class WebSocketFanOutIntegrationTest {
     @Test
     fun `offline user in background receives push notification via Expo relay`() {
         val backgroundUserId = createUserWithLocation("background@example.com", "Praca", "3029")
-        userPushTokenRepository.upsert(backgroundUserId, "ExponentPushToken[test12345]", "pl")
+        userPushTokenRepository.upsert(backgroundUserId, "ExponentPushToken[test12345]", "pl", "Europe/Warsaw")
 
         whenever(imgwClient.fetchMeteoWarnings()) doReturn listOf(warning(teryt = listOf("3029")))
         val result = ingestService.ingest()
@@ -261,7 +261,7 @@ class WebSocketFanOutIntegrationTest {
     @Test
     fun `a connected user is not also pushed`() {
         val userId = createUserWithLocation("both@example.com", "Dom", "3029")
-        userPushTokenRepository.upsert(userId, "ExponentPushToken[test12345]", "pl")
+        userPushTokenRepository.upsert(userId, "ExponentPushToken[test12345]", "pl", "Europe/Warsaw")
         val handler = connectWebSocket(userId)
 
         whenever(imgwClient.fetchMeteoWarnings()) doReturn listOf(warning(teryt = listOf("3029")))

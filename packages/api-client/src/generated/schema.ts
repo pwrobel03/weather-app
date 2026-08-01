@@ -206,6 +206,27 @@ export interface paths {
         patch: operations["updatePreferences"];
         trace?: never;
     };
+    "/api/users/me/locations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one of the current user's saved locations */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Set the lowest warning level worth notifying about at this place
+         * @description Governs notification only. A warning below the threshold is still matched, still recorded and still shown on the place's screen - the setting means "do not wake me for this".
+         */
+        patch: operations["updateMinSeverity"];
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -443,23 +464,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/users/me/locations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete one of the current user's saved locations */
-        delete: operations["delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -470,6 +474,7 @@ export interface components {
         RegisterPushTokenRequest: {
             token: string;
             locale?: string;
+            timeZone?: string;
         };
         SaveLocationRequest: {
             name: string;
@@ -491,6 +496,8 @@ export interface components {
             terytCode?: string;
             /** Format: int32 */
             position: number;
+            /** @enum {string} */
+            minSeverity: "1" | "2" | "3";
             /** Format: date-time */
             createdAt: string;
         };
@@ -548,6 +555,10 @@ export interface components {
             windSpeedUnit: "KMH" | "MPH";
             /** @enum {string} */
             precipitationUnit: "MM" | "IN";
+        };
+        UpdateMinSeverityRequest: {
+            /** @enum {string} */
+            minSeverity: "1" | "2" | "3";
         };
         AffectedLocation: {
             /** Format: int64 */
@@ -1196,6 +1207,118 @@ export interface operations {
             };
         };
     };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    updateMinSeverity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMinSeverityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SavedLocation"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -1613,59 +1736,6 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
-                };
-            };
-        };
-    };
-    delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: string;
-                    };
-                };
-            };
-            /** @description Conflict */
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
