@@ -14,6 +14,14 @@ type WeatherBackgroundProps = {
   /** Injectable clock, so the render is deterministic in tests and stories. */
   now?: Date;
   /**
+   * Where this is, so the sky follows the location's own sunrise rather than
+   * three fixed hours. Optional together: absent falls back to the old
+   * anchors, which is what the alert preview - a page with no location at all
+   * - still needs.
+   */
+  latitude?: number;
+  longitude?: number;
+  /**
    * IMGW severity of the warning in force, if any. Present means the warning
    * takes over the screen and the weather background recedes behind it.
    */
@@ -47,6 +55,8 @@ export function WeatherBackground({
   windSpeedKmh,
   timeZone,
   now,
+  latitude,
+  longitude,
   alertSeverity,
   children,
 }: WeatherBackgroundProps) {
@@ -56,6 +66,8 @@ export function WeatherBackground({
     windSpeedKmh,
     timeZone,
     now,
+    latitude,
+    longitude,
   });
 
   return (
