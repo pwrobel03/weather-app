@@ -6,6 +6,7 @@ import org.springframework.cache.annotation.EnableCaching
 import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import java.util.concurrent.TimeUnit
 
 @Configuration
@@ -17,8 +18,14 @@ class OpenMeteoCachingConfig {
      * geocoding results are cached with different TTLs — forecasts drift
      * within minutes, geocoded coordinates barely ever change — so each
      * cache gets its own Caffeine spec rather than sharing one.
+     *
+     * @Primary because other bounded contexts (e.g. boundary/TERYT) register
+     * their own CacheManager bean too - without a primary, unqualified
+     * @Cacheable calls here would fail to resolve with more than one
+     * CacheManager in the context.
      */
     @Bean
+    @Primary
     fun openMeteoCacheManager(): CacheManager =
         CaffeineCacheManager().apply {
             registerCustomCache(
