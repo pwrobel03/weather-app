@@ -51,6 +51,8 @@ export type AppMessages = {
   offlineAsOf: (time: string) => string;
   /** Said when the backend is unreachable, not when one request failed. */
   upstreamUnavailable: string;
+  /** First stop in the tab order, invisible until focused. */
+  skipToContent: string;
 };
 
 /**
@@ -98,6 +100,7 @@ export const appMessages: Record<Locale, AppMessages> = {
     offlineAsOf: (time) => `Stan na ${time}. Ostrzeżenia mogły się zmienić.`,
     upstreamUnavailable:
       "Nie możemy się teraz połączyć z serwerem prognoz. Spróbuj ponownie za chwilę.",
+    skipToContent: "Przejdź do treści",
   },
   en: {
     forecastUnavailable: "Could not load the forecast",
@@ -131,5 +134,6 @@ export const appMessages: Record<Locale, AppMessages> = {
     offlineAsOf: (time) => `As of ${time}. Warnings may have changed since.`,
     upstreamUnavailable:
       "We cannot reach the forecast service right now. Try again in a moment.",
+    skipToContent: "Skip to content",
   },
 };

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { getRequestLocale } from "@/lib/locale";
 
 import { AlertEntry } from "@/components/alert-entry";
 import { fetchAlertHistory } from "@/lib/alerts/api";
@@ -30,7 +31,7 @@ export default async function AlertTimelinePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const locale = DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const labels = LABELS[locale];
   const { id } = await params;
   const locationId = Number(id);

@@ -1,4 +1,5 @@
 import { alertUiMessages, DEFAULT_LOCALE } from "@weather-app/core";
+import { getRequestLocale } from "@/lib/locale";
 
 import { MapLegend } from "@/components/map/map-legend";
 import { WarningMap } from "@/components/map/warning-map";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
  * happening here", not "what is happening everywhere".
  */
 export default async function MapPage() {
-  const locale = DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
   const labels = alertUiMessages[locale];
   const [alerts, savedLocations] = await Promise.all([
     fetchActiveAlerts(),

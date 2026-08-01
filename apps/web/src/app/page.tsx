@@ -18,6 +18,7 @@ import { fetchPowiatOutline } from "@/lib/weather/boundary";
 import { fetchCurrentConditions } from "@/lib/weather/current-conditions";
 import { fetchDailyForecast } from "@/lib/weather/daily-forecast";
 import { fetchHourlyForecast } from "@/lib/weather/hourly-forecast";
+import { getRequestLocale } from "@/lib/locale";
 
 // Warszawa - fallback until a location is chosen or picked up from a saved one.
 const DEFAULT_LOCATION: ActiveLocation = {
@@ -63,7 +64,7 @@ export default async function Page() {
   }
 
   const { latitude, longitude } = active;
-  const locale = DEFAULT_LOCALE;
+  const locale = await getRequestLocale();
 
   const [conditions, hourly, daily, alerts, outline] = await Promise.all([
     fetchCurrentConditions(latitude, longitude).catch(() => null),

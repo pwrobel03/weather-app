@@ -1,8 +1,10 @@
+import { appMessages } from "@weather-app/core";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { OfflineBanner } from "@/components/offline-banner";
+import { getRequestLocale } from "@/lib/locale";
 import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { WeatherArtGradients } from "@/components/weather-art/gradients";
@@ -22,11 +24,15 @@ export const metadata: Metadata = {
   description: "Prognoza i ostrzeżenia pogodowe dla Polski",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Read here so the banner speaks the chosen language too. It renders on a
+  // page served from disk, where nothing else is around to tell it.
+  const locale = await getRequestLocale();
+
   return (
     <html
       lang="en"
@@ -40,7 +46,7 @@ export default function RootLayout({
         <WeatherArtGradients />
         {/* Above the providers: it has to be reachable on a page served from
             disk, where nothing behind it may have data to render. */}
-        <OfflineBanner />
+        <OfflineBanner locale={locale} />
 
         {/* First stop in the tab order, invisible until focused. Without it a
             keyboard reaches the forecast only after every control in the
@@ -49,7 +55,7 @@ export default function RootLayout({
           href="#main"
           className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-background focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold"
         >
-          Przejdź do treści
+          {appMessages[locale].skipToContent}
         </a>
 
         <ThemeProvider>

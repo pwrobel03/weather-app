@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, MapPin, Moon, RefreshCw, Search, Settings, Sun, User } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Languages, LayoutGrid, MapPin, Moon, RefreshCw, Search, Settings, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState, useTransition } from "react";
@@ -9,6 +9,9 @@ import { useEffect, useState, useTransition } from "react";
 import { HeroContent } from "@/components/hero-content";
 import { LocationSearch } from "@/components/location-search";
 import { Button } from "@/components/ui/button";
+import { appMessages } from "@weather-app/core";
+
+import { LanguageToggle } from "@/components/language-toggle";
 import { setActiveLocationAction } from "@/lib/active-location/actions";
 import type { ActiveLocation } from "@/lib/active-location/cookie";
 import type { Locale } from "@weather-app/core";
@@ -222,6 +225,16 @@ export function CurrentConditionsClient({
                   {resolvedTheme === "dark" ? "Ciemny" : "Jasny"}
                 </span>
               </button>
+
+              {/* Beside the theme, because they are the same kind of choice:
+                  how the app presents itself, not what it is showing. */}
+              <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-white/85">
+                <span className="flex items-center gap-2.5">
+                  <Languages className="size-4 text-sky-400" />
+                  <span>{appMessages[locale].language}</span>
+                </span>
+                <LanguageToggle locale={locale} />
+              </div>
             </div>
           </div>
         )}
