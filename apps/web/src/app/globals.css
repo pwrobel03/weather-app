@@ -147,6 +147,23 @@
     @apply border-border outline-ring/50;
   }
 
+  /* A visible focus ring on anything reachable by keyboard. The base layer
+     above sets a ring *colour* and nothing that draws one, so focus was
+     leaving no mark at all on several surfaces - a tab order that exists but
+     cannot be followed is not a tab order. :focus-visible rather than :focus,
+     so a mouse click does not leave a ring behind it. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Over the hero the ring has to be light: --ring is tuned for the page
+     ground, and on a saturated gradient it disappears into the sky. */
+  .weather-background :focus-visible {
+    outline-color: rgb(255 255 255 / 0.9);
+  }
+
   body {
     @apply bg-background text-foreground;
   }

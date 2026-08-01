@@ -41,8 +41,21 @@ export default function RootLayout({
         {/* Above the providers: it has to be reachable on a page served from
             disk, where nothing behind it may have data to render. */}
         <OfflineBanner />
+
+        {/* First stop in the tab order, invisible until focused. Without it a
+            keyboard reaches the forecast only after every control in the
+            header - on a page whose point is the forecast. */}
+        <a
+          href="#main"
+          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-4 focus-visible:top-4 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-background focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold"
+        >
+          Przejdź do treści
+        </a>
+
         <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            <div id="main">{children}</div>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

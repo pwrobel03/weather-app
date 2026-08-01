@@ -101,7 +101,7 @@ function Plot({
   values: number[];
   entries: HourlyForecastEntry[];
   hovered: number | null;
-  onHover: (index: number | null) => void;
+  onHover: (index: number | null | ((current: number | null) => number | null)) => void;
   kind: "line" | "bars";
 }) {
   // Rain is an amount, so its axis starts at zero; temperature is a position on
@@ -121,8 +121,37 @@ function Plot({
       <svg
         viewBox={`0 0 ${BOX.width} ${BOX.height}`}
         className="h-[120px] w-full touch-none"
-        role="img"
+        // Focusable and driven by the arrow keys, because the crosshair is the
+        // only way to read an individual hour off this chart and a pointer is
+        // not the only way people use a browser. The slider role is what a
+        // screen reader already knows how to narrate stepping through a range.
+        tabIndex={0}
+        role="slider"
         aria-label={`${label} na najbliższe ${values.length} godzin`}
+        aria-valuemin={0}
+        aria-valuemax={values.length - 1}
+        aria-valuenow={hovered ?? 0}
+        aria-valuetext={
+          hovered === null
+            ? undefined
+            : `${formatHourMinute(entries[hovered]!.time)}: ${Math.round(values[hovered]!)}${unit}`
+        }
+        onKeyDown={(event) => {
+          const step =
+            event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+          if (step === 0) {
+            // Escape gives the keyboard a way back out of the readout, the
+            // same exit a pointer gets by leaving the chart.
+            if (event.key === "Escape") onHover(null);
+            return;
+          }
+
+          event.preventDefault();
+          const next = (hovered ?? 0) + step;
+          onHover(Math.min(Math.max(next, 0), values.length - 1));
+        }}
+        onFocus={() => onHover((current) => current ?? 0)}
+        onBlur={() => onHover(null)}
         onPointerMove={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
           // Into the viewBox's own coordinates - the SVG is scaled to its
