@@ -27,3 +27,4 @@ export * from "./weather/naive-time";
 export * from "./weather/projection";
 export * from "./weather/scene";
 export * from "./weather/season";
+export * from "./weather/solar";

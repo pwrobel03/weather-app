@@ -99,6 +99,8 @@ export default async function Page() {
           weatherCode={weatherCode}
           temperatureCelsius={temperatureCelsius}
           windSpeedKmh={conditions?.windSpeedKmh}
+          latitude={latitude}
+          longitude={longitude}
         >
           <CurrentConditionsClient
             latitude={latitude}

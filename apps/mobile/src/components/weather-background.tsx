@@ -20,6 +20,13 @@ import { contrastMatrix, veilContrastAmount } from "./veil-contrast";
 type WeatherBackgroundProps = {
   /** WMO code from Open-Meteo, via the backend forecast endpoint. */
   weatherCode: number;
+  /**
+   * Where this is, so the sky follows the location's own sunrise rather than
+   * three fixed hours. Optional together: absent falls back to the old
+   * anchors, which is what a screen with no resolved place still needs.
+   */
+  latitude?: number;
+  longitude?: number;
   temperatureCelsius: number;
   /** Drives how far the falling texture leans. Absent means still air. */
   windSpeedKmh?: number;
@@ -58,6 +65,8 @@ export function WeatherBackground({
   windSpeedKmh,
   timeZone,
   now,
+  latitude,
+  longitude,
   children,
 }: WeatherBackgroundProps) {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -67,6 +76,8 @@ export function WeatherBackground({
     windSpeedKmh,
     now,
     timeZone,
+    latitude,
+    longitude,
   });
 
   const onLayout = (event: LayoutChangeEvent) => {

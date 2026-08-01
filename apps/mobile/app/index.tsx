@@ -349,6 +349,8 @@ function LocationPage({
         <WeatherBackground
           weatherCode={conditions.data?.weatherCode ?? 0}
           temperatureCelsius={conditions.data?.temperatureCelsius ?? 0}
+          latitude={latitude}
+          longitude={longitude}
           windSpeedKmh={conditions.data?.windSpeedKmh}
         >
           {conditions.data ? (

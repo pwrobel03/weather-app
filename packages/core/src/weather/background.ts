@@ -8,9 +8,11 @@ import {
   timeOfDay,
   timeOfDayBlend,
   type Phenomenon,
+  type SolarAnchorTimes,
   type TimeOfDay,
   type TimeOfDayBlend,
 } from "./channels";
+import { solarTimes } from "./solar";
 
 /**
  * The background, composed from independent channels (markdown/design.md).
@@ -35,6 +37,16 @@ export type BackgroundInput = {
   temperatureCelsius: number;
   /** IANA zone of the displayed location, not of the viewer. */
   timeZone?: string;
+  /**
+   * Where the location is, so the sky can follow its own sunrise.
+   *
+   * Optional as a pair: with them the time-of-day anchors sit on real solar
+   * events, without them they fall back to fixed hours (commit 128). The
+   * fallback is not a defect to remove - the alert preview renders no location
+   * at all, and a sky is still owed there.
+   */
+  latitude?: number;
+  longitude?: number;
   /** Injectable clock, so a render is deterministic in tests. */
   now?: Date;
   /**
@@ -96,15 +108,41 @@ export type BackgroundTexture = {
   speed: number;
 };
 
+/**
+ * The three anchors the sky hangs on, when the location is known.
+ *
+ * Undefined in two cases, and both fall back to fixed hours rather than to a
+ * guess: no coordinates at all, and a polar day or night where sunrise and
+ * sunset do not exist. The second cannot happen in Poland, but this module has
+ * no idea it is Polish and a sky built from nulls would be a black screen.
+ */
+function solarAnchorsFor(input: BackgroundInput, now: Date): SolarAnchorTimes | undefined {
+  if (input.latitude === undefined || input.longitude === undefined) return undefined;
+
+  const times = solarTimes(now, input.latitude, input.longitude, input.timeZone);
+  if (times.sunrise === null || times.sunset === null) return undefined;
+
+  return {
+    sunrise: times.sunrise,
+    solarNoon: times.solarNoon,
+    sunset: times.sunset,
+    dawn: times.dawn ?? undefined,
+    dusk: times.dusk ?? undefined,
+  };
+}
+
 export function composeBackground(input: BackgroundInput): BackgroundComposition {
   const now = input.now ?? new Date();
-  const resolvedTimeOfDay = timeOfDay(now, input.timeZone);
+  const anchors = solarAnchorsFor(input, now);
+  const resolvedTimeOfDay = timeOfDay(now, input.timeZone, anchors);
   const phenomenon = phenomenonFromWeatherCode(input.weatherCode);
   const saturation = temperatureSaturation(input.temperatureCelsius);
 
   // The sky is a blend between two anchors rather than a lookup on the current
-  // bucket, so it moves through the day instead of switching at 17:00.
-  const blend = timeOfDayBlend(now, input.timeZone);
+  // bucket, so it moves through the day instead of switching at 17:00 - and,
+  // since commit 128, those anchors are the location's own sunrise, solar noon
+  // and sunset rather than three fixed hours.
+  const blend = timeOfDayBlend(now, input.timeZone, anchors);
   const from = tokens.sky[blend.from];
   const to = tokens.sky[blend.to];
   const veil = tokens.veil[phenomenon];
