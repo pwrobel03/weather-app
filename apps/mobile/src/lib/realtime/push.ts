@@ -1,3 +1,4 @@
+import type { Locale } from "@weather-app/core";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
@@ -17,7 +18,7 @@ let currentToken: string | null = null;
  * at the screen. Push is the channel that matters, and it is the reason this
  * app exists at all.
  */
-export async function registerForPushNotifications(): Promise<string | null> {
+export async function registerForPushNotifications(locale: Locale): Promise<string | null> {
   // A simulator has no APNs/FCM registration to hand out, and asking produces
   // an error rather than a token.
   if (!Device.isDevice) return null;
@@ -51,7 +52,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const { data: token } = await Notifications.getExpoPushTokenAsync(
       projectId ? { projectId } : undefined,
     );
-    await authorizedClient().POST("/api/users/me/push-tokens", { body: { token } });
+    // The chosen language travels with the token, not with the account: iOS
+    // and Android both allow a language per app, so the same account can want
+    // Polish on the phone and English on the tablet (follow-up.md point 12).
+    await authorizedClient().POST("/api/users/me/push-tokens", { body: { token, locale } });
     currentToken = token;
     return token;
   } catch {

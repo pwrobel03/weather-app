@@ -55,8 +55,11 @@ export function AlertLiveConnection({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     if (!session) return;
-    void registerForPushNotifications();
-  }, [session]);
+    // Re-registered when the language changes, not only on sign-in: the locale
+    // rides on the token, so a device that switches language keeps waking up in
+    // the old one until its token is upserted again.
+    void registerForPushNotifications(locale);
+  }, [session, locale]);
 
   // Tapping a notification opens the warning it is about. The id travels in
   // the payload the dispatcher builds (commit 51), and the route matches

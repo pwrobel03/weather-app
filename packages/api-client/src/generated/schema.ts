@@ -469,6 +469,7 @@ export interface components {
         };
         RegisterPushTokenRequest: {
             token: string;
+            locale?: string;
         };
         SaveLocationRequest: {
             name: string;
