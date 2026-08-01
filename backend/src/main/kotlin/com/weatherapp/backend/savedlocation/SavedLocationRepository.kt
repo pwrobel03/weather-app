@@ -1,5 +1,6 @@
 package com.weatherapp.backend.savedlocation
 
+import com.weatherapp.backend.alert.WarningSeverity
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import java.sql.ResultSet
@@ -10,7 +11,7 @@ class SavedLocationRepository(private val jdbcTemplate: JdbcTemplate) {
     fun findAllByUserId(userId: Long): List<SavedLocation> =
         jdbcTemplate.query(
             """
-            SELECT id, user_id, name, latitude, longitude, teryt_code, position, created_at
+            SELECT id, user_id, name, latitude, longitude, teryt_code, position, min_severity, created_at
             FROM saved_location
             WHERE user_id = ?
             ORDER BY position, created_at
@@ -22,7 +23,7 @@ class SavedLocationRepository(private val jdbcTemplate: JdbcTemplate) {
     fun findByIdAndUserId(id: Long, userId: Long): SavedLocation? =
         jdbcTemplate.query(
             """
-            SELECT id, user_id, name, latitude, longitude, teryt_code, position, created_at
+            SELECT id, user_id, name, latitude, longitude, teryt_code, position, min_severity, created_at
             FROM saved_location
             WHERE id = ? AND user_id = ?
             """.trimIndent(),
@@ -126,6 +127,22 @@ class SavedLocationRepository(private val jdbcTemplate: JdbcTemplate) {
         longitude = getDouble("longitude"),
         terytCode = getString("teryt_code"),
         position = getInt("position"),
+        minSeverity = WarningSeverity.fromLevel(getString("min_severity")),
         createdAt = getTimestamp("created_at").toInstant(),
     )
+
+    /**
+     * Sets the lowest level worth a notification at one place.
+     *
+     * Scoped by user as well as by id, so a guessed id changes nothing rather
+     * than somebody else's setting - the same rule the rest of this repository
+     * follows for every write.
+     */
+    fun updateMinSeverity(id: Long, userId: Long, minSeverity: WarningSeverity): Boolean =
+        jdbcTemplate.update(
+            "UPDATE saved_location SET min_severity = ? WHERE id = ? AND user_id = ?",
+            minSeverity.level,
+            id,
+            userId,
+        ) == 1
 }

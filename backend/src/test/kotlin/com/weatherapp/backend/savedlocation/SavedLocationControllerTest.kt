@@ -336,6 +336,16 @@ class SavedLocationControllerTest {
         val longitude: Double,
         val terytCode: String?,
     ) {
-        fun toDomain() = SavedLocation(id, userId, name, latitude, longitude, terytCode, 0, java.time.Instant.EPOCH)
+        fun toDomain() = SavedLocation(
+            id,
+            userId,
+            name,
+            latitude,
+            longitude,
+            terytCode,
+            0,
+            com.weatherapp.backend.alert.WarningSeverity.LEVEL_1,
+            java.time.Instant.EPOCH,
+        )
     }
 }
