@@ -12,6 +12,7 @@
  * *types* are shared - see ./weather/forecast.
  */
 export * from "./chart/series";
+export * from "./weather/amendment";
 export * from "./i18n/alert-ui";
 export * from "./i18n/app";
 export * from "./i18n/auth";

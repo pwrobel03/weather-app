@@ -1,3 +1,4 @@
+import type { AlertRevision } from "@weather-app/core";
 import "server-only";
 
 import { createWeatherApiClient, type components } from "@weather-app/api-client";
@@ -98,4 +99,40 @@ export async function findAlertById(alertId: number): Promise<ActiveAlert | null
     locations.map((location) => fetchAlertHistory(location.id)),
   );
   return histories.flat().find((alert) => alert.id === alertId) ?? null;
+}
+
+/**
+ * What this warning said before each amendment, oldest first.
+ *
+ * Empty for a warning that has never changed, which is most of them - and
+ * empty, rather than throwing, for any failure. A detail page that renders no
+ * amendment notice is a page missing one line; one that fails to render is a
+ * warning nobody can read.
+ */
+export async function fetchAlertRevisions(alertId: number): Promise<AlertRevision[]> {
+  const accessToken = await getAccessToken();
+  if (!accessToken) {
+    return [];
+  }
+
+  try {
+    const first = await client(accessToken).GET("/api/alerts/{alertId}/revisions", {
+      params: { path: { alertId } },
+    });
+    let data = first.data;
+    if (first.response.status === 401) {
+      const refreshed = await refreshSession();
+      if (!refreshed) {
+        return [];
+      }
+      data = (
+        await client(refreshed).GET("/api/alerts/{alertId}/revisions", {
+          params: { path: { alertId } },
+        })
+      ).data;
+    }
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
