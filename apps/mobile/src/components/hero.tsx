@@ -8,6 +8,7 @@ import {
 } from "@weather-app/core";
 import { Text, View } from "react-native";
 
+import { useReduceTransparency } from "../lib/reduce-transparency";
 import { WeatherArt } from "./weather-art/weather-art";
 
 type HeroProps = {
@@ -33,6 +34,7 @@ type HeroProps = {
  */
 export function Hero({ conditions, locale, localHour, header, now }: HeroProps) {
   const messages = weatherMessages[locale];
+  const reduceTransparency = useReduceTransparency();
   const condition = conditionFromWeatherCode(conditions.weatherCode);
   const temperature = Math.round(conditions.temperatureCelsius);
 
@@ -59,7 +61,14 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
         </Text>
       </View>
 
-      <View className="w-full flex-row border-t border-white/20 bg-black/35 px-4 py-4">
+      {/* The metrics strip is a translucent shelf over the gradient. Under
+          reduced transparency it becomes an opaque one - not a less
+          translucent one, which would answer a question nobody asked. */}
+      <View
+        className={`w-full flex-row border-t border-white/20 px-4 py-4 ${
+          reduceTransparency ? "bg-[#0B0E14]" : "bg-black/35"
+        }`}
+      >
         <Metric label={messages.wind} value={`${Math.round(conditions.windSpeedKmh)} km/h`} />
         <Metric label={messages.humidity} value={`${conditions.relativeHumidityPercent}%`} />
         <Metric label={messages.precipitation} value={`${conditions.precipitationMm.toFixed(1)} mm`} />

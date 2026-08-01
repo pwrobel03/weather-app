@@ -744,7 +744,11 @@ body {
 
 @media (prefers-reduced-transparency: reduce) {
   .weather-background .glass {
-    background: rgb(11 14 20 / 0.72);
+    /* Opaque, not 72% of the way there. Dropping the blur while keeping the
+       alpha left the gradient showing through the one surface that exists to
+       carry small text over it - which is the legibility the setting was
+       turned on to get back. */
+    background: rgb(11 14 20);
     border-color: rgb(255 255 255 / 0.2);
     border-top-color: rgb(255 255 255 / 0.2);
     backdrop-filter: none;

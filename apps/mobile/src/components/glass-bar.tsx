@@ -1,7 +1,6 @@
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "nativewind";
-import { useEffect, useState } from "react";
-import { AccessibilityInfo, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -13,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Path } from "react-native-svg";
 
 import { useReduceMotion } from "../lib/reduce-motion";
+import { useReduceTransparency } from "../lib/reduce-transparency";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -67,23 +67,7 @@ export function GlassBar({
 }) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
-  const [reduceTransparency, setReduceTransparency] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void AccessibilityInfo.isReduceTransparencyEnabled().then((enabled) => {
-      if (!cancelled) setReduceTransparency(enabled);
-    });
-
-    const subscription = AccessibilityInfo.addEventListener(
-      "reduceTransparencyChanged",
-      setReduceTransparency,
-    );
-    return () => {
-      cancelled = true;
-      subscription.remove();
-    };
-  }, []);
+  const reduceTransparency = useReduceTransparency();
 
   const dark = colorScheme !== "light";
 
