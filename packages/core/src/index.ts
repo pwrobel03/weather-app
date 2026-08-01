@@ -16,6 +16,7 @@ export * from "./i18n/alert-ui";
 export * from "./i18n/app";
 export * from "./i18n/auth";
 export * from "./i18n/messages";
+export * from "./i18n/phenomenon";
 export * from "./weather/background";
 export * from "./weather/channels";
 export * from "./weather/color";

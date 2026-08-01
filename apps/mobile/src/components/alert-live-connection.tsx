@@ -1,5 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { alertMessages, type Locale } from "@weather-app/core";
+import { alertMessages, type Locale,
+  phenomenonName,
+} from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -45,7 +47,7 @@ export function AlertLiveConnection({ locale }: { locale: Locale }) {
         // second warning arriving over the first is exactly the case that must
         // not pass in silence.
         AccessibilityInfo.announceForAccessibility(
-          `${alertMessages[locale].severityLabel[alert.severity]}: ${alert.event}`,
+          `${alertMessages[locale].severityLabel[alert.severity]}: ${phenomenonName(alert.event, locale)}`,
         );
       },
     });

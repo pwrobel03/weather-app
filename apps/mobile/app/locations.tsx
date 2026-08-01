@@ -7,6 +7,7 @@ import {
   DEFAULT_LOCALE,
   weatherMessages,
   type Locale,
+  phenomenonName,
 } from "@weather-app/core";
 import { tokens } from "@weather-app/design-tokens";
 import { Link, router } from "expo-router";
@@ -407,7 +408,7 @@ const SavedRow = memo(function SavedRow({
         <View className="flex-row items-center gap-2">
           <View className="h-3.5 w-1 rounded-full" style={{ backgroundColor: severityColor }} />
           <Text className="text-xs font-semibold" style={{ color: severityColor }} numberOfLines={1}>
-            {alert.event} · {alertMessages[locale].severityLabel[alert.severity]}
+            {phenomenonName(alert.event, locale)} · {alertMessages[locale].severityLabel[alert.severity]}
           </Text>
         </View>
       )}
