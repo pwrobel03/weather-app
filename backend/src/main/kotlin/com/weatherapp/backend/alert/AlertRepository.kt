@@ -8,7 +8,19 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 
 /** Outcome of storing one warning, so callers can tell arrivals from re-publications. */
-data class AlertUpsertResult(val alert: Alert, val isNew: Boolean)
+data class AlertUpsertResult(
+    val alert: Alert,
+    val isNew: Boolean,
+    /**
+     * What the warning said before this poll, when this poll changed it.
+     *
+     * Null both for a warning seen for the first time and - far more often -
+     * for one that came back identical. The feed republishes every active
+     * warning on every poll for its whole life, so "unchanged" is the normal
+     * case by a wide margin and must not look like an amendment.
+     */
+    val previous: Alert? = null,
+)
 
 @Repository
 class AlertRepository(private val jdbcTemplate: JdbcTemplate) {
@@ -27,7 +39,7 @@ class AlertRepository(private val jdbcTemplate: JdbcTemplate) {
      */
     @Transactional
     fun upsert(draft: AlertDraft): AlertUpsertResult {
-        val existingId = findIdByImgwId(draft.imgwId)
+        val existing = findByImgwId(draft.imgwId)
 
         val id = jdbcTemplate.queryForObject(
             """
@@ -64,7 +76,11 @@ class AlertRepository(private val jdbcTemplate: JdbcTemplate) {
 
         replaceTerytCodes(id, draft.terytCodes)
 
-        return AlertUpsertResult(alert = findById(id)!!, isNew = existingId == null)
+        return AlertUpsertResult(
+            alert = findById(id)!!,
+            isNew = existing == null,
+            previous = existing?.takeIf { it.differsFrom(draft) },
+        )
     }
 
     fun findByImgwId(imgwId: String): Alert? = findIdByImgwId(imgwId)?.let { findById(it) }
@@ -156,3 +172,26 @@ class AlertRepository(private val jdbcTemplate: JdbcTemplate) {
                 "published_at, content, imgw_comment, office"
     }
 }
+
+/**
+ * Whether IMGW actually changed anything, or merely republished.
+ *
+ * Compares only what IMGW authors. `lastSeenAt` moves on every poll by design,
+ * and treating it as content would make every warning look amended every few
+ * minutes for its entire nine-hour life - which is the single failure this
+ * comparison exists to prevent.
+ *
+ * Teryt codes are deliberately out of scope: a change of area arrives as a
+ * different warning with its own id, so comparing them would only add a field
+ * that never differs.
+ */
+private fun Alert.differsFrom(draft: AlertDraft): Boolean =
+    event != draft.event ||
+        severity != draft.severity ||
+        probabilityPercent != draft.probabilityPercent ||
+        validFrom != draft.validFrom ||
+        validTo != draft.validTo ||
+        publishedAt != draft.publishedAt ||
+        content != draft.content ||
+        comment != draft.comment ||
+        office != draft.office

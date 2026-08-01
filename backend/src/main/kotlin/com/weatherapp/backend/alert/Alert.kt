@@ -68,3 +68,28 @@ data class Alert(
     val office: String?,
     val terytCodes: List<String>,
 )
+
+/**
+ * What a warning said before IMGW changed it.
+ *
+ * A full snapshot rather than a set of differences (decision 21): it answers
+ * "what did this say at 14:00" without replaying a chain, and a field added to
+ * [Alert] later needs no migration of the history behind it.
+ *
+ * Deliberately without `terytCodes`. IMGW amends a warning's severity and its
+ * hours; a change of area arrives as a different warning with its own id, so
+ * carrying the codes here would store a value that never varies.
+ */
+data class AlertRevision(
+    val event: String,
+    val severity: WarningSeverity,
+    val probabilityPercent: Int?,
+    val validFrom: Instant,
+    val validTo: Instant,
+    val publishedAt: Instant?,
+    val content: String?,
+    val comment: String?,
+    val office: String?,
+    /** When we noticed, not when IMGW published - those differ by up to one poll. */
+    val recordedAt: Instant,
+)

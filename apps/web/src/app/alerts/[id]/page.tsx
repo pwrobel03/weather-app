@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getRequestLocale } from "@/lib/locale";
 
+import { AmendmentNotice } from "@/components/amendment-notice";
 import { AlertEntry } from "@/components/alert-entry";
-import { findAlertById } from "@/lib/alerts/api";
+import { fetchAlertRevisions, findAlertById } from "@/lib/alerts/api";
 import { isAuthenticated } from "@/lib/auth/session";
 import { DEFAULT_LOCALE, type Locale } from "@weather-app/core";
 
@@ -65,6 +66,15 @@ export default async function AlertDetailPage({ params }: { params: Promise<{ id
         <ArrowLeft aria-hidden="true" className="size-4" />
         {labels.back}
       </Link>
+
+      {/* Above the warning, not below it: somebody reopening a warning they
+          have already read is here to find out what moved. */}
+      <AmendmentNotice
+        revisions={await fetchAlertRevisions(alertId)}
+        severity={alert.severity}
+        validTo={alert.validTo}
+        locale={locale}
+      />
 
       <AlertEntry alert={alert} locale={locale} now={new Date()} detailed />
 

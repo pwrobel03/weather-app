@@ -3,6 +3,20 @@ package com.weatherapp.backend.alert
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 
+/**
+ * The two ways a warning reaches somebody.
+ *
+ * The socket is instant and only exists while the app is open, which is when a
+ * warning matters least; push is the one that wakes somebody at 3am, which is
+ * the reason this application exists. Knowing which of them fired is the
+ * difference between "delivery is healthy" and "push has been broken since
+ * Tuesday and nobody noticed".
+ */
+enum class DeliveryChannel(val wire: String) {
+    WEBSOCKET("websocket"),
+    PUSH("push"),
+}
+
 @Repository
 class AlertDeliveryRepository(private val jdbcTemplate: JdbcTemplate) {
 
@@ -43,6 +57,22 @@ class AlertDeliveryRepository(private val jdbcTemplate: JdbcTemplate) {
     fun releaseDelivery(alertId: Long, userId: Long): Boolean =
         jdbcTemplate.update(
             "DELETE FROM alert_delivery WHERE alert_id = ? AND user_id = ?",
+            alertId,
+            userId,
+        ) > 0
+
+    /**
+     * Records which channel carried the notification, once it has.
+     *
+     * Separate from the claim because the two answer different questions at
+     * different moments: the claim reserves the right to notify before anything
+     * is attempted, and only the attempt knows how it went out. Collapsing them
+     * would mean guessing the channel before choosing it.
+     */
+    fun confirmDelivery(alertId: Long, userId: Long, channel: DeliveryChannel): Boolean =
+        jdbcTemplate.update(
+            "UPDATE alert_delivery SET channel = ? WHERE alert_id = ? AND user_id = ?",
+            channel.wire,
             alertId,
             userId,
         ) > 0

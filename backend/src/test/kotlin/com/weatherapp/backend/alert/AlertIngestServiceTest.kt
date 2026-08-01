@@ -23,7 +23,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `stores every warning in the feed`() {
-        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher())
+        val service = AlertIngestService(clientReturning(warning("A"), warning("B")), mapper, repositoryTreatingAllAsNew(), matchRepository(), revisionRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher())
 
         val result = service.ingest()
 
@@ -43,6 +43,7 @@ class AlertIngestServiceTest {
             mapper,
             repositoryTreatingAllAsNew(),
             matchRepository(),
+            revisionRepository(),
             meteoAlarmClient(),
             CapEnrichmentMapper(),
             dispatcher(),
@@ -60,7 +61,7 @@ class AlertIngestServiceTest {
      */
     @Test
     fun `already-known warnings are reported as updates, not arrivals`() {
-        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher())
+        val service = AlertIngestService(clientReturning(warning("A")), mapper, repositoryTreatingAllAsKnown(), matchRepository(), revisionRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher())
 
         val result = service.ingest()
 
@@ -70,7 +71,7 @@ class AlertIngestServiceTest {
 
     @Test
     fun `a calm day stores nothing`() {
-        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher()).ingest()
+        val result = AlertIngestService(clientReturning(), mapper, repositoryTreatingAllAsNew(), matchRepository(), revisionRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher()).ingest()
 
         assertEquals(0, result.fetched)
         assertTrue(result.newAlerts.isEmpty())
@@ -84,7 +85,7 @@ class AlertIngestServiceTest {
         }
 
         assertThrows<ImgwClientException> {
-            AlertIngestService(client, mapper, repositoryTreatingAllAsNew(), matchRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher()).ingest()
+            AlertIngestService(client, mapper, repositoryTreatingAllAsNew(), matchRepository(), revisionRepository(), meteoAlarmClient(), CapEnrichmentMapper(), dispatcher()).ingest()
         }
     }
 
@@ -96,6 +97,9 @@ class AlertIngestServiceTest {
     private fun dispatcher(): AlertRealtimeDispatcher = mock()
 
     /** Matching itself is covered against a real database in AlertMatchRepositoryTest. */
+    /** Records nothing: these tests are about the batch, not about history. */
+    private fun revisionRepository(): AlertRevisionRepository = mock()
+
     private fun matchRepository(matches: Int = 1): AlertMatchRepository = mock {
         on { recordMatches(any()) } doReturn matches
     }

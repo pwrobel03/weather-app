@@ -424,6 +424,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alerts/{alertId}/revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How this warning has changed since it was issued
+         * @description IMGW amends warnings in place - a level goes up, an end time moves. Returns what the warning said before each amendment, oldest first. Empty for a warning that has never been changed, which is most of them.
+         */
+        get: operations["revisions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alerts/at": {
         parameters: {
             query?: never;
@@ -698,6 +718,24 @@ export interface components {
         PowiatGeoJsonFeatureCollection: {
             features: components["schemas"]["PowiatGeoJsonFeature"][];
             type: string;
+        };
+        AlertRevision: {
+            event: string;
+            /** @enum {string} */
+            severity: "1" | "2" | "3";
+            /** Format: int32 */
+            probabilityPercent?: number;
+            /** Format: date-time */
+            validFrom: string;
+            /** Format: date-time */
+            validTo: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            content?: string;
+            comment?: string;
+            office?: string;
+            /** Format: date-time */
+            recordedAt: string;
         };
     };
     responses: never;
@@ -1678,6 +1716,39 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PowiatGeoJsonFeatureCollection"];
+                };
+            };
+        };
+    };
+    revisions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alertId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AlertRevision"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
                 };
             };
         };

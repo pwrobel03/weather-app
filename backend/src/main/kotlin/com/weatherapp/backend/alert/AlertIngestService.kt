@@ -27,6 +27,7 @@ class AlertIngestService(
     private val alertMapper: AlertMapper,
     private val alertRepository: AlertRepository,
     private val alertMatchRepository: AlertMatchRepository,
+    private val alertRevisionRepository: AlertRevisionRepository,
     private val meteoAlarmClient: MeteoAlarmClient,
     private val capEnrichmentMapper: CapEnrichmentMapper,
     private val alertRealtimeDispatcher: AlertRealtimeDispatcher,
@@ -53,11 +54,29 @@ class AlertIngestService(
         val updatedAlerts = mutableListOf<Alert>()
         var rejected = 0
         var matchesRecorded = 0
+        var amended = 0
 
         for (warning in warnings) {
             try {
                 val result = alertRepository.upsert(alertMapper.toDraft(warning))
                 if (result.isNew) newAlerts += result.alert else updatedAlerts += result.alert
+
+                // Only when IMGW actually changed something. `previous` is null
+                // for a warning republished unchanged, which is the normal case
+                // by a wide margin - the feed carries every active warning on
+                // every poll for its whole life.
+                result.previous?.let { previous ->
+                    alertRevisionRepository.record(result.alert.id, previous)
+                    amended++
+                    log.info(
+                        "IMGW amended warning {}: severity {} -> {}, valid to {} -> {}",
+                        result.alert.imgwId,
+                        previous.severity.level,
+                        result.alert.severity.level,
+                        previous.validTo,
+                        result.alert.validTo,
+                    )
+                }
                 // Also re-run for known warnings: an amended area can newly
                 // cover a location, and users save new locations while a
                 // warning is still in force.
@@ -73,13 +92,13 @@ class AlertIngestService(
 
         if (rejected > 0) {
             log.warn(
-                "IMGW ingest: {} fetched, {} new, {} updated, {} matches, {} enriched, {} rejected",
-                warnings.size, newAlerts.size, updatedAlerts.size, matchesRecorded, enriched, rejected,
+                "IMGW ingest: {} fetched, {} new, {} updated ({} amended), {} matches, {} enriched, {} rejected",
+                warnings.size, newAlerts.size, updatedAlerts.size, amended, matchesRecorded, enriched, rejected,
             )
         } else {
             log.info(
-                "IMGW ingest: {} fetched, {} new, {} updated, {} matches, {} enriched",
-                warnings.size, newAlerts.size, updatedAlerts.size, matchesRecorded, enriched,
+                "IMGW ingest: {} fetched, {} new, {} updated ({} amended), {} matches, {} enriched",
+                warnings.size, newAlerts.size, updatedAlerts.size, amended, matchesRecorded, enriched,
             )
         }
 

@@ -15,6 +15,7 @@ import java.time.Duration
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @Testcontainers
@@ -134,6 +135,67 @@ class AlertRepositoryTest {
 
     private fun countAlerts(): Long =
         jdbcTemplate.queryForObject("SELECT count(*) FROM alert", Long::class.java)!!
+
+    @Test
+    fun `a republication of an unchanged warning is not an amendment`() {
+        // The case that decides whether this feature is useful or is noise.
+        // IMGW carries every active warning on every poll for its whole life -
+        // nine hours and more - so an implementation that treats "seen again"
+        // as "changed" manufactures hundreds of amendments a day per storm.
+        repository.upsert(draft())
+
+        val result = repository.upsert(draft())
+
+        assertNull(result.previous)
+    }
+
+    @Test
+    fun `a warning seen for the first time has nothing to amend`() {
+        val result = repository.upsert(draft())
+
+        assertTrue(result.isNew)
+        assertNull(result.previous)
+    }
+
+    @Test
+    fun `an upgraded level reports what the warning said before`() {
+        repository.upsert(draft(severity = WarningSeverity.LEVEL_1))
+
+        val result = repository.upsert(draft(severity = WarningSeverity.LEVEL_3))
+
+        assertEquals(WarningSeverity.LEVEL_1, result.previous?.severity)
+        assertEquals(WarningSeverity.LEVEL_3, result.alert.severity)
+    }
+
+    @Test
+    fun `a moved end time is an amendment`() {
+        repository.upsert(draft(validTo = Instant.parse("2026-07-27T08:00:00Z")))
+
+        val result = repository.upsert(draft(validTo = Instant.parse("2026-07-27T14:00:00Z")))
+
+        assertEquals(Instant.parse("2026-07-27T08:00:00Z"), result.previous?.validTo)
+    }
+
+    @Test
+    fun `rewritten content is an amendment even when nothing else moved`() {
+        repository.upsert(draft(content = "Prognozowane są burze."))
+
+        val result = repository.upsert(draft(content = "Prognozowane są burze z gradem."))
+
+        assertEquals("Prognozowane są burze.", result.previous?.content)
+    }
+
+    @Test
+    fun `a changed area alone is not an amendment`() {
+        // Teryt codes are outside the comparison on purpose: IMGW issues a
+        // different warning with its own id when the area changes, so a
+        // difference here means the fixture moved, not the weather.
+        repository.upsert(draft(teryt = listOf("1465")))
+
+        val result = repository.upsert(draft(teryt = listOf("1465", "1261")))
+
+        assertNull(result.previous)
+    }
 
     private fun draft(
         imgwId: String = "Gd2026072600001",

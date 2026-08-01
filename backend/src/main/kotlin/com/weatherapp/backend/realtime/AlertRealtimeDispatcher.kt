@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.weatherapp.backend.alert.Alert
 import com.weatherapp.backend.alert.AlertDeliveryRepository
+import com.weatherapp.backend.alert.DeliveryChannel
 import com.weatherapp.backend.alert.AlertMatchRepository
 import com.weatherapp.backend.alert.AlertQueryRepository
 import com.weatherapp.backend.alert.WarningSeverity
@@ -159,13 +160,18 @@ class AlertRealtimeDispatcher(
             matchedLocations = locationNames,
         )
 
-        val delivered = if (sessions.isNotEmpty()) {
+        val channel = if (sessions.isNotEmpty()) DeliveryChannel.WEBSOCKET else DeliveryChannel.PUSH
+        val delivered = if (channel == DeliveryChannel.WEBSOCKET) {
             sendNotification(notification, userId)
         } else {
             sendPushNotification(notification, pushDevices)
         }
 
-        if (!delivered) {
+        if (delivered) {
+            // After the send, not before: the claim reserves the right to
+            // notify, and only the attempt knows how it went out.
+            alertDeliveryRepository.confirmDelivery(alert.id, userId, channel)
+        } else {
             releaseUndelivered(alert.id, userId)
         }
     }

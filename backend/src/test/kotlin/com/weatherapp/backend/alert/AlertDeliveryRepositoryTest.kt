@@ -17,6 +17,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @Testcontainers
@@ -63,6 +64,61 @@ class AlertDeliveryRepositoryTest {
     fun setUp() {
         jdbcTemplate.update("TRUNCATE alert CASCADE")
         jdbcTemplate.update("TRUNCATE users CASCADE")
+    }
+
+    @Test
+    fun `a claimed delivery has no channel until one carried it`() {
+        // The null is a state, not a gap: the claim reserves the right to
+        // notify before anything is attempted, and only the attempt knows how
+        // it went out. A row still null afterwards is a process that died in
+        // between - rare, and worth being able to count.
+        val userId = createUser("alice@example.com")
+        val alertId = storeAlert()
+
+        deliveryRepository.claimDelivery(alertId, userId)
+
+        assertNull(channelOf(alertId, userId))
+    }
+
+    @Test
+    fun `confirming records which channel carried it`() {
+        val userId = createUser("alice@example.com")
+        val alertId = storeAlert()
+        deliveryRepository.claimDelivery(alertId, userId)
+
+        assertTrue(deliveryRepository.confirmDelivery(alertId, userId, DeliveryChannel.PUSH))
+
+        assertEquals("push", channelOf(alertId, userId))
+    }
+
+    @Test
+    fun `the two channels are told apart`() {
+        // The reason the column exists: push is the one that wakes somebody at
+        // 3am, and "delivery looks healthy" is not a useful statement if all of
+        // it turns out to be the socket.
+        val userId = createUser("alice@example.com")
+        val socketAlert = storeAlert(imgwId = "Gd2026072600001")
+        val pushAlert = storeAlert(imgwId = "Gd2026072600002")
+
+        deliveryRepository.claimDelivery(socketAlert, userId)
+        deliveryRepository.confirmDelivery(socketAlert, userId, DeliveryChannel.WEBSOCKET)
+        deliveryRepository.claimDelivery(pushAlert, userId)
+        deliveryRepository.confirmDelivery(pushAlert, userId, DeliveryChannel.PUSH)
+
+        assertEquals("websocket", channelOf(socketAlert, userId))
+        assertEquals("push", channelOf(pushAlert, userId))
+    }
+
+    @Test
+    fun `confirming a delivery nobody claimed changes nothing`() {
+        // Guards the ordering the dispatcher relies on. If this quietly
+        // inserted a row, a failed send followed by a stray confirm would
+        // resurrect a claim that had been deliberately given back.
+        val userId = createUser("alice@example.com")
+        val alertId = storeAlert()
+
+        assertFalse(deliveryRepository.confirmDelivery(alertId, userId, DeliveryChannel.PUSH))
+        assertFalse(deliveryRepository.hasBeenDelivered(alertId, userId))
     }
 
     @Test
@@ -144,6 +200,15 @@ class AlertDeliveryRepositoryTest {
         }
     }
 
+    /** Read straight from the table: the repository exposes no getter for it. */
+    private fun channelOf(alertId: Long, userId: Long): String? =
+        jdbcTemplate.queryForObject(
+            "SELECT channel FROM alert_delivery WHERE alert_id = ? AND user_id = ?",
+            String::class.java,
+            alertId,
+            userId,
+        )
+
     private fun createUser(email: String): Long =
         jdbcTemplate.queryForObject(
             "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id",
@@ -163,10 +228,13 @@ class AlertDeliveryRepositoryTest {
         )
     }
 
-    private fun storeAlert(teryt: List<String> = listOf("1465")): Long =
+    private fun storeAlert(
+        teryt: List<String> = listOf("1465"),
+        imgwId: String = "Gd2026072600001",
+    ): Long =
         alertRepository.upsert(
             AlertDraft(
-                imgwId = "Gd2026072600001",
+                imgwId = imgwId,
                 event = "Burze",
                 severity = WarningSeverity.LEVEL_1,
                 probabilityPercent = 80,

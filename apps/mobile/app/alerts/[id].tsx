@@ -6,7 +6,8 @@ import { useLocale } from "../../src/lib/locale";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AlertEntry } from "../../src/components/alert-entry";
-import { findAlertById } from "../../src/lib/alerts";
+import { AmendmentNotice } from "../../src/components/amendment-notice";
+import { fetchAlertRevisions, findAlertById } from "../../src/lib/alerts";
 import { useAuth } from "../../src/lib/auth/context";
 
 /**
@@ -24,6 +25,12 @@ export default function AlertDetailScreen() {
   const { session, ready } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const alertId = Number(id);
+
+  const revisions = useQuery({
+    queryKey: ["alert-revisions", alertId],
+    queryFn: () => fetchAlertRevisions(alertId),
+    enabled: Number.isInteger(alertId) && Boolean(session),
+  });
 
   const alert = useQuery({
     queryKey: ["alert", alertId],
@@ -56,6 +63,14 @@ export default function AlertDetailScreen() {
         <ActivityIndicator color="#8A94A6" />
       ) : alert.data ? (
         <>
+          {/* Above the warning, not below it: somebody reopening a warning they
+              have already read is here to find out what moved. */}
+          <AmendmentNotice
+            revisions={revisions.data ?? []}
+            severity={alert.data.severity}
+            validTo={alert.data.validTo}
+            locale={locale}
+          />
           <AlertEntry alert={alert.data} locale={locale} now={new Date()} detailed />
           <Text className="text-xs text-tekst-muted">{labels.disclaimer}</Text>
         </>

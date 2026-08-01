@@ -1,5 +1,7 @@
 import type { components } from "@weather-app/api-client";
 
+import type { AlertRevision } from "@weather-app/core";
+
 import { authorizedClient } from "./auth/session";
 import { fetchSavedLocations } from "./saved-locations";
 
@@ -84,6 +86,24 @@ export async function publishTestAlert(
     body: { latitude, longitude },
   });
   return data ? { ok: true, matched: data.matchedLocations } : { ok: false, status: response.status };
+}
+
+/**
+ * What this warning said before each amendment, oldest first.
+ *
+ * Empty for a warning that has never changed - most of them - and empty for
+ * any failure. A detail screen missing its amendment line is a screen missing
+ * one line; one that throws is a warning nobody can read.
+ */
+export async function fetchAlertRevisions(alertId: number): Promise<AlertRevision[]> {
+  try {
+    const { data } = await authorizedClient().GET("/api/alerts/{alertId}/revisions", {
+      params: { path: { alertId } },
+    });
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchAlertHistory(locationId: number): Promise<ActiveAlert[]> {
