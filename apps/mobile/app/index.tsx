@@ -9,7 +9,6 @@ import {
 import { Link, router } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -28,6 +27,7 @@ import { AlertLiveConnection } from "../src/components/alert-live-connection";
 import { AlertsTile } from "../src/components/alerts-tile";
 import { DailyForecastList } from "../src/components/daily-forecast-list";
 import { Hero } from "../src/components/hero";
+import { HomeSkeleton, Skeleton } from "../src/components/skeleton";
 import { ForecastTrend } from "../src/components/forecast-trend";
 import { HourlyForecastStrip } from "../src/components/hourly-forecast-strip";
 import { Tile } from "../src/components/tile";
@@ -72,7 +72,7 @@ import { fetchCurrentConditions, fetchDailyForecast, fetchHourlyForecast } from 
  * the finger mid-gesture.
  */
 export default function HomeScreen() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { active, choose } = useActiveLocation();
   const { session } = useAuth();
 
@@ -165,8 +165,10 @@ export default function HomeScreen() {
   }, [active.savedLocationId, pages]);
 
   // Nothing to page through until it is known whether there is a first page.
+  // Shaped rather than blank: the splash releases on the first forecast, so
+  // whatever shows here is what somebody sees while the location resolves.
   if (!settled) {
-    return <View className="flex-1 bg-tlo" />;
+    return <HomeSkeleton heroHeight={Math.max(Math.round(height * 0.62), 440)} />;
   }
 
   return (
@@ -371,7 +373,14 @@ function LocationPage({
               style={{ paddingTop: insets.top }}
             >
               {conditions.isPending ? (
-                <ActivityIndicator color="#fff" accessibilityLabel={messages.loading} />
+                // Shaped like the hero's own contents rather than a spinner:
+                // the icon, the number, the phrase. A spinner in the middle of
+                // a full-bleed gradient says "wait" and nothing about what for.
+                <View className="items-center gap-4" accessibilityLabel={messages.loading}>
+                  <Skeleton className="h-24 w-24 rounded-full bg-white/20" />
+                  <Skeleton className="h-16 w-32 bg-white/20" />
+                  <Skeleton className="h-5 w-40 bg-white/20" />
+                </View>
               ) : (
                 <>
                   <Text className="text-center text-sm text-white/80">
