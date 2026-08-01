@@ -92,6 +92,20 @@ class PostgisIntegrationTest {
     }
 
     @Test
+    fun `saved_location is indexed by teryt_code for alert matching`() {
+        val hasTerytIndex = jdbcTemplate.queryForObject(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE tablename = 'saved_location' AND indexdef ILIKE '%(teryt_code)%'
+            )
+            """.trimIndent(),
+            Boolean::class.java,
+        )
+        assertTrue(hasTerytIndex == true)
+    }
+
+    @Test
     fun `saved_location cascades on user delete and rejects duplicate coordinates per user`() {
         val userId = jdbcTemplate.queryForObject(
             "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id",

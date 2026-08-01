@@ -52,6 +52,43 @@ class SavedLocationRepository(private val jdbcTemplate: JdbcTemplate) {
     fun deleteByIdAndUserId(id: Long, userId: Long): Boolean =
         jdbcTemplate.update("DELETE FROM saved_location WHERE id = ? AND user_id = ?", id, userId) > 0
 
+    /**
+     * Recomputes teryt_code for every saved location against the current
+     * boundary table, in one statement.
+     *
+     * `teryt_code` is a denormalisation: it is resolved once at save time and
+     * is the sole source of truth for alert matching afterwards. Replacing the
+     * boundaries underneath it therefore turns a stale code into a silently
+     * undelivered warning - this is what repairs that.
+     *
+     * `IS DISTINCT FROM` (not `<>`) so the NULL cases compare correctly, and
+     * so the returned count is rows actually changed rather than rows visited.
+     * A location outside every known boundary resolves to NULL, which is an
+     * expected outcome, not an error.
+     */
+    fun reresolveAllTerytCodes(): Int =
+        jdbcTemplate.update(
+            """
+            UPDATE saved_location sl
+            SET teryt_code = resolved.teryt_code
+            FROM (
+                SELECT sl2.id,
+                       (
+                           SELECT pb.teryt_code
+                           FROM powiat_boundary pb
+                           WHERE ST_Contains(
+                               pb.boundary::geometry,
+                               ST_SetSRID(ST_MakePoint(sl2.longitude, sl2.latitude), 4326)
+                           )
+                           LIMIT 1
+                       ) AS teryt_code
+                FROM saved_location sl2
+            ) AS resolved
+            WHERE sl.id = resolved.id
+              AND sl.teryt_code IS DISTINCT FROM resolved.teryt_code
+            """.trimIndent(),
+        )
+
     private fun ResultSet.toSavedLocation() = SavedLocation(
         id = getLong("id"),
         userId = getLong("user_id"),

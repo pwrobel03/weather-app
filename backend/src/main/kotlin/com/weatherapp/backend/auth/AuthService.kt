@@ -54,7 +54,7 @@ class AuthService(
     }
 
     private fun issueTokens(user: User): TokenPair {
-        val accessToken = jwtService.generateAccessToken(user.id)
+        val accessToken = jwtService.generateAccessToken(user.id, user.role)
         val refreshToken = jwtService.generateRefreshToken(user.id)
         refreshTokenRepository.store(user.id, hash(refreshToken), Instant.now().plus(properties.refreshTokenTtl))
         return TokenPair(accessToken, refreshToken)

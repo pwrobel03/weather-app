@@ -15,8 +15,20 @@ open-meteo:
   base-url: ${OPEN_METEO_BASE_URL:https://api.open-meteo.com}
   geocoding-base-url: ${OPEN_METEO_GEOCODING_BASE_URL:https://geocoding-api.open-meteo.com}
 
+imgw:
+  base-url: ${IMGW_BASE_URL:https://danepubliczne.imgw.pl}
+
+alert-ingest:
+  enabled: ${ALERT_INGEST_ENABLED:true}
+  interval: ${ALERT_INGEST_INTERVAL:10m}
+  initial-delay: ${ALERT_INGEST_INITIAL_DELAY:30s}
+
 jwt:
   # Dev-only fallback - any real deployment must override via JWT_SECRET.
   secret: ${JWT_SECRET:local-dev-only-secret-key-please-override-in-any-real-deployment}
   access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:15m}
   refresh-token-ttl: ${JWT_REFRESH_TOKEN_TTL:30d}
+
+meteoalarm:
+  base-url: ${METEOALARM_BASE_URL:https://feeds.meteoalarm.org}
+  feed-path: ${METEOALARM_FEED_PATH:/api/v1/warnings/feeds-poland}
