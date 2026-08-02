@@ -6,6 +6,7 @@ import {
   type CurrentConditions,
   type Locale,
 } from "@weather-app/core";
+import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { useReduceTransparency } from "../lib/reduce-transparency";
@@ -32,31 +33,98 @@ type HeroProps = {
  * from Tailwind classes; here the two values that Tailwind cannot express on
  * React Native (letterSpacing in ems, a sub-1 lineHeight) are set inline.
  */
+/**
+ * Vertical room the block spends on things that do not scale: the two paddings,
+ * three gaps, the condition line and the date.
+ */
+const FIXED_CONTENT = 116;
+
+/** Below this the phone is too short for a hero at all, and cropping beats collapsing. */
+const MIN_FREE = 140;
+
+/** Ceilings, so a tall screen looks exactly as it did before this became responsive. */
+const MAX_ART = 168;
+const MAX_NUMBER = 96;
+
+/** How the remaining room divides between the icon and the number. */
+const ART_SHARE = 0.6;
+const NUMBER_SHARE = 0.4;
+
+/** The number's line box relative to its font size - 100/96, as it was fixed. */
+const NUMBER_LINE_RATIO = 1.04;
+
 export function Hero({ conditions, locale, localHour, header, now }: HeroProps) {
   const messages = weatherMessages[locale];
   const reduceTransparency = useReduceTransparency();
   const condition = conditionFromWeatherCode(conditions.weatherCode);
   const temperature = Math.round(conditions.temperatureCelsius);
 
+  // Everything in the block that is not the icon or the number: the paddings,
+  // the three gaps, the condition line and the date. Subtracted first so the
+  // two flexible pieces divide what is actually left rather than what a
+  // designer's phone happened to have.
+  const [boxHeight, setBoxHeight] = useState(0);
+  const free = Math.max(boxHeight - FIXED_CONTENT, MIN_FREE);
+  const artSize = Math.min(MAX_ART, Math.round(free * ART_SHARE));
+  const numberSize = Math.min(MAX_NUMBER, Math.round((free * NUMBER_SHARE) / NUMBER_LINE_RATIO));
+
   return (
     <View className="flex-1 justify-between">
       {header}
 
-      <View className="flex-1 items-center justify-center px-6 pb-8 pt-4">
-        <WeatherArt code={conditions.weatherCode} timeOfDay={timeOfDayFromHour(localHour)} size={168} />
+      <View
+        className="flex-1 items-center justify-center px-6 pb-8 pt-4"
+        // Measured rather than assumed. The hero is 62% of the viewport, so its
+        // contents have to be a proportion of *it* - a fixed 168pt icon and a
+        // fixed 96pt number were tuned against one phone, and on a shorter one
+        // they overflowed a centred flex child, which spills at both ends: the
+        // place name ended up over the icon and the date under the metrics
+        // shelf. This device has 471dp of hero for about 530dp of content.
+        onLayout={(event) => setBoxHeight(event.nativeEvent.layout.height)}
+      >
+        <WeatherArt
+          code={conditions.weatherCode}
+          timeOfDay={timeOfDayFromHour(localHour)}
+          size={artSize}
+        />
 
         <View className="mt-2 flex-row items-start">
           <Text
             className="font-bold text-white"
-            style={{ fontSize: 96, lineHeight: 100, letterSpacing: -4 }}
+            // includeFontPadding is Android-only and defaults to true: the
+            // platform reserves vertical room for the tallest glyph any script
+            // might need, which at 96pt is tens of pixels of nothing. iOS has
+            // no equivalent, so the same hero was measurably taller here - and
+            // a flex child that overflows a centred box spills at both ends,
+            // which is how the place name ended up over the icon and the date
+            // under the metrics shelf.
+            style={{
+              fontSize: numberSize,
+              lineHeight: Math.round(numberSize * NUMBER_LINE_RATIO),
+              letterSpacing: -numberSize / 24,
+              includeFontPadding: false,
+            }}
           >
             {temperature}
           </Text>
-          <Text className="mt-3 text-5xl font-light text-white/90">°</Text>
+          <Text
+            className="mt-3 text-5xl font-light text-white/90"
+            style={{ includeFontPadding: false }}
+          >
+            °
+          </Text>
         </View>
 
-        <Text className="mt-1 text-2xl font-bold text-white">{messages.condition[condition]}</Text>
-        <Text className="mt-1 text-sm font-medium text-white/75">
+        <Text
+          className="mt-1 text-2xl font-bold text-white"
+          style={{ includeFontPadding: false }}
+        >
+          {messages.condition[condition]}
+        </Text>
+        <Text
+          className="mt-1 text-sm font-medium text-white/75"
+          style={{ includeFontPadding: false }}
+        >
           {formatHeroDate(now ?? new Date(), locale)}
         </Text>
       </View>
