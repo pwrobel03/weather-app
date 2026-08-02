@@ -2,6 +2,7 @@ import {
   areaPath,
   barsFor,
   extentOf,
+  scaleY,
   formatHourMinute,
   linePath,
   nowAsNaiveIsoTimestamp,
@@ -9,9 +10,10 @@ import {
   type Box,
   type HourlyForecastEntry,
 } from "@weather-app/core";
+import React from "react";
 import { useColorScheme } from "nativewind";
 import { Text, View } from "react-native";
-import Svg, { Circle, Path, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 
 const HOURS = 24;
 
@@ -50,7 +52,7 @@ export function ForecastTrend({
   return (
     <View className="gap-4">
       <TemperaturePlot entries={upcoming} ink={ink} muted={muted} />
-      <RainPlot entries={upcoming} muted={muted} />
+      <RainPlot entries={upcoming} ink={ink} muted={muted} />
     </View>
   );
 }
@@ -62,6 +64,16 @@ const BOX: Box = {
 };
 
 const LINE = "#38A6E8";
+
+/**
+ * A probability is always 0-100, so its axis is too.
+ *
+ * Scaling it to the data was actively misleading: a day peaking at 20% drew a
+ * bar filling nine tenths of the chart, visually identical to a day peaking at
+ * 80%. Temperature has no natural range and must be scaled to fit; a percentage
+ * has one, and using it is what lets a bar's height mean what it looks like.
+ */
+const PROBABILITY_EXTENT = { min: 0, max: 100 };
 
 function TemperaturePlot({
   entries,
@@ -108,23 +120,51 @@ function TemperaturePlot({
         ))}
       </Svg>
 
-      <Hours entries={entries} colour={muted} />
     </View>
   );
 }
 
-function RainPlot({ entries, muted }: { entries: HourlyForecastEntry[]; muted: string }) {
+function RainPlot({
+  entries,
+  ink,
+  muted,
+}: {
+  entries: HourlyForecastEntry[];
+  ink: string;
+  muted: string;
+}) {
   const values = entries.map((entry) => entry.precipitationProbabilityPercent);
-  // An amount, so the axis starts at zero - bars floating off a baseline of 20%
-  // would read as "no rain" for the driest hour on the chart.
-  const extent = extentOf(values, { includeZero: true });
-  const bars = barsFor(values, extent, BOX);
+  const bars = barsFor(values, PROBABILITY_EXTENT, BOX);
+  const peak = values.indexOf(Math.max(...values));
 
   return (
     <View className="gap-1">
       <Caption label="Szansa opadu" unit="%" colour={muted} />
 
       <Svg viewBox={`0 0 ${BOX.width} ${BOX.height}`} width="100%" height={BOX.height}>
+        {/* Half and full, labelled. Two lines are enough to read a bar against
+            and few enough to stay out of the way; a probability needs no more,
+            because the reader is asking "likely or not", not "is it 43 or 47". */}
+        {[50, 100].map((tick) => {
+          const y = scaleY(tick, PROBABILITY_EXTENT, BOX);
+          return (
+            <React.Fragment key={tick}>
+              <Line
+                x1={BOX.padding.left}
+                x2={BOX.width - BOX.padding.right}
+                y1={y}
+                y2={y}
+                stroke={muted}
+                strokeOpacity={0.25}
+                strokeWidth={1}
+              />
+              <SvgText x={BOX.padding.left} y={y - 3} fill={muted} fontSize={9}>
+                {tick}
+              </SvgText>
+            </React.Fragment>
+          );
+        })}
+
         {bars.map((bar, index) => (
           <Rect
             key={index}
@@ -134,10 +174,29 @@ function RainPlot({ entries, muted }: { entries: HourlyForecastEntry[]; muted: s
             height={bar.height}
             rx={2}
             fill={LINE}
-            fillOpacity={0.55}
+            fillOpacity={index === peak ? 0.9 : 0.5}
           />
         ))}
+
+        {/* The wettest hour named outright. One direct label beats a reader
+            counting gridlines, and it is the number they came for. */}
+        {values[peak]! > 0 && (
+          <SvgText
+            x={bars[peak]!.x + bars[peak]!.width / 2}
+            y={Math.max(bars[peak]!.y - 4, 9)}
+            fill={ink}
+            fontSize={11}
+            fontWeight="600"
+            textAnchor="middle"
+          >
+            {values[peak]}%
+          </SvgText>
+        )}
       </Svg>
+
+      {/* The hours belong under the lower plot: both charts share one x axis,
+          and printing it twice says they are two separate readings of time. */}
+      <Hours entries={entries} colour={muted} />
     </View>
   );
 }

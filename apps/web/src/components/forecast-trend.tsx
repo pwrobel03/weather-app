@@ -104,12 +104,16 @@ function Plot({
   onHover: (index: number | null | ((current: number | null) => number | null)) => void;
   kind: "line" | "bars";
 }) {
-  // Rain is an amount, so its axis starts at zero; temperature is a position on
-  // a scale that has no floor worth drawing.
-  const extent = extentOf(values, { includeZero: kind === "bars" });
+  // A probability is always 0-100, so its axis is too. Scaling it to the data
+  // was actively misleading: a day peaking at 20% drew bars filling nine tenths
+  // of the plot, indistinguishable at a glance from a day peaking at 80%.
+  // Temperature has no natural range and must be scaled to what it holds; a
+  // percentage has one, and using it is what lets a bar's height mean what it
+  // looks like.
+  const extent = kind === "bars" ? { min: 0, max: 100 } : extentOf(values);
   const points = pointsFor(values, extent, BOX);
   const bars = barsFor(values, extent, BOX);
-  const ticks = niceTicks(extent, 2);
+  const ticks = kind === "bars" ? [50, 100] : niceTicks(extent, 2);
   const floor = BOX.height - BOX.padding.bottom;
 
   return (

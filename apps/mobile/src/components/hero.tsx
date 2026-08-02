@@ -84,22 +84,22 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           size={artSize}
         />
 
-        <Text
-          className="mt-3 text-2xl font-bold text-white"
-          style={{ includeFontPadding: false }}
-        >
-          {messages.condition[condition]}
-        </Text>
-
         {/* Same size as the place name, by decision. The degree is simply part
             of the string now: the spacer that used to balance it existed because
             at 96pt half a degree's width threw the figure visibly off the axis,
             and at 24pt that offset is a couple of pixels nobody can see. */}
         <Text
-          className="mt-1 text-2xl font-semibold text-white"
+          className="mt-1 text-3xl font-semibold text-white"
           style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
         >
           {temperature}°
+        </Text>
+
+        <Text
+          className="mt-3 text-2xl font-bold text-white"
+          style={{ includeFontPadding: false }}
+        >
+          {messages.condition[condition]}
         </Text>
       </View>
 
@@ -107,9 +107,8 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           reduced transparency it becomes an opaque one - not a less
           translucent one, which would answer a question nobody asked. */}
       <View
-        className={`w-full flex-row border-t border-white/20 px-4 py-4 ${
-          reduceTransparency ? "bg-[#0B0E14]" : "bg-black/35"
-        }`}
+        className={`w-full flex-row border-t border-white/20 px-4 py-4 ${reduceTransparency ? "bg-[#0B0E14]" : "bg-black/35"
+          }`}
       >
         <Metric label={messages.wind} value={`${Math.round(conditions.windSpeedKmh)} km/h`} />
         <Metric label={messages.humidity} value={`${conditions.relativeHumidityPercent}%`} />
