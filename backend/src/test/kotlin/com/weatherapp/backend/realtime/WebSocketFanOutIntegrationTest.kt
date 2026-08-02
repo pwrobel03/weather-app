@@ -106,7 +106,7 @@ class WebSocketFanOutIntegrationTest {
     lateinit var meteoAlarmClient: MeteoAlarmClient
 
     @MockitoBean
-    lateinit var expoPushClient: ExpoPushClient
+    lateinit var fcmPushClient: FcmPushClient
 
     @Autowired
     lateinit var ingestService: AlertIngestService
@@ -139,7 +139,7 @@ class WebSocketFanOutIntegrationTest {
         // false, the dispatcher correctly treats that as "not delivered" and
         // releases the claim - which is a different scenario, covered in
         // AlertDeliveryReleaseTest.
-        whenever(expoPushClient.sendPushNotifications(any())) doReturn true
+        whenever(fcmPushClient.send(any())) doReturn true
     }
 
     @AfterEach
@@ -180,7 +180,7 @@ class WebSocketFanOutIntegrationTest {
         assertNull(outsideMsg, "User outside storm area must not receive notifications")
 
         assertTrue(deliveryRepository.findUsersAwaitingDelivery(result.newAlerts.single().id).isEmpty())
-        verify(expoPushClient, never()).sendPushNotifications(any())
+        verify(fcmPushClient, never()).send(any())
     }
 
     /** Severity must arrive as IMGW's own level, matching packages/contract. */
@@ -236,16 +236,16 @@ class WebSocketFanOutIntegrationTest {
     @Test
     fun `offline user in background receives push notification via Expo relay`() {
         val backgroundUserId = createUserWithLocation("background@example.com", "Praca", "3029")
-        userPushTokenRepository.upsert(backgroundUserId, "ExponentPushToken[test12345]", "pl", "Europe/Warsaw")
+        userPushTokenRepository.upsert(backgroundUserId, "fcm-device-token-test12345", "pl", "Europe/Warsaw")
 
         whenever(imgwClient.fetchMeteoWarnings()) doReturn listOf(warning(teryt = listOf("3029")))
         val result = ingestService.ingest()
         val alertId = result.newAlerts.single().id
 
-        verify(expoPushClient).sendPushNotifications(
+        verify(fcmPushClient).send(
             check { messages ->
                 assertEquals(1, messages.size)
-                assertEquals("ExponentPushToken[test12345]", messages[0].to)
+                assertEquals("fcm-device-token-test12345", messages[0].token)
                 assertTrue(messages[0].title.contains("Burze"))
                 assertTrue(messages[0].body.contains("Praca"))
                 assertEquals(alertId, messages[0].data["alertId"])
@@ -261,14 +261,14 @@ class WebSocketFanOutIntegrationTest {
     @Test
     fun `a connected user is not also pushed`() {
         val userId = createUserWithLocation("both@example.com", "Dom", "3029")
-        userPushTokenRepository.upsert(userId, "ExponentPushToken[test12345]", "pl", "Europe/Warsaw")
+        userPushTokenRepository.upsert(userId, "fcm-device-token-test12345", "pl", "Europe/Warsaw")
         val handler = connectWebSocket(userId)
 
         whenever(imgwClient.fetchMeteoWarnings()) doReturn listOf(warning(teryt = listOf("3029")))
         ingestService.ingest()
 
         assertNotNull(handler.messages.poll(3, TimeUnit.SECONDS))
-        verify(expoPushClient, never()).sendPushNotifications(any())
+        verify(fcmPushClient, never()).send(any())
     }
 
     private fun connectWebSocket(userId: Long): RecordingWebSocketHandler {

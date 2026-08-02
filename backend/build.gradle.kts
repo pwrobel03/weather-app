@@ -31,6 +31,11 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
+    // Signs the service-account JWT that FCM HTTP v1 exchanges for an access
+    // token. Google's own library rather than hand-rolled JWT signing: the
+    // token has to be refreshed before it expires, and getting that wrong is a
+    // push channel that works for an hour after every deploy.
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.30.0")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")

@@ -43,7 +43,7 @@ class AlertRealtimeDispatcher(
     private val alertMatchRepository: AlertMatchRepository,
     private val alertQueryRepository: AlertQueryRepository,
     private val userPushTokenRepository: UserPushTokenRepository,
-    private val expoPushClient: ExpoPushClient,
+    private val fcmPushClient: FcmPushClient,
     private val sessionManager: AlertWebSocketSessionManager,
 ) {
 
@@ -223,8 +223,8 @@ class AlertRealtimeDispatcher(
             val body = "${PushMessages.affects(locale, notification.matchedLocations)}${notification.content ?: ""}".trim()
 
             tokens.map { token ->
-            ExpoPushMessage(
-                to = token,
+            FcmMessage(
+                token = token,
                 title = title,
                 body = body,
                 data = mapOf(
@@ -235,14 +235,16 @@ class AlertRealtimeDispatcher(
                     // Using .name here handed the mobile client "LEVEL_1" over
                     // push and "1" over the socket for the same field.
                     "severity" to notification.severity.level,
-                    "matchedLocations" to notification.matchedLocations,
+                    // Joined rather than left a list: FCM's data map carries
+                    // strings only, and a list would arrive as its toString.
+                    "matchedLocations" to notification.matchedLocations.joinToString(", "),
                 ),
             )
             }
         }
-        val delivered = expoPushClient.sendPushNotifications(messages)
+        val delivered = fcmPushClient.send(messages)
         if (delivered) {
-            log.debug("Dispatched {} push notification(s) for alert {} via Expo", messages.size, notification.id)
+            log.debug("Dispatched {} push notification(s) for alert {} via FCM", messages.size, notification.id)
         }
         return delivered
     }

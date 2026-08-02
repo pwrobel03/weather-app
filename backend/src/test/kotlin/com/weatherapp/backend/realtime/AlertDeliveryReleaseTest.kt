@@ -60,7 +60,7 @@ class AlertDeliveryReleaseTest {
     }
 
     @MockitoBean
-    lateinit var expoPushClient: ExpoPushClient
+    lateinit var fcmPushClient: FcmPushClient
 
     @Autowired
     lateinit var dispatcher: AlertRealtimeDispatcher
@@ -93,9 +93,9 @@ class AlertDeliveryReleaseTest {
      */
     @Test
     fun `a failed push release the claim so the alert is retried`() {
-        whenever(expoPushClient.sendPushNotifications(any())) doReturn false
+        whenever(fcmPushClient.send(any())) doReturn false
         val userId = userWithLocation("alice@example.com", "3029")
-        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl", "Europe/Warsaw")
+        pushTokenRepository.upsert(userId, "fcm-device-token-abc", "pl", "Europe/Warsaw")
         val alert = storeAndMatch()
 
         dispatcher.dispatch(listOf(alert))
@@ -106,9 +106,9 @@ class AlertDeliveryReleaseTest {
 
     @Test
     fun `a successful push keeps the claim so it is not sent twice`() {
-        whenever(expoPushClient.sendPushNotifications(any())) doReturn true
+        whenever(fcmPushClient.send(any())) doReturn true
         val userId = userWithLocation("alice@example.com", "3029")
-        pushTokenRepository.upsert(userId, "ExponentPushToken[abc]", "pl", "Europe/Warsaw")
+        pushTokenRepository.upsert(userId, "fcm-device-token-abc", "pl", "Europe/Warsaw")
         val alert = storeAndMatch()
 
         dispatcher.dispatch(listOf(alert))
