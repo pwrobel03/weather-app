@@ -6,6 +6,7 @@ import {
   type CurrentConditions,
   type Locale,
 } from "@weather-app/core";
+import { useState } from "react";
 import { Text, View } from "react-native";
 
 import { useReduceTransparency } from "../lib/reduce-transparency";
@@ -23,41 +24,82 @@ type HeroProps = {
 };
 
 /**
- * The hero, in the layout of idea/updated/major.png and matching apps/web:
- * icon, then a very large temperature, then the condition, then the date,
- * with a strip of metrics beneath.
+ * The hero.
  *
- * Type follows design.md §9 - the number carries negative tracking and tight
- * leading, because letterforms read too far apart as they grow. Web gets that
- * from Tailwind classes; here the two values that Tailwind cannot express on
- * React Native (letterSpacing in ems, a sub-1 lineHeight) are set inline.
+ * Reordered 2026-08-02, and the order is the design: place, then when, then a
+ * large icon, then the sky in words, then how warm it is. The temperature
+ * deliberately does not lead - it is set at the same size as the place name,
+ * which makes the icon the thing the screen is about.
+ *
+ * That is a reversal of what came before, where a 96pt figure dominated and the
+ * icon illustrated it. Recorded in design.md §6 rather than left as drift.
  */
+
+/**
+ * Vertical room the block spends on what does not scale: its paddings, the two
+ * gaps, the condition line and the temperature.
+ */
+const FIXED_CONTENT = 104;
+
+/** The icon is the only flexible element now, so it gets its own floor and ceiling. */
+const MIN_ART = 120;
+const MAX_ART = 210;
+
 export function Hero({ conditions, locale, localHour, header, now }: HeroProps) {
   const messages = weatherMessages[locale];
   const reduceTransparency = useReduceTransparency();
   const condition = conditionFromWeatherCode(conditions.weatherCode);
   const temperature = Math.round(conditions.temperatureCelsius);
 
+  // Measured rather than assumed. The hero is 62% of the viewport, so what it
+  // holds has to be a proportion of *it* - fixed sizes tuned against one phone
+  // overflowed a centred flex child on a shorter one, and an overflowing
+  // centred child spills at both ends at once.
+  const [boxHeight, setBoxHeight] = useState(0);
+  const artSize = Math.min(MAX_ART, Math.max(MIN_ART, boxHeight - FIXED_CONTENT));
+
   return (
     <View className="flex-1 justify-between">
-      {header}
-
-      <View className="flex-1 items-center justify-center px-6 pb-8 pt-4">
-        <WeatherArt code={conditions.weatherCode} timeOfDay={timeOfDayFromHour(localHour)} size={168} />
-
-        <View className="mt-2 flex-row items-start">
-          <Text
-            className="font-bold text-white"
-            style={{ fontSize: 96, lineHeight: 100, letterSpacing: -4 }}
-          >
-            {temperature}
-          </Text>
-          <Text className="mt-3 text-5xl font-light text-white/90">°</Text>
-        </View>
-
-        <Text className="mt-1 text-2xl font-bold text-white">{messages.condition[condition]}</Text>
-        <Text className="mt-1 text-sm font-medium text-white/75">
+      {/* Place and date as one group. The date used to sit at the bottom of the
+          block, three elements away from the name it qualifies; together they
+          answer one question - where and when - before the screen says anything
+          about weather. */}
+      <View className="items-center">
+        {header}
+        <Text
+          className="mt-1 text-sm font-medium text-white/75"
+          style={{ includeFontPadding: false }}
+        >
           {formatHeroDate(now ?? new Date(), locale)}
+        </Text>
+      </View>
+
+      <View
+        className="flex-1 items-center justify-center px-6 pb-8 pt-4"
+        onLayout={(event) => setBoxHeight(event.nativeEvent.layout.height)}
+      >
+        <WeatherArt
+          code={conditions.weatherCode}
+          timeOfDay={timeOfDayFromHour(localHour)}
+          size={artSize}
+        />
+
+        <Text
+          className="mt-3 text-2xl font-bold text-white"
+          style={{ includeFontPadding: false }}
+        >
+          {messages.condition[condition]}
+        </Text>
+
+        {/* Same size as the place name, by decision. The degree is simply part
+            of the string now: the spacer that used to balance it existed because
+            at 96pt half a degree's width threw the figure visibly off the axis,
+            and at 24pt that offset is a couple of pixels nobody can see. */}
+        <Text
+          className="mt-1 text-2xl font-semibold text-white"
+          style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
+        >
+          {temperature}°
         </Text>
       </View>
 

@@ -8,7 +8,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "pl.wrobelpiotr.weatherapp"
+      "bundleIdentifier": "cloud.wrobeldev.weatherapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "pl.wrobelpiotr.weatherapp"
+      "package": "cloud.wrobeldev.weatherapp",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +38,9 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#070A11",
-          "resizeMode": "contain"
+          "resizeMode": "contain",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200
         }
       ]
     ],

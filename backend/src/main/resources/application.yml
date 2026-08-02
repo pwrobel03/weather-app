@@ -38,5 +38,14 @@ meteoalarm:
   base-url: ${METEOALARM_BASE_URL:https://feeds.meteoalarm.org}
   feed-path: ${METEOALARM_FEED_PATH:/api/v1/warnings/feeds-poland}
 
-expo:
-  base-url: ${EXPO_BASE_URL:https://exp.host}
+# Firebase Cloud Messaging, spoken to directly rather than through a relay
+# (decision 27). Empty locally on purpose: a developer without a key still gets
+# the socket, and a backend refusing to start without one would make push a
+# prerequisite for working on the forecast.
+fcm:
+  base-url: ${FCM_BASE_URL:https://fcm.googleapis.com}
+  project-id: ${FCM_PROJECT_ID:}
+  # The whole service-account key file, not a path - on a hosted backend it
+  # arrives as an environment variable, and a path would mean writing a secret
+  # to disk on every deploy.
+  service-account-json: ${FCM_SERVICE_ACCOUNT_JSON:}
