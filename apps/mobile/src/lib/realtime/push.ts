@@ -1,5 +1,4 @@
 import type { Locale } from "@weather-app/core";
-import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
@@ -45,13 +44,12 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
     });
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-
   try {
-    const { data: token } = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
-    );
+    // The device's own FCM registration, not an Expo push token. The backend
+    // talks to FCM directly (decision 27), so the relay's token would be
+    // addressed to a service we no longer send through - and asking for one
+    // would require an Expo project this repository does not have.
+    const { data: token } = await Notifications.getDevicePushTokenAsync();
     // The chosen language travels with the token, not with the account: iOS
     // and Android both allow a language per app, so the same account can want
     // Polish on the phone and English on the tablet (follow-up.md point 12).
