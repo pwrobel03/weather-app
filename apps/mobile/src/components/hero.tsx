@@ -41,6 +41,14 @@ type HeroProps = {
  */
 const FIXED_CONTENT = 104;
 
+/**
+ * Room reserved either side of the temperature so the degree has somewhere to
+ * sit without shifting the figure off the axis. Wide enough for the glyph at
+ * 24pt; the exactness comes from it being applied to both sides, not from the
+ * value being right.
+ */
+const DEGREE_SLOT = 9;
+
 /** The icon is the only flexible element now, so it gets its own floor and ceiling. */
 const MIN_ART = 120;
 const MAX_ART = 210;
@@ -84,23 +92,29 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           size={artSize}
         />
 
-        {/* Same size as the place name, by decision. The degree is simply part
-            of the string now: the spacer that used to balance it existed because
-            at 96pt half a degree's width threw the figure visibly off the axis,
-            and at 24pt that offset is a couple of pixels nobody can see. */}
-        <Text
-          className="mt-1 text-3xl font-semibold text-white"
-          style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
-        >
-          {temperature}°
-        </Text>
+        {/* The number is exactly centred, and the degree hangs in the padding.
+            Symmetric horizontal padding is what makes it exact rather than
+            close: the box is degree + number + degree wide, so its centre is
+            the number's centre, whatever the glyph happens to measure.
+            The degree is absolute so it adds no width - but positioned inside
+            the right padding rather than past the box's edge, because Android
+            clips children to their parent's bounds and an overhanging degree
+            simply disappears there while rendering fine on iOS. */}
+        <View className="mt-1" style={{ paddingHorizontal: DEGREE_SLOT }}>
+          <Text
+            className="text-2xl font-semibold text-white"
+            style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
+          >
+            {temperature}
+          </Text>
 
-        <Text
-          className="mt-3 text-2xl font-bold text-white"
-          style={{ includeFontPadding: false }}
-        >
-          {messages.condition[condition]}
-        </Text>
+          <Text
+            className="text-2xl font-semibold text-white"
+            style={{ position: "absolute", right: 0, top: 0, includeFontPadding: false }}
+          >
+            °
+          </Text>
+        </View>
       </View>
 
       {/* The metrics strip is a translucent shelf over the gradient. Under
