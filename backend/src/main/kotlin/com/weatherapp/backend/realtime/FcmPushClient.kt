@@ -95,38 +95,7 @@ class FcmPushClient(
                 .uri("/v1/projects/{projectId}/messages:send", properties.projectId)
                 .header("Authorization", "Bearer $accessToken")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    mapOf(
-                        "message" to mapOf(
-                            "token" to message.token,
-                            "notification" to mapOf(
-                                "title" to message.title,
-                                "body" to message.body,
-                            ),
-                            // Every value stringified: FCM v1 rejects a data map
-                            // containing anything else, and the alert id going in
-                            // as a number is the obvious way to trip that.
-                            "data" to message.data.mapValues { (_, value) -> value?.toString() ?: "" },
-                            "android" to mapOf(
-                                // A weather warning is the textbook case for
-                                // this: it is time-critical and it is allowed to
-                                // break through Doze.
-                                "priority" to "HIGH",
-                                "notification" to mapOf(
-                                    // Names the channel the app configured with
-                                    // high importance and the system sound.
-                                    // Without it Firebase falls back to a
-                                    // channel of its own choosing and every
-                                    // decision made about this one - importance,
-                                    // sound, the lot - is silently discarded.
-                                    // The phone says so in its log: "Missing
-                                    // Default Notification Channel metadata".
-                                    "channel_id" to ALERTS_CHANNEL_ID,
-                                ),
-                            ),
-                        ),
-                    ),
-                )
+                .body(fcmPayload(message))
                 .retrieve()
                 .toBodilessEntity()
             true
@@ -154,3 +123,40 @@ class FcmPushClient(
         }
     }
 }
+
+/**
+ * The request body FCM HTTP v1 expects, built without touching the network.
+ *
+ * Separate from sending so its shape can be asserted directly. That is not
+ * tidiness: the first real push went out with a well-formed body that was
+ * quietly missing `channel_id`, Firebase substituted a channel of its own, and
+ * the notification arrived at importance 3 instead of 4 - delivered by every
+ * measure the server could see, and silent on the phone. A payload nobody can
+ * inspect without a device is a payload that fails that way again.
+ */
+fun fcmPayload(message: FcmMessage): Map<String, Any> =
+    mapOf(
+        "message" to mapOf(
+            "token" to message.token,
+            "notification" to mapOf(
+                "title" to message.title,
+                "body" to message.body,
+            ),
+            // Every value stringified: FCM v1 rejects a data map containing
+            // anything else, and the alert id going in as a number is the
+            // obvious way to trip that.
+            "data" to message.data.mapValues { (_, value) -> value?.toString() ?: "" },
+            "android" to mapOf(
+                // A weather warning is the textbook case for this: it is
+                // time-critical and it is allowed to break through Doze.
+                "priority" to "HIGH",
+                "notification" to mapOf(
+                    // Names the channel the app configured with high importance
+                    // and the system sound. Without it Firebase falls back to a
+                    // channel of its own choosing and every decision made about
+                    // this one - importance, sound, the lot - is discarded.
+                    "channel_id" to ALERTS_CHANNEL_ID,
+                ),
+            ),
+        ),
+    )
