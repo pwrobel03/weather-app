@@ -1,0 +1,81 @@
+# Aplikacja mobilna
+
+Expo + React Native. Ekrany renderują z `packages/core`, więc logika pogodowa i
+napisy są wspólne z `apps/web`.
+
+## Uruchomienie na Androidzie
+
+Android jest platformą, na której działa pełna ścieżka powiadomień push
+(decyzja 26 w roadmapie). iOS uruchamia się i wygląda tak samo, ale bez pusha —
+ten wymaga płatnego konta Apple Developer.
+
+### Jednorazowo
+
+1. **Android Studio** — instaluje SDK oraz `adb`, i przynosi JDK 21. Zainstalowana
+   w systemie Java 25 jest dla Gradle Androida za nowa.
+
+   ```
+   brew install --cask android-studio
+   ```
+
+   W kreatorze startowym wystarczą **Android SDK**, **SDK Platform** i
+   **Build-Tools**. Emulator jest zbędny, jeśli masz telefon, a zajmuje kilka GB.
+
+2. **`adb` na ścieżce** — Studio nie dopisuje niczego do `PATH`:
+
+   ```
+   export ANDROID_HOME="$HOME/Library/Android/sdk"
+   export PATH="$PATH:$ANDROID_HOME/platform-tools"
+   ```
+
+3. **Projekt Firebase** — darmowy, potrzebny wyłącznie dla powiadomień push.
+   - aplikacja Androida o pakiecie `pl.wrobelpiotr.weatherapp`
+   - pobrany `google-services.json` do `apps/mobile/` (jest w `.gitignore`:
+     plik niesie identyfikatory projektu, a to repozytorium jest publiczne)
+   - klucz konta serwisowego: Ustawienia projektu → Konta usługi → wygeneruj
+     nowy klucz prywatny
+
+4. **Backend** dostaje ten klucz przez zmienne środowiskowe — całą zawartość
+   pliku, nie ścieżkę:
+
+   ```
+   export FCM_PROJECT_ID="<id-projektu-firebase>"
+   export FCM_SERVICE_ACCOUNT_JSON="$(cat ~/sciezka/do/klucza.json)"
+   ```
+
+   Bez nich backend wstaje normalnie i dostarcza ostrzeżenia socketem — push
+   jest wtedy po prostu wyłączony, co jest stanem obsłużonym, a nie awarią.
+
+### Za każdym razem
+
+```
+pnpm --filter mobile android
+```
+
+Pierwsze uruchomienie generuje katalog `android/` (poza gitem) i buduje
+aplikację natywną — to potrwa. Kolejne są szybkie, dopóki nie zmieni się nic
+natywnego. Telefon musi mieć włączone **debugowanie USB** i być podłączony
+kablem; przy pierwszym połączeniu zapyta o zaufanie do komputera.
+
+Sprawdzenie, czy telefon jest widoczny:
+
+```
+adb devices
+```
+
+## Dlaczego push nie działa na symulatorze
+
+`registerForPushNotifications` zaczyna się od `if (!Device.isDevice) return null`
+— symulator ani emulator nie mają rejestracji FCM do wydania. Cała ścieżka
+powiadomień wymaga fizycznego urządzenia, i to jest powód, dla którego przez
+pierwsze kilkanaście faz nie była sprawdzona ani razu.
+
+## iOS
+
+```
+pnpm --filter mobile ios
+```
+
+Działa bez konta Apple Developer na symulatorze. Na fizycznym iPhonie darmowe
+konto wystarczy, ale profil provisioningu wygasa po siedmiu dniach — po tym
+czasie aplikacja przestaje się uruchamiać, dopóki nie zbudujesz jej ponownie.
