@@ -92,6 +92,18 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           size={artSize}
         />
 
+        {/* The sky in words, directly under the icon that draws it. Not
+            decoration: design.md §3 requires severity and state to be readable
+            without colour, and this is the line that carries the weather for
+            anyone who cannot separate the icon's hues or is reading a phone in
+            sunlight. */}
+        <Text
+          className="mt-3 text-2xl font-bold text-white"
+          style={{ includeFontPadding: false }}
+        >
+          {messages.condition[condition]}
+        </Text>
+
         {/* The number is exactly centred, and the degree hangs in the padding.
             Symmetric horizontal padding is what makes it exact rather than
             close: the box is degree + number + degree wide, so its centre is
