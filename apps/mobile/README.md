@@ -11,11 +11,18 @@ ten wymaga płatnego konta Apple Developer.
 
 ### Jednorazowo
 
-1. **Android Studio** — instaluje SDK oraz `adb`, i przynosi JDK 21. Zainstalowana
-   w systemie Java 25 jest dla Gradle Androida za nowa.
+1. **Android Studio** — instaluje SDK oraz `adb`.
 
    ```
    brew install --cask android-studio
+   ```
+
+   **Uwaga na Javę.** Gradle Androida nie wspiera JDK 25, a to jest dziś domyślna
+   w systemie *i* ta, którą przynosi samo Android Studio. Build trzeba uruchamiać
+   z JDK 21:
+
+   ```
+   export JAVA_HOME="$(/usr/libexec/java_home -v 21)"
    ```
 
    W kreatorze startowym wystarczą **Android SDK**, **SDK Platform** i

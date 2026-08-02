@@ -18,9 +18,18 @@ let currentToken: string | null = null;
  * app exists at all.
  */
 export async function registerForPushNotifications(locale: Locale): Promise<string | null> {
+  // Every path out of this function says why. Push is best-effort and must
+  // never take the app down, but "no token appeared" is not a symptom anybody
+  // can act on - and three silent returns are what made the first registration
+  // on a real device impossible to diagnose.
+  const give = (reason: string) => {
+    console.warn(`[push] not registered: ${reason}`);
+    return null;
+  };
+
   // A simulator has no APNs/FCM registration to hand out, and asking produces
   // an error rather than a token.
-  if (!Device.isDevice) return null;
+  if (!Device.isDevice) return give("not a physical device");
 
   const existing = await Notifications.getPermissionsAsync();
   let status = existing.status;
@@ -28,11 +37,11 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
   if (status !== "granted") {
     // Only ask if we have not been refused before: iOS shows the system prompt
     // exactly once, and a second request silently resolves to denied.
-    if (!existing.canAskAgain) return null;
+    if (!existing.canAskAgain) return give("permission refused earlier and cannot be asked again");
     ({ status } = await Notifications.requestPermissionsAsync());
   }
 
-  if (status !== "granted") return null;
+  if (status !== "granted") return give(`permission ${status}`);
 
   if (Platform.OS === "android") {
     // Android needs a channel before anything can be delivered, and one
@@ -40,7 +49,14 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
     await Notifications.setNotificationChannelAsync("alerts", {
       name: "Ostrzeżenia IMGW",
       importance: Notifications.AndroidImportance.HIGH,
-      sound: "default",
+      // No `sound` key at all. expo-notifications reads that field as the name
+      // of a bundled sound file, so "default" made it hunt for a file called
+      // "default", fail to find one, and build the channel without the sound it
+      // was asked for - in the one channel whose job is to wake somebody at 3am.
+      // Omitting it is what selects the system notification sound.
+      //
+      // Android freezes a channel's sound at creation, so changing this only
+      // takes effect on a fresh install. Nothing here can migrate it.
     });
   }
 
@@ -62,9 +78,13 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
     });
     currentToken = token;
     return token;
-  } catch {
-    // No project id yet, no network, or a rejected registration. Push is a
-    // best-effort second channel - the socket still works.
+  } catch (error) {
+    // Push stays best-effort - the socket still works and the app must not
+    // fail to start over a notification channel. But the reason is logged
+    // rather than swallowed: an empty catch here is what made the first real
+    // registration on a device impossible to diagnose, and "no token appeared"
+    // is not a symptom anybody can act on.
+    console.warn("[push] registration failed", error);
     return null;
   }
 }
