@@ -42,9 +42,13 @@ const FIXED_CONTENT = 116;
 /** Below this the phone is too short for a hero at all, and cropping beats collapsing. */
 const MIN_FREE = 140;
 
-/** Ceilings, so a tall screen looks exactly as it did before this became responsive. */
+/**
+ * Ceilings. The number's came down from 96 once the icon moved beneath it: the
+ * two now read as one stack rather than as competing headlines, and the figure
+ * no longer needs to be the loudest thing on the screen to hold its place.
+ */
 const MAX_ART = 168;
-const MAX_NUMBER = 96;
+const MAX_NUMBER = 84;
 
 /** How the remaining room divides between the icon and the number. */
 const ART_SHARE = 0.6;
@@ -83,12 +87,6 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
         // shelf. This device has 471dp of hero for about 530dp of content.
         onLayout={(event) => setBoxHeight(event.nativeEvent.layout.height)}
       >
-        <WeatherArt
-          code={conditions.weatherCode}
-          timeOfDay={timeOfDayFromHour(localHour)}
-          size={artSize}
-        />
-
         {/* The number sits dead centre because the degree is balanced by an
             empty box of the same width on the left. The obvious version -
             absolutely positioning the degree past the number's right edge -
@@ -129,6 +127,22 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
             °
           </Text>
         </View>
+
+        {/* The icon sits with the words it illustrates, not three elements
+            away from them. It used to lead the block while its own caption -
+            "Bezchmurnie" - sat under the temperature, which split one statement
+            about the sky across two halves of the screen.
+            Deliberately not enlarged in the move. The two elements do not
+            benefit from size equally: conditions are a category anybody reads
+            from a thumbnail, while a temperature is a value that has to be read
+            as digits. And the background already carries the weather across all
+            four channels (design.md §2), so the icon repeats what the sky says
+            while the number is the only thing saying its own piece. */}
+        <WeatherArt
+          code={conditions.weatherCode}
+          timeOfDay={timeOfDayFromHour(localHour)}
+          size={artSize}
+        />
 
         <Text
           className="mt-1 text-2xl font-bold text-white"
