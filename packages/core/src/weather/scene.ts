@@ -25,7 +25,13 @@ export type WeatherScenePart =
 export function weatherScene(code: number, isNight: boolean): WeatherScenePart[] {
   // Clear
   if (code === 0) {
-    return [isNight ? { part: "moon" } : { part: "sun" }];
+    // Centred in the box, unlike every other scene. The renderers' default
+    // position sits the luminary high, which is right when a cloud is coming
+    // to fill the space beneath it - and wrong here, where nothing is. Left on
+    // the default, a clear sky drew a sun at 41% of its own height with a
+    // quarter of the box empty underneath, and that gap read on the hero as a
+    // hole between the icon and the temperature.
+    return [isNight ? { part: "moon", cy: 32 } : { part: "sun", cy: 32 }];
   }
 
   // Mainly clear / partly cloudy - luminary peeking from behind the cloud.

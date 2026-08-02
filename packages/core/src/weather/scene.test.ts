@@ -10,8 +10,11 @@ import { weatherScene } from "./scene";
  */
 describe("weatherScene", () => {
   it("swaps the sun for the moon at night, and only the sun", () => {
-    expect(weatherScene(0, false)).toEqual([{ part: "sun" }]);
-    expect(weatherScene(0, true)).toEqual([{ part: "moon" }]);
+    // Centred vertically, unlike every other scene: with no cloud beneath it
+    // the luminary owns the whole box, and the renderers' default position is
+    // the one meant for sitting above one.
+    expect(weatherScene(0, false)).toEqual([{ part: "sun", cy: 32 }]);
+    expect(weatherScene(0, true)).toEqual([{ part: "moon", cy: 32 }]);
 
     // Rain looks the same at 3am as at 3pm.
     expect(weatherScene(61, true)).toEqual(weatherScene(61, false));
