@@ -50,8 +50,8 @@ const MAX_NUMBER = 96;
 const ART_SHARE = 0.6;
 const NUMBER_SHARE = 0.4;
 
-/** The number's line box relative to its font size - 100/96, as it was fixed. */
-const NUMBER_LINE_RATIO = 1.04;
+/** design.md §9: leading 0.92 for the temperature figure. */
+const NUMBER_LINE_RATIO = 0.92;
 
 export function Hero({ conditions, locale, localHour, header, now }: HeroProps) {
   const messages = weatherMessages[locale];
@@ -67,6 +67,7 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
   const free = Math.max(boxHeight - FIXED_CONTENT, MIN_FREE);
   const artSize = Math.min(MAX_ART, Math.round(free * ART_SHARE));
   const numberSize = Math.min(MAX_NUMBER, Math.round((free * NUMBER_SHARE) / NUMBER_LINE_RATIO));
+  const degreeWidth = Math.round(numberSize * 0.26);
 
   return (
     <View className="flex-1 justify-between">
@@ -88,28 +89,42 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           size={artSize}
         />
 
+        {/* The number sits dead centre because the degree is balanced by an
+            empty box of the same width on the left. The obvious version -
+            absolutely positioning the degree past the number's right edge -
+            works on iOS and vanishes on Android, where a View clips children to
+            its bounds by default. Same family of trap as the font padding. */}
         <View className="mt-2 flex-row items-start">
+          <View style={{ width: degreeWidth }} />
+
           <Text
-            className="font-bold text-white"
-            // includeFontPadding is Android-only and defaults to true: the
-            // platform reserves vertical room for the tallest glyph any script
-            // might need, which at 96pt is tens of pixels of nothing. iOS has
-            // no equivalent, so the same hero was measurably taller here - and
-            // a flex child that overflows a centred box spills at both ends,
-            // which is how the place name ended up over the icon and the date
-            // under the metrics shelf.
+            className="text-white"
             style={{
               fontSize: numberSize,
+              // design.md §9: weight 200, leading 0.92, tracking -0.045em.
+              // Mobile had been rendering this bold at 1.04 - heavier and
+              // taller than the design asks - which is why the hero read as
+              // chunky rather than as the thin figure apps/web shows.
+              fontWeight: "200",
               lineHeight: Math.round(numberSize * NUMBER_LINE_RATIO),
-              letterSpacing: -numberSize / 24,
+              letterSpacing: -numberSize * 0.045,
               includeFontPadding: false,
+              // Digits of equal width, or the number jogs sideways every time
+              // it ticks over.
+              fontVariant: ["tabular-nums"],
             }}
           >
             {temperature}
           </Text>
+
           <Text
-            className="mt-3 text-5xl font-light text-white/90"
-            style={{ includeFontPadding: false }}
+            className="font-light text-white/90"
+            style={{
+              width: degreeWidth,
+              marginTop: numberSize * 0.06,
+              fontSize: numberSize * 0.32,
+              includeFontPadding: false,
+            }}
           >
             °
           </Text>
