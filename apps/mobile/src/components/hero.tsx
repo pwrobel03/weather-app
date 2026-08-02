@@ -24,38 +24,26 @@ type HeroProps = {
 };
 
 /**
- * The hero, in the layout of idea/updated/major.png and matching apps/web:
- * icon, then a very large temperature, then the condition, then the date,
- * with a strip of metrics beneath.
+ * The hero.
  *
- * Type follows design.md §9 - the number carries negative tracking and tight
- * leading, because letterforms read too far apart as they grow. Web gets that
- * from Tailwind classes; here the two values that Tailwind cannot express on
- * React Native (letterSpacing in ems, a sub-1 lineHeight) are set inline.
+ * Reordered 2026-08-02, and the order is the design: place, then when, then a
+ * large icon, then the sky in words, then how warm it is. The temperature
+ * deliberately does not lead - it is set at the same size as the place name,
+ * which makes the icon the thing the screen is about.
+ *
+ * That is a reversal of what came before, where a 96pt figure dominated and the
+ * icon illustrated it. Recorded in design.md §6 rather than left as drift.
  */
-/**
- * Vertical room the block spends on things that do not scale: the two paddings,
- * three gaps, the condition line and the date.
- */
-const FIXED_CONTENT = 116;
-
-/** Below this the phone is too short for a hero at all, and cropping beats collapsing. */
-const MIN_FREE = 140;
 
 /**
- * Ceilings. The number's came down from 96 once the icon moved beneath it: the
- * two now read as one stack rather than as competing headlines, and the figure
- * no longer needs to be the loudest thing on the screen to hold its place.
+ * Vertical room the block spends on what does not scale: its paddings, the two
+ * gaps, the condition line and the temperature.
  */
-const MAX_ART = 168;
-const MAX_NUMBER = 84;
+const FIXED_CONTENT = 104;
 
-/** How the remaining room divides between the icon and the number. */
-const ART_SHARE = 0.6;
-const NUMBER_SHARE = 0.4;
-
-/** design.md §9: leading 0.92 for the temperature figure. */
-const NUMBER_LINE_RATIO = 0.92;
+/** The icon is the only flexible element now, so it gets its own floor and ceiling. */
+const MIN_ART = 120;
+const MAX_ART = 210;
 
 export function Hero({ conditions, locale, localHour, header, now }: HeroProps) {
   const messages = weatherMessages[locale];
@@ -63,81 +51,33 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
   const condition = conditionFromWeatherCode(conditions.weatherCode);
   const temperature = Math.round(conditions.temperatureCelsius);
 
-  // Everything in the block that is not the icon or the number: the paddings,
-  // the three gaps, the condition line and the date. Subtracted first so the
-  // two flexible pieces divide what is actually left rather than what a
-  // designer's phone happened to have.
+  // Measured rather than assumed. The hero is 62% of the viewport, so what it
+  // holds has to be a proportion of *it* - fixed sizes tuned against one phone
+  // overflowed a centred flex child on a shorter one, and an overflowing
+  // centred child spills at both ends at once.
   const [boxHeight, setBoxHeight] = useState(0);
-  const free = Math.max(boxHeight - FIXED_CONTENT, MIN_FREE);
-  const artSize = Math.min(MAX_ART, Math.round(free * ART_SHARE));
-  const numberSize = Math.min(MAX_NUMBER, Math.round((free * NUMBER_SHARE) / NUMBER_LINE_RATIO));
-  const degreeWidth = Math.round(numberSize * 0.26);
+  const artSize = Math.min(MAX_ART, Math.max(MIN_ART, boxHeight - FIXED_CONTENT));
 
   return (
     <View className="flex-1 justify-between">
-      {header}
+      {/* Place and date as one group. The date used to sit at the bottom of the
+          block, three elements away from the name it qualifies; together they
+          answer one question - where and when - before the screen says anything
+          about weather. */}
+      <View className="items-center">
+        {header}
+        <Text
+          className="mt-1 text-sm font-medium text-white/75"
+          style={{ includeFontPadding: false }}
+        >
+          {formatHeroDate(now ?? new Date(), locale)}
+        </Text>
+      </View>
 
       <View
         className="flex-1 items-center justify-center px-6 pb-8 pt-4"
-        // Measured rather than assumed. The hero is 62% of the viewport, so its
-        // contents have to be a proportion of *it* - a fixed 168pt icon and a
-        // fixed 96pt number were tuned against one phone, and on a shorter one
-        // they overflowed a centred flex child, which spills at both ends: the
-        // place name ended up over the icon and the date under the metrics
-        // shelf. This device has 471dp of hero for about 530dp of content.
         onLayout={(event) => setBoxHeight(event.nativeEvent.layout.height)}
       >
-        {/* The number sits dead centre because the degree is balanced by an
-            empty box of the same width on the left. The obvious version -
-            absolutely positioning the degree past the number's right edge -
-            works on iOS and vanishes on Android, where a View clips children to
-            its bounds by default. Same family of trap as the font padding. */}
-        <View className="mt-2 flex-row items-start">
-          <View style={{ width: degreeWidth }} />
-
-          <Text
-            className="text-white"
-            style={{
-              fontSize: numberSize,
-              // design.md §9: weight 200, leading 0.92, tracking -0.045em.
-              // Mobile had been rendering this bold at 1.04 - heavier and
-              // taller than the design asks - which is why the hero read as
-              // chunky rather than as the thin figure apps/web shows.
-              fontWeight: "200",
-              lineHeight: Math.round(numberSize * NUMBER_LINE_RATIO),
-              letterSpacing: -numberSize * 0.045,
-              includeFontPadding: false,
-              // Digits of equal width, or the number jogs sideways every time
-              // it ticks over.
-              fontVariant: ["tabular-nums"],
-            }}
-          >
-            {temperature}
-          </Text>
-
-          <Text
-            className="font-light text-white/90"
-            style={{
-              width: degreeWidth,
-              marginTop: numberSize * 0.06,
-              fontSize: numberSize * 0.32,
-              includeFontPadding: false,
-            }}
-          >
-            °
-          </Text>
-        </View>
-
-        {/* The icon sits with the words it illustrates, not three elements
-            away from them. It used to lead the block while its own caption -
-            "Bezchmurnie" - sat under the temperature, which split one statement
-            about the sky across two halves of the screen.
-            Deliberately not enlarged in the move. The two elements do not
-            benefit from size equally: conditions are a category anybody reads
-            from a thumbnail, while a temperature is a value that has to be read
-            as digits. And the background already carries the weather across all
-            four channels (design.md §2), so the icon repeats what the sky says
-            while the number is the only thing saying its own piece. */}
         <WeatherArt
           code={conditions.weatherCode}
           timeOfDay={timeOfDayFromHour(localHour)}
@@ -145,16 +85,21 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
         />
 
         <Text
-          className="mt-1 text-2xl font-bold text-white"
+          className="mt-3 text-2xl font-bold text-white"
           style={{ includeFontPadding: false }}
         >
           {messages.condition[condition]}
         </Text>
+
+        {/* Same size as the place name, by decision. The degree is simply part
+            of the string now: the spacer that used to balance it existed because
+            at 96pt half a degree's width threw the figure visibly off the axis,
+            and at 24pt that offset is a couple of pixels nobody can see. */}
         <Text
-          className="mt-1 text-sm font-medium text-white/75"
-          style={{ includeFontPadding: false }}
+          className="mt-1 text-2xl font-semibold text-white"
+          style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
         >
-          {formatHeroDate(now ?? new Date(), locale)}
+          {temperature}°
         </Text>
       </View>
 
