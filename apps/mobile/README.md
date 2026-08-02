@@ -29,7 +29,7 @@ ten wymaga płatnego konta Apple Developer.
    ```
 
 3. **Projekt Firebase** — darmowy, potrzebny wyłącznie dla powiadomień push.
-   - aplikacja Androida o pakiecie `pl.wrobelpiotr.weatherapp`
+   - aplikacja Androida o pakiecie `cloud.wrobeldev.weatherapp`
    - pobrany `google-services.json` do `apps/mobile/` (jest w `.gitignore`:
      plik niesie identyfikatory projektu, a to repozytorium jest publiczne)
    - klucz konta serwisowego: Ustawienia projektu → Konta usługi → wygeneruj
