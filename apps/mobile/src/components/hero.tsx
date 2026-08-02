@@ -92,18 +92,6 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
           size={artSize}
         />
 
-        {/* The sky in words, directly under the icon that draws it. Not
-            decoration: design.md §3 requires severity and state to be readable
-            without colour, and this is the line that carries the weather for
-            anyone who cannot separate the icon's hues or is reading a phone in
-            sunlight. */}
-        <Text
-          className="mt-3 text-2xl font-bold text-white"
-          style={{ includeFontPadding: false }}
-        >
-          {messages.condition[condition]}
-        </Text>
-
         {/* The number is exactly centred, and the degree hangs in the padding.
             Symmetric horizontal padding is what makes it exact rather than
             close: the box is degree + number + degree wide, so its centre is
@@ -114,19 +102,30 @@ export function Hero({ conditions, locale, localHour, header, now }: HeroProps) 
             simply disappears there while rendering fine on iOS. */}
         <View className="mt-1" style={{ paddingHorizontal: DEGREE_SLOT }}>
           <Text
-            className="text-2xl font-semibold text-white"
+            className="text-4xl font-bold text-white"
             style={{ includeFontPadding: false, fontVariant: ["tabular-nums"] }}
           >
             {temperature}
           </Text>
 
           <Text
-            className="text-2xl font-semibold text-white"
-            style={{ position: "absolute", right: 0, top: 0, includeFontPadding: false }}
+            className="text-4xl font-semibold text-white"
+            style={{ position: "absolute", right: -5, top: -5, includeFontPadding: false }}
           >
             °
           </Text>
         </View>
+        {/* The sky in words, directly under the icon that draws it. Not
+            decoration: design.md §3 requires severity and state to be readable
+            without colour, and this is the line that carries the weather for
+            anyone who cannot separate the icon's hues or is reading a phone in
+            sunlight. */}
+        <Text
+          className="mt-3 text-2xl font-bold text-white/75"
+          style={{ includeFontPadding: false }}
+        >
+          {messages.condition[condition]}
+        </Text>
       </View>
 
       {/* The metrics strip is a translucent shelf over the gradient. Under
