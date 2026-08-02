@@ -70,6 +70,26 @@ Sprawdzenie, czy telefon jest widoczny:
 adb devices
 ```
 
+### Tunele USB, czyli pułapka, w którą wpada się co chwilę
+
+`expo run:android` ustawia przekierowanie portu Metro, ale **gubi się ono przy
+każdym odłączeniu kabla, resecie debugowania i restarcie serwera adb**. Objaw
+jest mylący: aplikacja wygląda normalnie, tylko przestaje przyjmować zmiany —
+bo pokazuje bundle pobrany wcześniej. Łatwo wtedy uznać, że poprawka nie
+działa, i szukać jej w kodzie.
+
+Backendu Expo nie przekierowuje w ogóle. Na macOS z włączoną zaporą port 8080
+po Wi-Fi jest blokowany, więc tunel jest tam jedyną drogą:
+
+```
+adb reverse tcp:8081 tcp:8081   # Metro
+adb reverse tcp:8080 tcp:8080   # backend
+adb reverse --list              # pusta lista = to jest twój problem
+```
+
+Z tunelem na 8080 aplikacja musi wołać backend po `localhost`, a nie po adresie
+w sieci — stąd `EXPO_PUBLIC_API_URL=http://localhost:8080` przy starcie Metro.
+
 ## Dlaczego push nie działa na symulatorze
 
 `registerForPushNotifications` zaczyna się od `if (!Device.isDevice) return null`
