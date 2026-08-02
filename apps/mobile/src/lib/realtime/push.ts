@@ -46,6 +46,10 @@ export async function registerForPushNotifications(locale: Locale): Promise<stri
   if (Platform.OS === "android") {
     // Android needs a channel before anything can be delivered, and one
     // created after the first notification arrives is too late for it.
+    // "alerts" is hardcoded on the backend too, in FcmPushClient's
+    // ALERTS_CHANNEL_ID. Nothing checks the two match: the first real push went
+    // out without naming a channel at all, and Firebase quietly substituted its
+    // own - discarding the importance and sound configured right here.
     await Notifications.setNotificationChannelAsync("alerts", {
       name: "Ostrzeżenia IMGW",
       importance: Notifications.AndroidImportance.HIGH,

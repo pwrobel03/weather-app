@@ -9,6 +9,14 @@ import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
 
 /**
+ * Must match the channel the mobile client creates in
+ * `registerForPushNotifications`. Two sides of one string with nothing checking
+ * it at compile time - which is exactly how the first real push landed on a
+ * fallback channel carrying none of the configured behaviour.
+ */
+const val ALERTS_CHANNEL_ID = "alerts"
+
+/**
  * One notification, in the shape FCM HTTP v1 expects.
  *
  * `data` values are all strings because FCM says so - the v1 API rejects a
@@ -104,6 +112,17 @@ class FcmPushClient(
                                 // this: it is time-critical and it is allowed to
                                 // break through Doze.
                                 "priority" to "HIGH",
+                                "notification" to mapOf(
+                                    // Names the channel the app configured with
+                                    // high importance and the system sound.
+                                    // Without it Firebase falls back to a
+                                    // channel of its own choosing and every
+                                    // decision made about this one - importance,
+                                    // sound, the lot - is silently discarded.
+                                    // The phone says so in its log: "Missing
+                                    // Default Notification Channel metadata".
+                                    "channel_id" to ALERTS_CHANNEL_ID,
+                                ),
                             ),
                         ),
                     ),
